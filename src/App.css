@@ -212,6 +212,17 @@ summary { cursor: pointer; font-weight: 750; }
 .tonight-story-card__copy p span { color: var(--gold); }
 .tonight-story-card > img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; z-index: 0; }
 .tonight-story-card__mobile-progress { display: none; }
+.garden-shortcut { position: absolute; z-index: 7; left: clamp(22px, 3vw, 42px); bottom: clamp(20px, 2.4vw, 34px); min-height: 64px; max-width: calc(100% - 44px); display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 12px 8px 9px; border: 1px solid rgba(255,255,255,.44); border-radius: 20px; color: white; background: rgba(12,31,50,.62); box-shadow: 0 12px 30px rgba(3,12,30,.28), inset 0 1px rgba(255,255,255,.16); backdrop-filter: blur(12px) saturate(.9); text-align: left; transition: transform 180ms ease, background 180ms ease, border-color 180ms ease; }
+.garden-shortcut:hover { transform: translateY(-2px); border-color: rgba(255,231,159,.8); background: rgba(18,46,55,.78); }
+.garden-shortcut:focus-visible { outline: 3px solid #ffe098; outline-offset: 3px; }
+.garden-shortcut > span:nth-child(2) { min-width: 0; }
+.garden-shortcut strong, .garden-shortcut small { display: block; white-space: nowrap; }
+.garden-shortcut strong { font-family: var(--font-display); font-size: 15px; }
+.garden-shortcut small { margin-top: 2px; color: #e8eedf; font-size: 10px; font-weight: 700; }
+.garden-shortcut__plant { width: 42px; aspect-ratio: 354.8 / 887; justify-self: center; background: url('/assets/moonflower-stages-v2.webp') 0 0 / 500% 100% no-repeat; filter: drop-shadow(0 5px 4px rgba(1,9,23,.28)); transform-origin: 50% 92%; }
+.garden-shortcut--stage-1 .garden-shortcut__plant { background-position: 25% 0; }
+.garden-shortcut--stage-2 .garden-shortcut__plant { background-position: 50% 0; }
+.garden-shortcut--stage-3 .garden-shortcut__plant { background-position: 75% 0; animation: plant-sway 4s ease-in-out infinite; }
 .night-window { position: absolute; right: 9%; top: 18%; width: 80px; height: 90px; border: 8px solid #293762; border-radius: 40px 40px 10px 10px; opacity: 0.5; z-index: 2; }
 .night-window i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: var(--gold); box-shadow: 24px 14px var(--gold), 9px 44px white; }
 .tonight-tasks { min-height: 0; display: flex; flex-direction: column; justify-content: stretch; }
@@ -566,6 +577,10 @@ summary { cursor: pointer; font-weight: 750; }
   .time-panel__copy strong, .time-panel--settle .time-panel__copy strong { color: #ffe2a0; font-size: 11px; }
   .time-panel__copy strong .icon-svg, .time-panel--settle .time-panel__copy strong .icon-svg { color: #f6c667; }
   .night-window { display: none; }
+  .garden-shortcut { left: auto; right: 10px; bottom: 10px; min-height: 42px; grid-template-columns: 28px auto; gap: 5px; padding: 5px 8px 5px 5px; border-radius: 14px; background: rgba(11,36,48,.76); }
+  .garden-shortcut__plant { width: 28px; }
+  .garden-shortcut strong { font-size: 11px; }
+  .garden-shortcut small, .garden-shortcut > .icon-svg { display: none; }
   .task-group-bar { min-height: 42px; margin-bottom: 6px; }.tonight-action { min-height: 52px; margin-top: 8px; }.screen-promise { margin-top: 6px; }
 }
 

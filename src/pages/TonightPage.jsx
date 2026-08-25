@@ -105,6 +105,8 @@ export function TonightPage() {
 
   const remaining = steps.length - resolved
   const headline = allResolved ? '今晚的小步骤都完成啦' : `今晚还有 ${remaining} 件事`
+  const gardenStage = allResolved ? 3 : Math.min(3, Math.ceil(resolved / Math.max(1, steps.length) * 3))
+  const gardenHint = ['今晚的小花盆在等你', '种子已经醒来啦', '小芽正在长大', '花苞准备好啦'][gardenStage]
   const completionMessage = rewardOpen
     ? `${profile.name}，完成任务时已经锁定 ${previewStars} 点星光。准备好就去休息吧。`
     : `${profile.name}，星光时间结束了，今晚不会扣分。完成本身也值得纪念。`
@@ -180,6 +182,11 @@ export function TonightPage() {
           <span className="tonight-story-card__mobile-progress">今晚 {steps.length} 项 · {resolved} / {steps.length} 已完成</span>
           <ThemeScene theme={profile.theme} character={profile.character} pose="waiting" label={`${profile.name}的陪伴角色安静地等你`} className="tonight-story-scene" />
           <div className="night-window" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button className={`garden-shortcut garden-shortcut--stage-${gardenStage}`} type="button" onClick={() => navigate('/garden')} aria-label={`看看星星花园，${gardenHint}`}>
+            <span className="garden-shortcut__plant" aria-hidden="true"></span>
+            <span><strong>看看星星花园</strong><small>{gardenHint}</small></span>
+            <Icon name="chevron" size={17} />
+          </button>
         </article>
       </div>
       <div className="tonight-tasks">

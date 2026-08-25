@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CHARACTER_OPTIONS, getActiveProfile } from '../domain/model.js'
+import { CHARACTER_OPTIONS, dayTypeFor, getActiveProfile, getRoutine, getSchedule, getSession, isRoutineOpen, localDateKey } from '../domain/model.js'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { Brand, SaveIndicator, StarBalance } from '../ui/Shared.jsx'
 import { CompanionArt } from '../ui/AssetArt.jsx'
@@ -16,6 +16,15 @@ export function ChildShell() {
   const [chestOpen, setChestOpen] = useState(false)
   const daytime = location.pathname === '/garden' || location.pathname === '/wishes'
   const viewName = location.pathname === '/garden' ? 'garden' : location.pathname === '/wishes' ? 'wishes' : 'tonight'
+  const dateKey = localDateKey()
+  const dayType = dayTypeFor()
+  const schedule = getSchedule(state, dayType, dateKey)
+  const routine = getRoutine(state, dayType)
+  const session = getSession(state, dateKey)
+  const activeSteps = routine.steps.filter((step) => step.enabled)
+  const statuses = session?.stepStatus || {}
+  const remaining = activeSteps.filter((step) => (statuses[step.id] || 'todo') === 'todo').length
+  const returningToActiveRoutine = location.pathname === '/garden' && session?.status !== 'goodnight' && (isRoutineOpen(schedule) || Boolean(session))
 
   useEffect(() => {
     lockParent()
@@ -27,7 +36,7 @@ export function ChildShell() {
         <Brand />
         {daytime ? (
           <nav className="child-tabs" aria-label="儿童导航">
-            <NavLink to="/tonight">今晚</NavLink>
+            <NavLink to="/tonight">{returningToActiveRoutine ? `返回今晚 · ${remaining}` : '今晚'}</NavLink>
             <NavLink to="/garden">星星花园</NavLink>
             <NavLink to="/wishes">愿望单</NavLink>
           </nav>
