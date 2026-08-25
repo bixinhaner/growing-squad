@@ -1,0 +1,13 @@
+http://70.153.136.221 {
+  respond 404
+}
+
+https://70.153.136.221 {
+  tls {
+    issuer acme {
+      profile shortlived
+    }
+  }
+
+  respond 404
+}

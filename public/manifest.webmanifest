@@ -1,0 +1,17 @@
+{
+  "name": "成长小队",
+  "short_name": "成长小队",
+  "description": "用游戏、陪伴和渐进引导帮助孩子形成自己的生活与学习习惯。",
+  "id": "/bedtime/",
+  "start_url": "/bedtime/",
+  "scope": "/bedtime/",
+  "display": "standalone",
+  "background_color": "#FFF9F1",
+  "theme_color": "#192342",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/bedtime/assets/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/bedtime/assets/app-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/bedtime/assets/app-icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

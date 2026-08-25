@@ -1,0 +1,23 @@
+[Unit]
+Description=Bedtime family cloud API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=azureuser
+Group=azureuser
+WorkingDirectory=/opt/bedtime/app
+EnvironmentFile=/etc/bedtime-cloud.env
+ExecStart=/usr/bin/node /opt/bedtime/app/server/server.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/bedtime
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

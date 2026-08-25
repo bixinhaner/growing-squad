@@ -1,0 +1,385 @@
+import { expect, test } from '@playwright/test'
+
+async function setupFamily(page, { name = '小雨', openTonight = false, prepareTime = '00:01', bedTime = '23:58', screenshotPath = null } = {}) {
+  await page.goto('/bedtime/')
+  await page.evaluate(() => window.localStorage.clear())
+  await page.reload()
+  await page.getByRole('button', { name: /和孩子一起开始/ }).click()
+  await page.getByLabel('孩子昵称').fill(name)
+  if (openTonight) {
+    await page.getByLabel('开始准备', { exact: true }).fill(prepareTime)
+    await page.getByLabel('计划完成任务', { exact: true }).fill(bedTime)
+    await page.getByText('设置周末时间').click()
+    await page.getByLabel('周末开始准备', { exact: true }).fill(prepareTime)
+    await page.getByLabel('周末计划完成', { exact: true }).fill(bedTime)
+  }
+  await page.getByLabel('家长区 PIN').fill('2468')
+  if (screenshotPath) await page.screenshot({ path: screenshotPath, fullPage: true })
+  await page.getByRole('button', { name: /保存并看看今晚/ }).click()
+}
+
+async function unlockParent(page) {
+  await page.goto('/bedtime/parent')
+  await expect(page).toHaveURL(/\/parent\/unlock/)
+  for (const digit of ['2', '4', '6', '8']) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await expect(page.getByRole('heading', { name: '本周怎么样？' })).toBeVisible()
+}
+
+test('family setup, child bedtime, persistence and parent gate work end to end', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await setupFamily(page, { openTonight: true, screenshotPath: 'artifacts/visual-qa/25-setup-updated-desktop.png' })
+
+  await expect(page.getByRole('heading', { name: /今晚还有 4 件事/ })).toBeVisible()
+  await expect(page.locator('.time-clock')).toBeVisible()
+  await expect(page.locator('.time-panel__digital')).toHaveText(/^\d{2}:\d{2}$/)
+  await expect(page.getByText(/现在完成可得 \d+ 点星光/)).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/21-tonight-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: /刷牙/ }).first().click()
+  const completedBrush = page.getByRole('button', { name: '刷牙，已完成，点按改回待完成' })
+  await expect(completedBrush).toBeVisible()
+  await completedBrush.click()
+  await expect(page.getByText('刷牙已改回待完成').last()).toBeVisible()
+  await page.getByRole('button', { name: /刷牙/ }).first().click()
+
+  await page.getByRole('button', { name: '调整今晚任务' }).click()
+  const adjustDialog = page.getByRole('dialog', { name: '调整今晚任务' })
+  await expect(adjustDialog).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/41-adjust-tonight-tasks-desktop.png', fullPage: true })
+  await adjustDialog.getByRole('button', { name: /洗脸/ }).click()
+  await expect(page.getByRole('dialog', { name: '跳过任务' })).toBeVisible()
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: 'artifacts/visual-qa/22-skip-dialog-desktop.png', fullPage: true })
+  await page.getByRole('dialog', { name: '跳过任务' }).getByRole('button', { name: '今晚跳过' }).click()
+  for (const task of ['换睡衣', '读故事']) {
+    await page.getByRole('button', { name: new RegExp(task) }).first().click()
+  }
+  await page.getByRole('button', { name: /我准备上床啦/ }).click()
+  await expect(page.getByRole('dialog', { name: '上床确认' })).toBeVisible()
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: 'artifacts/visual-qa/23-ready-dialog-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: /准备好了/ }).click()
+  const timeCheck = page.getByRole('dialog', { name: '确认上床时间' })
+  if (await timeCheck.isVisible().catch(() => false)) {
+    await timeCheck.getByRole('button', { name: /确认时间，继续结算/ }).click()
+  }
+  await expect(page.getByRole('heading', { name: '给小雨的小花浇水' })).toBeVisible()
+  await page.waitForTimeout(1350)
+  await page.screenshot({ path: 'artifacts/visual-qa/44-watering-ritual-desktop.png', fullPage: true })
+  await page.waitForTimeout(6500)
+  await page.screenshot({ path: 'artifacts/visual-qa/51-watering-early-stars-desktop.png', fullPage: true })
+  await page.waitForTimeout(4000)
+  await page.screenshot({ path: 'artifacts/visual-qa/52-watering-early-reward-desktop.png', fullPage: true })
+  await expect(page.getByRole('heading', { name: '晚安，小雨。明天见。' })).toBeVisible({ timeout: 14000 })
+  await expect(page.getByText('今晚会从 4 首轻音乐中随机选择')).toBeVisible()
+  await page.getByRole('button', { name: '随机播放 5 分钟' }).click()
+  const playingTrack = page.getByText(/正在播放：/)
+  await expect(playingTrack).toBeVisible()
+  const firstTrack = await playingTrack.textContent()
+  await page.getByRole('button', { name: '换一首' }).click()
+  await expect(playingTrack).not.toHaveText(firstTrack)
+  await page.getByRole('button', { name: '停止轻音乐' }).click()
+  await expect(page.getByText('今晚会从 4 首轻音乐中随机选择')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/24-goodnight-desktop.png', fullPage: true })
+  await page.reload()
+  await expect(page.getByRole('heading', { name: '晚安，小雨。明天见。' })).toBeVisible()
+
+  await page.goto('/bedtime/garden')
+  await expect(page.getByText(/现在有 \d+ 点星光/)).toBeVisible()
+  await expect(page.getByText('3 颗星光果实')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/32-garden-imagegen-desktop.png', fullPage: true })
+  const gardenAnimations = await page.evaluate(() => ({
+    world: getComputedStyle(document.querySelector('.garden-world img')).animationName,
+    flower: getComputedStyle(document.querySelector('.garden-day--stage-4 .garden-plant')).animationName,
+    glow: getComputedStyle(document.querySelector('.garden-glow i')).animationName,
+  }))
+  expect(gardenAnimations.world).toContain('garden-breathe')
+  expect(gardenAnimations.flower).toContain('plant-sway')
+  expect(gardenAnimations.flower).toContain('flower-glow')
+  expect(gardenAnimations.glow).toContain('garden-firefly')
+  await page.goto('/bedtime/wishes')
+  await page.getByRole('button', { name: /选一本睡前故事/ }).click()
+  await expect(page.getByRole('dialog', { name: '愿望确认' })).toBeVisible()
+  await page.getByRole('dialog', { name: '愿望确认' }).getByRole('button', { name: '关闭' }).click()
+
+  await page.getByRole('button', { name: /打开奖励宝箱/ }).click()
+  await expect(page.getByRole('dialog', { name: /奖励宝箱/ })).toBeVisible()
+  await expect(page.getByText('得到过的都在这里')).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: 'artifacts/visual-qa/34-reward-chest-desktop.png', fullPage: true })
+  await page.getByRole('dialog', { name: /奖励宝箱/ }).getByRole('button', { name: '关闭' }).click()
+
+  await unlockParent(page)
+  await expect(page.getByRole('button', { name: /补充.*的入睡时间/ })).toBeVisible()
+  const historyRange = page.getByRole('group', { name: '历史记录范围' })
+  await expect(historyRange.getByRole('button', { name: '最近 7 天' })).toHaveClass(/is-active/)
+  await historyRange.getByRole('button', { name: '全部记录' }).click()
+  await expect(page.locator('.time-history-row')).toHaveCount(1)
+  await page.screenshot({ path: 'artifacts/visual-qa/48-time-model-overview-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: /补充.*的入睡时间/ }).click()
+  await expect(page.getByRole('dialog', { name: '记录入睡时间' })).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/49-sleep-entry-modal-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: '约 20 分钟后' }).click()
+  await expect(page.getByText('20 分钟 · 1 晚')).toBeVisible()
+  await page.getByRole('button', { name: /纠正.*结算/ }).click()
+  const correctionDialog = page.getByRole('dialog', { name: '纠正今晚结算' })
+  await expect(correctionDialog).toContainText('把全部任务恢复为待完成')
+  await page.screenshot({ path: 'artifacts/visual-qa/54-undo-settlement-parent-desktop.png', fullPage: true })
+  await correctionDialog.getByRole('button', { name: '撤销结算并重新完成' }).click()
+  await expect(page.locator('.time-history-row')).toHaveCount(0)
+  await page.getByRole('button', { name: '孩子模式' }).click()
+  await expect(page.getByRole('heading', { name: /今晚还有 4 件事/ })).toBeVisible()
+})
+
+test('late bedtime keeps momentum without deducting stars', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await setupFamily(page, { openTonight: true, prepareTime: '00:01', bedTime: '00:02' })
+
+  await expect(page.getByText(/计划 00:02 完成 · 已晚 \d+ 分钟/)).toBeVisible()
+  await expect(page.getByText('完成最后 4 项，今晚不会扣分')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/38-late-gentle-coach-desktop.png', fullPage: true })
+
+  for (const task of ['刷牙', '洗脸', '换睡衣', '读故事']) {
+    await page.getByRole('button', { name: new RegExp(task) }).first().click()
+  }
+  await page.getByRole('button', { name: /我准备上床啦/ }).click()
+  await expect(page.getByText(/星光时间结束了.*今晚不会扣分.*完成本身也值得纪念/)).toBeVisible()
+  await page.getByRole('button', { name: /准备好了/ }).click()
+  await expect(page.getByRole('heading', { name: /的小花浇水/ })).toBeVisible()
+  await page.waitForTimeout(5600)
+  await expect(page.locator('.watering-ritual__message')).toHaveText('今晚没有扣分，完成本身也值得纪念')
+  await page.screenshot({ path: 'artifacts/visual-qa/39-late-goodnight-desktop.png', fullPage: true })
+
+  await page.goto('/bedtime/garden')
+  await expect(page.getByText('今晚开花')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/50-after-target-garden-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: /打开奖励宝箱/ }).click()
+  await expect(page.getByRole('dialog', { name: /奖励宝箱/ }).getByText('今晚也完成了')).toBeVisible()
+  await expect(page.getByRole('dialog', { name: /奖励宝箱/ }).getByText('纪念', { exact: true })).toBeVisible()
+
+  await unlockParent(page)
+  await expect(page.getByText(/有 1 晚超过计划完成时间，平均晚 \d+ 分钟/)).toBeVisible()
+})
+
+test('parent can manage schedules, routines, profile, accessibility and backups', async ({ page }) => {
+  await setupFamily(page)
+  await unlockParent(page)
+
+  await page.getByRole('link', { name: '作息与提醒' }).click()
+  await page.getByLabel('开始准备').fill('20:10')
+  await page.getByLabel('计划完成任务').fill('20:50')
+  await expect(page.getByText(/系统提醒/).first()).toBeVisible()
+  await expect(page.getByRole('group', { name: '作息生效时间' }).getByRole('button', { name: '今晚生效' })).toHaveClass(/is-active/)
+  await page.getByRole('button', { name: /保存作息/ }).click()
+  await expect(page.getByText('已保存，今晚按 20:50 结算星光。')).toBeVisible()
+  await expect(page.getByText('今晚在 20:50 前完成全部任务可得星光；实际上床晚一点不会扣分。')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/37-schedule-effective-tonight-desktop.png', fullPage: true })
+
+  await page.getByRole('group', { name: '作息生效时间' }).getByRole('button', { name: '下一晚生效' }).click()
+  await page.getByRole('button', { name: /保存作息/ }).click()
+  await expect(page.getByText('已保存，新时间从下一晚生效。')).toBeVisible()
+
+  await page.getByRole('link', { name: '睡前流程' }).click()
+  await page.getByRole('button', { name: '添加步骤' }).click()
+  await page.getByLabel('名称').fill('喝水')
+  await page.getByRole('button', { name: /保存流程/ }).click()
+  await expect(page.getByText('流程已经保存。')).toBeVisible()
+
+  await page.getByRole('link', { name: '星光与奖励' }).click()
+  await page.getByRole('button', { name: '记录奖励' }).click()
+  const rewardDialog = page.getByRole('dialog', { name: '记录奖励' })
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: 'artifacts/visual-qa/36-record-reward-modal-desktop.png', fullPage: true })
+  await rewardDialog.getByLabel('奖励原因').fill('今天主动整理书包')
+  await rewardDialog.getByRole('button', { name: '+5', exact: true }).click()
+  await rewardDialog.getByRole('button', { name: '保存到奖励宝箱' }).click()
+  await expect(page.getByText('今天主动整理书包').first()).toBeVisible()
+  await expect(page.getByText('+5 点').first()).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/35-parent-rewards-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: '编辑家庭愿望单' }).click()
+  await expect(page.getByRole('dialog', { name: '编辑家庭愿望单' })).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/26-rewards-editor-desktop.png', fullPage: true })
+  await page.getByRole('button', { name: '添加愿望' }).click()
+  await page.getByLabel('愿望 4 名称').fill('一起画一幅画')
+  await page.getByRole('button', { name: '保存愿望单' }).click()
+  await expect(page.getByRole('dialog', { name: '编辑家庭愿望单' })).toBeHidden()
+  await page.getByRole('button', { name: '编辑家庭愿望单' }).click()
+  await expect(page.getByLabel('愿望 4 名称')).toHaveValue('一起画一幅画')
+  await page.getByRole('button', { name: '关闭' }).click()
+
+  await page.getByRole('link', { name: '孩子资料' }).click()
+  await page.getByLabel('昵称').fill('小满')
+  await page.getByRole('button', { name: '月兔' }).click()
+  await page.getByRole('button', { name: '森林小屋' }).click()
+  await page.getByRole('button', { name: '保存资料' }).click()
+  await expect(page.getByText('已保存', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '返回孩子模式' }).click()
+  await expect(page.getByRole('img', { name: '陪伴角色：月兔' })).toBeVisible()
+  await expect(page.locator('.child-app')).toHaveClass(/theme-forest/)
+  await expect(page.locator('.tonight-story-scene .theme-world')).toHaveAttribute('src', /forest-world-v1/)
+  await expect(page.locator('.tonight-story-scene .character-pose')).toHaveCSS('background-image', /rabbit-poses-v1/)
+  await page.screenshot({ path: 'artifacts/visual-qa/60-child-rabbit-forest-desktop.png', fullPage: true })
+  await unlockParent(page)
+
+  await page.getByRole('link', { name: '无障碍' }).click()
+  await page.getByRole('switch', { name: '大号文字' }).click()
+  await expect(page.locator('html')).toHaveClass(/large-text/)
+  await page.getByRole('switch', { name: '减少动态' }).click()
+  await expect(page.locator('html')).toHaveClass(/reduce-motion/)
+
+  await page.getByRole('link', { name: '数据与隐私' }).click()
+  await page.getByRole('button', { name: /创建备份/ }).click()
+  await expect(page.getByRole('status')).toContainText('已创建一份本地备份')
+  await expect(page.getByText('1 份')).toBeVisible()
+
+  await page.reload()
+  await expect(page).toHaveURL(/\/parent\/unlock\?next=%2Fparent%2Fdata/)
+  for (const digit of ['2', '4', '6', '8']) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await expect(page.getByRole('heading', { name: '数据与隐私' })).toBeVisible()
+  await expect(page.getByText('1 份')).toBeVisible()
+})
+
+test('every companion and world theme renders as a complete layered preview', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await setupFamily(page)
+  await unlockParent(page)
+  await page.getByRole('link', { name: '孩子资料' }).click()
+
+  const combinations = [
+    { character: '眠眠熊', theme: '月光卧室', characterAsset: 'bear-poses-v1.webp', themeAsset: 'moon-room-world-v1.webp', shot: '56-theme-bear-moon-room.png' },
+    { character: '月兔', theme: '森林小屋', characterAsset: 'rabbit-poses-v1.webp', themeAsset: 'forest-world-v1.webp', shot: '57-theme-rabbit-forest.png' },
+    { character: '云朵', theme: '安静太空', characterAsset: 'cloud-poses-v1.webp', themeAsset: 'space-world-v1.webp', shot: '58-theme-cloud-space.png' },
+    { character: '太空猫', theme: '月光卧室', characterAsset: 'space-cat-poses-v1.webp', themeAsset: 'moon-room-world-v1.webp', shot: '59-theme-cat-moon-room.png' },
+  ]
+
+  for (const combination of combinations) {
+    await page.getByRole('button', { name: combination.character }).click()
+    await page.getByRole('button', { name: combination.theme }).click()
+    await expect(page.locator('.profile-preview__scene .theme-world')).toHaveAttribute('src', new RegExp(combination.themeAsset))
+    await expect(page.locator('.profile-preview__scene .character-pose')).toHaveCSS('background-image', new RegExp(combination.characterAsset.replace('.', '\\.')))
+    await page.screenshot({ path: `artifacts/visual-qa/${combination.shot}`, fullPage: true })
+  }
+})
+
+test('mobile child and parent pages stay usable without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await setupFamily(page, { name: '小禾', openTonight: true })
+  await expect(page.getByText('今晚 4 项 · 0 / 4 已完成')).toBeVisible()
+  await expect(page.getByRole('button', { name: /刷牙/ }).first()).toBeVisible()
+  await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390)
+  await page.screenshot({ path: 'artifacts/visual-qa/29-child-mobile-one-screen.png', fullPage: true })
+  await page.getByRole('button', { name: /打开奖励宝箱/ }).click()
+  await expect(page.getByRole('dialog', { name: /奖励宝箱/ })).toBeVisible()
+  await page.waitForTimeout(300)
+  await page.screenshot({ path: 'artifacts/visual-qa/37-reward-chest-mobile.png', fullPage: true })
+  const chestSize = await page.locator('.reward-chest-modal').evaluate((element) => ({ client: element.clientHeight, scroll: element.scrollHeight }))
+  expect(chestSize.scroll).toBeLessThanOrEqual(chestSize.client)
+  await page.getByRole('dialog', { name: /奖励宝箱/ }).getByRole('button', { name: '关闭' }).click()
+
+  for (const task of ['刷牙', '洗脸', '换睡衣', '读故事']) {
+    await page.getByRole('button', { name: new RegExp(task) }).first().click()
+  }
+  await page.getByRole('button', { name: /我准备上床啦/ }).click()
+  await page.getByRole('button', { name: /准备好了/ }).click()
+  const mobileTimeCheck = page.getByRole('dialog', { name: '确认上床时间' })
+  if (await mobileTimeCheck.isVisible().catch(() => false)) {
+    await mobileTimeCheck.getByRole('button', { name: /确认时间，继续结算/ }).click()
+  }
+  await expect(page.getByRole('heading', { name: '给小禾的小花浇水' })).toBeVisible()
+  await page.waitForTimeout(6800)
+  await page.screenshot({ path: 'artifacts/visual-qa/45-watering-ritual-mobile.png', fullPage: true })
+  const wateringViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth }))
+  expect(wateringViewport.document).toBeLessThanOrEqual(wateringViewport.viewport)
+  expect(wateringViewport.width).toBeLessThanOrEqual(390)
+  await page.waitForTimeout(4700)
+  await page.screenshot({ path: 'artifacts/visual-qa/53-watering-early-reward-mobile.png', fullPage: true })
+  await expect(page.getByRole('heading', { name: '晚安，小禾。明天见。' })).toBeVisible({ timeout: 14000 })
+
+  await unlockParent(page)
+  await page.getByRole('link', { name: '睡前流程' }).click()
+  await expect(page.getByRole('heading', { name: '睡前流程' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '孩子模式' })).toBeVisible()
+  const sizes = await page.evaluate(() => ({ viewport: window.innerWidth, document: document.documentElement.scrollWidth }))
+  expect(sizes.document).toBeLessThanOrEqual(sizes.viewport)
+  await page.getByRole('button', { name: '孩子模式' }).click()
+  await expect(page.getByRole('heading', { name: '晚安，小禾。明天见。' })).toBeVisible()
+  const childViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight }))
+  expect(childViewport.document).toBeLessThanOrEqual(childViewport.viewport)
+  await page.goto('/bedtime/garden')
+  await expect(page.getByRole('heading', { name: /这周已经照亮/ })).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/33-garden-imagegen-mobile.png', fullPage: true })
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844)
+  await page.goto('/bedtime/wishes')
+  await expect(page.getByRole('heading', { name: '我的愿望' })).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/31-wishes-mobile-one-screen.png', fullPage: true })
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844)
+})
+
+test('up to 16 routine steps stay visible on one screen and children stay isolated', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await setupFamily(page, { openTonight: true })
+  await unlockParent(page)
+
+  await page.getByRole('link', { name: '睡前流程' }).click()
+  for (const name of ['喝水', '整理书包', '抱抱家人', '关小灯', '选好枕头', '说晚安', '放好拖鞋', '关窗帘', '准备水杯', '抱抱玩偶', '深呼吸', '关灯']) {
+    await page.getByRole('button', { name: '添加步骤' }).click()
+    await page.getByLabel('名称').fill(name)
+  }
+  await expect(page.getByText('已启用 16 / 16 项')).toBeVisible()
+  await expect(page.getByRole('button', { name: '已到 16 项上限' })).toBeDisabled()
+  await page.getByRole('button', { name: /保存流程/ }).click()
+  await page.getByRole('button', { name: '返回孩子模式' }).click()
+
+  await expect(page.getByText('全部 16 项，一眼看完')).toBeVisible()
+  await expect(page.locator('.task-card')).toHaveCount(16)
+  await expect(page.locator('.time-clock')).toBeVisible()
+  await expect(page.locator('.deadline-coach')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '下一组任务' })).toHaveCount(0)
+  await page.screenshot({ path: 'artifacts/visual-qa/46-sixteen-tasks-desktop.png', fullPage: true })
+  const desktopTaskViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth }))
+  expect(desktopTaskViewport.document).toBeLessThanOrEqual(desktopTaskViewport.viewport)
+  expect(desktopTaskViewport.width).toBeLessThanOrEqual(1440)
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.locator('.task-card')).toHaveCount(16)
+  await page.screenshot({ path: 'artifacts/visual-qa/47-sixteen-tasks-mobile.png', fullPage: true })
+  const mobileTaskViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth }))
+  expect(mobileTaskViewport.document).toBeLessThanOrEqual(mobileTaskViewport.viewport)
+  expect(mobileTaskViewport.width).toBeLessThanOrEqual(390)
+  for (const route of ['/garden', '/wishes']) {
+    await page.goto(route)
+    const childPageViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight }))
+    expect(childPageViewport.document).toBeLessThanOrEqual(childPageViewport.viewport)
+  }
+  await page.goto('/bedtime/')
+  await expect(page.locator('.task-card')).toHaveCount(16)
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await unlockParent(page)
+  await page.getByRole('link', { name: '孩子资料' }).click()
+  await page.getByRole('button', { name: '新增孩子' }).first().click()
+  const addDialog = page.getByRole('dialog', { name: '新增孩子' })
+  await addDialog.getByLabel('孩子昵称').fill('小禾')
+  await addDialog.getByLabel('年龄段').selectOption('4–6 岁')
+  await addDialog.getByRole('button', { name: '建立孩子档案' }).click()
+  await expect(page.getByLabel('当前孩子').locator('option:checked')).toHaveText('小禾 · 4–6 岁')
+  await page.screenshot({ path: 'artifacts/visual-qa/28-multi-child-profile.png', fullPage: true })
+  await page.reload()
+  await expect(page).toHaveURL(/\/parent\/unlock/)
+  for (const digit of ['2', '4', '6', '8']) {
+    await page.getByRole('button', { name: digit, exact: true }).click()
+  }
+  await expect(page.getByLabel('当前孩子').locator('option:checked')).toHaveText('小禾 · 4–6 岁')
+  await page.getByRole('button', { name: '返回孩子模式' }).click()
+  await expect(page.getByText('晚安，小禾')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /还没到晚安时间|今晚还有 4 件事/ })).toBeVisible()
+
+  await unlockParent(page)
+  await page.getByLabel('当前孩子').selectOption({ label: '小雨 · 7–9 岁' })
+  await page.getByRole('button', { name: '返回孩子模式' }).click()
+  await expect(page.getByText('晚安，小雨')).toBeVisible()
+  await expect(page.getByText('全部 16 项，一眼看完')).toBeVisible()
+})

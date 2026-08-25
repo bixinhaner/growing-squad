@@ -1,0 +1,9 @@
+* { box-sizing: border-box; }
+html { min-width: 320px; min-height: 100%; background: #fff9f1; }
+body { margin: 0; min-width: 320px; min-height: 100vh; min-height: 100dvh; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+#root { min-height: 100vh; min-height: 100dvh; }
