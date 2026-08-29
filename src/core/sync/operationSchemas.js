@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const MODULE_IDS = ['core', 'bedtime', 'movement', 'reading', 'responsibility', 'inventor', 'growth', 'rewards']
+export const MODULE_IDS = ['core', 'bedtime', 'movement', 'reading', 'responsibility', 'inventor', 'assistant', 'growth', 'rewards']
 
 export const operationEnvelopeSchema = z.object({
   id: z.string().regex(/^op_[A-Za-z0-9_-]+$/),
@@ -80,6 +80,12 @@ const DEFINITIONS = {
   SELECT_INVENTOR_SHOWCASE_METHOD: ['inventor', 'inventor.showcase.method-selected', 'inventor-project'],
   ADD_INVENTOR_PARENT_NOTE: ['inventor', 'inventor.parent-note.added', 'inventor-project'],
   ARCHIVE_INVENTOR_PROJECT: ['inventor', 'inventor.project.archived', 'inventor-project'],
+  UPDATE_ASSISTANT_SETTINGS: ['assistant', 'assistant.settings.updated', 'assistant-settings'],
+  CREATE_ASSISTANT_SUGGESTIONS: ['assistant', 'assistant.suggestions.created', 'assistant-suggestion'],
+  EDIT_ASSISTANT_SUGGESTION: ['assistant', 'assistant.suggestion.edited', 'assistant-suggestion'],
+  APPROVE_ASSISTANT_SUGGESTION: ['assistant', 'assistant.suggestion.approved', 'assistant-suggestion'],
+  DELETE_ASSISTANT_DERIVED: ['assistant', 'assistant.derived.deleted', 'assistant-derived'],
+  RECORD_ASSISTANT_REFLECTION: ['assistant', 'assistant.reflection.recorded', 'assistant-reflection'],
 }
 
 export function operationId() {
@@ -90,7 +96,7 @@ export function createOperationEnvelope(action, profileId, clientSequence, id = 
   const [moduleId, type, entityType] = DEFINITIONS[action.type] || ['core', `core.legacy.${String(action.type || 'unknown').toLowerCase()}`, 'family']
   const payload = Object.fromEntries(Object.entries(action).filter(([key]) => !['type', 'profileId', 'expectedVersion'].includes(key)))
   const dateKey = action.dateKey || payload.dateKey
-  const entityId = action.artifactId || action.projectId || action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
+  const entityId = action.suggestionId || action.reflectionId || action.artifactId || action.projectId || action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
   return operationEnvelopeSchema.parse({
     id,
     schemaVersion: 1,
@@ -124,5 +130,6 @@ export function isChildOperation(operation) {
     'responsibility.role.completed', 'responsibility.reflection.added', 'responsibility.role-change.requested',
     'inventor.project.created', 'inventor.project.stage-updated', 'inventor.artifact.added', 'inventor.artifact.synced',
     'inventor.test.recorded', 'inventor.iteration.created', 'inventor.showcase.method-selected', 'inventor.project.archived',
+    'assistant.reflection.recorded',
   ]).has(operation.type)
 }

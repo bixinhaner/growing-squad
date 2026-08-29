@@ -6,6 +6,7 @@ const EMPTY_MODULES = {
   reading: { version: 1, books: [], sessions: {}, preferencesByProfile: {} },
   responsibility: { version: 1, routines: [], sessions: {}, scaffoldByProfile: {}, roleChangeRequests: [] },
   inventor: { version: 1, projects: [], artifacts: {}, knowledgeCards: [] },
+  assistant: { version: 1, settingsByProfile: {}, suggestions: {}, reflections: {} },
 }
 
 export function isV7State(value) {

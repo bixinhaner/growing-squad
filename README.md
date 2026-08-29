@@ -57,7 +57,7 @@ E2E 会自动启动本地 Vite 服务，覆盖首次设置、完整睡前流程�
 - `server/server.mjs`：同源 API、SQLite WAL、孩子/家长权限、操作去重、推送调度和每日备份。
 - `deploy/bedtime-cloud.service`：独立 systemd 服务，不依赖或重启同机其他应用。
 - `deploy/Caddyfile.site`：旧公网 IP 入口跳转到正式子路径。
-- `deploy/Caddyfile.bailey-route`：将静态资源、SPA 回退、云端 API 和 PWA 全部限制在 `bailey.baicells.com/bedtime/` 下，不占用 Bailey 根路径。
+- `deploy/Caddyfile.bailey-route`：将静态资源、SPA 回退、`/api/cloud/*` 与专属终端 `/api/v2/*`、PWA 全部限制在 `bailey.baicells.com/bedtime/` 下，不占用 Bailey 根路径。
 - `npm run migrate:cloud -- --input <v5.json> --output <v6.json> --bed-time 21:54`：生成并校验云端种子数据。
 - iPad 首次输入家庭连接码；之后从主屏幕打开会直接进入孩子模式。家长设置由短时家长会话授权。
 

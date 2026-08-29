@@ -6,7 +6,7 @@ redir @bedtime_exact /bedtime/ 308
 
 @bedtime_cloud {
   host bailey.baicells.com
-  path /bedtime/api/cloud/*
+  path /bedtime/api/cloud/* /bedtime/api/v2/*
 }
 handle @bedtime_cloud {
   uri strip_prefix /bedtime
@@ -26,7 +26,7 @@ handle @bedtime_app {
     X-Content-Type-Options "nosniff"
     X-Frame-Options "DENY"
     Referrer-Policy "no-referrer"
-    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Permissions-Policy "camera=(self), microphone=(self), geolocation=()"
     Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
   }
 

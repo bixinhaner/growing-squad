@@ -52,6 +52,9 @@ const InventorNewPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'Inv
 const InventorProjectPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorProjectPage')
 const InventorShowcasePage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorShowcasePage')
 const InventorParentPage = lazyNamed(() => import('./pages/InventorParentPage.jsx'), 'InventorParentPage')
+const AssistantPage = lazyNamed(() => import('./pages/AssistantPage.jsx'), 'AssistantPage')
+const WeeklyReportPage = lazyNamed(() => import('./pages/WeeklyReportPage.jsx'), 'WeeklyReportPage')
+const CompanionQuestionPage = lazyNamed(() => import('./pages/CompanionQuestionPage.jsx'), 'CompanionQuestionPage')
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
@@ -123,6 +126,7 @@ function AppRoutes() {
           <Route path="/inventor/new" element={<InventorNewPage />} />
           <Route path="/inventor/project/:projectId" element={<InventorProjectPage />} />
           <Route path="/inventor/showcase/:projectId" element={<InventorShowcasePage />} />
+          <Route path="/companion-question" element={<CompanionQuestionPage />} />
         </Route>
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
@@ -137,6 +141,8 @@ function AppRoutes() {
             <Route path="reading" element={<ReadingParentPage />} />
             <Route path="responsibility" element={<ResponsibilityParentPage />} />
             <Route path="inventor" element={<InventorParentPage />} />
+            <Route path="report" element={<WeeklyReportPage />} />
+            <Route path="assistant" element={<AssistantPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />

@@ -1,7 +1,7 @@
-const CACHE_NAME = 'growing-squad-v22'
+const CACHE_NAME = 'growing-squad-v23'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
-const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]
+const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg'), appPath('terminal-simulator.html')]
 const OBJECT_ASSETS = [
   'brush', 'wash', 'pajamas', 'story', 'toys', 'toilet', 'backpack', 'heart',
   'lamp', 'pillow', 'lotion', 'vitamin', 'craft', 'game', 'pancake', 'park',
@@ -57,6 +57,9 @@ const PRODUCT_ASSETS = [
     'platform/growth-backpack-room.webp',
     'platform/family-timeline-decoration.webp',
     'platform/support-pack-bag.webp',
+    'assistant/assistant-hero.webp',
+    'assistant/weekly-moments-atlas.webp',
+    'assistant/pocket-terminal.webp',
   ].map((path) => appPath(`assets/${path}`)),
   ...OBJECT_ASSETS.map((id) => appPath(`assets/objects/${id}.webp`)),
   ...MOVEMENT_ASSETS.map((id) => appPath(`assets/movement/${id}.webp`)),

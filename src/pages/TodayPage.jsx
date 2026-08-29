@@ -6,6 +6,7 @@ import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { AssetArt } from '../ui/AssetArt.jsx'
 import { Icon } from '../ui/Icons.jsx'
 import { appPath } from '../data/paths.js'
+import { childAssistantPrompt } from '../modules/assistant/assistantModel.js'
 
 const supportCopy = {
   together: { label: '和家长一起', icon: 'heart' },
@@ -20,6 +21,7 @@ export function TodayPage() {
   const [message, setMessage] = useState('')
   const profileId = state.activeProfileId
   const candidate = useMemo(() => deriveTodayCandidate(state, profileId), [profileId, state])
+  const companionPrompt = useMemo(() => childAssistantPrompt(state, profileId), [profileId, state])
   const dateKey = localDateKey()
 
   const choose = (option) => {
@@ -61,6 +63,7 @@ export function TodayPage() {
           <button className="today-responsibility-entry" type="button" onClick={() => navigate('/family-cottage')}><img src={appPath('assets/responsibility/place-settings.webp')} alt="" /><span><small>家庭小屋</small><strong>看看我的小角色</strong></span><Icon name="chevron" /></button>
           <button className="today-inventor-entry" type="button" onClick={() => navigate('/inventor')}><img src={appPath('assets/inventor/hair-robot-prototype-v1.webp')} alt="" /><span><small>发明家工坊</small><strong>让我的想法往前走一步</strong></span><Icon name="chevron" /></button>
         </div>
+        {companionPrompt ? <button className="today-companion-question" type="button" onClick={() => navigate('/companion-question')}><img src={appPath('assets/assistant/assistant-hero.webp')} alt="" /><span><small>{companionPrompt.eyebrow}</small><strong>{companionPrompt.question}</strong></span><Icon name="chevron" /></button> : null}
         <span className="today-context">{candidate.context}</span>
         <h1 id="today-title">{candidate.title}</h1>
         <p>{candidate.subtitle}</p>

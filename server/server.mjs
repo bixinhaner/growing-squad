@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { dirname, join, resolve } from 'node:path'
@@ -7,9 +7,10 @@ import { fileURLToPath } from 'node:url'
 import webpush from 'web-push'
 import { migrateV5 } from '../src/data/storage.js'
 import { dayTypeFor, getSchedule, localDateKey, timeToMinutes } from '../src/domain/model.js'
-import { migrateV6ToV7, normalizeV7 } from '../src/domain/v7.js'
-import { isChildOperation, operationEnvelopeSchema } from '../src/core/sync/operationSchemas.js'
+import { migrateV6ToV7, normalizeV7, toLegacyView } from '../src/domain/v7.js'
+import { createOperationEnvelope, isChildOperation, operationEnvelopeSchema } from '../src/core/sync/operationSchemas.js'
 import { rootReducer } from '../src/modules/registry.js'
+import { deriveTodayCandidate } from '../src/core/today/todayEngine.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const port = Number(process.env.BEDTIME_PORT || 8795)
@@ -91,6 +92,15 @@ db.exec(`
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS terminal_pair_codes (
+    id TEXT PRIMARY KEY,
+    family_id TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+    profile_id TEXT NOT NULL,
+    code_hash TEXT NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    used_at INTEGER,
+    created_at INTEGER NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS schema_migrations (
     id TEXT PRIMARY KEY,
     applied_at INTEGER NOT NULL
@@ -99,6 +109,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_devices_token ON devices(token_hash);
   CREATE INDEX IF NOT EXISTS idx_operations_family ON operations(family_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_media_assets_family_project ON media_assets(family_id, project_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_terminal_pair_codes_expiry ON terminal_pair_codes(expires_at);
 `)
 
 function ensureColumn(table, name, definition) {
@@ -111,6 +122,7 @@ try {
   ensureColumn('devices', 'mode', "TEXT NOT NULL DEFAULT 'shared'")
   ensureColumn('devices', 'bound_profile_id', 'TEXT')
   ensureColumn('devices', 'capabilities_json', "TEXT NOT NULL DEFAULT '{}'")
+  ensureColumn('devices', 'kind', "TEXT NOT NULL DEFAULT 'web'")
   ensureColumn('operations', 'module_id', 'TEXT')
   ensureColumn('operations', 'profile_id', 'TEXT')
   ensureColumn('operations', 'entity_type', 'TEXT')
@@ -163,8 +175,10 @@ function migrateFamilyStateToV7() {
   const update = db.prepare('UPDATE families SET state_json = ?, revision = revision + 1, updated_at = ? WHERE id = ?')
   for (const row of rows) {
     const parsed = JSON.parse(row.stateJson)
-    if (Number(parsed.version) === 7) continue
-    update.run(JSON.stringify(assertState(parsed)), now(), row.id)
+    const normalized = assertState(parsed)
+    const serialized = JSON.stringify(normalized)
+    if (serialized === row.stateJson) continue
+    update.run(serialized, now(), row.id)
   }
 }
 
@@ -241,7 +255,7 @@ function authenticate(request, allowParent = true) {
     if (session) return { ...session, role: 'parent' }
   }
   const device = db.prepare(`
-    SELECT id AS deviceId, family_id AS familyId, role, mode, bound_profile_id AS boundProfileId FROM devices
+    SELECT id AS deviceId, family_id AS familyId, role, mode, kind, bound_profile_id AS boundProfileId FROM devices
     WHERE token_hash = ? AND revoked_at IS NULL
   `).get(tokenHash)
   if (!device) return null
@@ -253,7 +267,7 @@ function familyPayload(familyId, deviceId = null) {
   const row = db.prepare('SELECT state_json AS stateJson, revision, updated_at AS updatedAt FROM families WHERE id = ?').get(familyId)
   if (!row) return null
   const state = assertState(JSON.parse(row.stateJson))
-  const device = deviceId ? db.prepare('SELECT id, name, mode, bound_profile_id AS boundProfileId FROM devices WHERE id = ?').get(deviceId) : null
+  const device = deviceId ? db.prepare('SELECT id, name, mode, kind, bound_profile_id AS boundProfileId FROM devices WHERE id = ?').get(deviceId) : null
   return { state: { ...state, security: { ...(state.security || {}), pinHash: null } }, revision: row.revision, updatedAt: row.updatedAt, device: device || undefined }
 }
 
@@ -315,7 +329,7 @@ function createParentSession(identity) {
 async function handleApi(request, response) {
   const url = new URL(request.url, 'http://localhost')
   if (request.method === 'GET' && ['/api/cloud/health', '/api/v2/health'].includes(url.pathname)) {
-    return json(response, 200, { ok: true, service: 'growing-squad', apiVersion: 2, dataVersion: 7, storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), mediaAvailable: true, mediaLimitBytes: maxMediaBytes, time: now() })
+    return json(response, 200, { ok: true, service: 'growing-squad', apiVersion: 2, dataVersion: 7, storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), mediaAvailable: true, terminalAvailable: true, assistantMode: 'local-controlled', mediaLimitBytes: maxMediaBytes, time: now() })
   }
 
   if (request.method === 'POST' && url.pathname === '/api/cloud/pair') {
@@ -338,8 +352,112 @@ async function handleApi(request, response) {
     return json(response, 201, { token, deviceId, ...familyPayload(family.id, deviceId) })
   }
 
+  if (request.method === 'POST' && url.pathname === '/api/v2/device/pair') {
+    const remote = String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || '').split(',')[0]
+    if (!checkAttempt(`terminal-pair:${remote}`)) return json(response, 429, { error: '尝试次数过多，请 10 分钟后再试。' })
+    const body = await readJson(request)
+    const code = String(body.code || '').replace(/\D/g, '').slice(0, 6)
+    const row = code.length === 6 ? db.prepare(`SELECT id, family_id AS familyId, profile_id AS profileId FROM terminal_pair_codes
+      WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?`).get(sha256(code), now()) : null
+    recordAttempt(`terminal-pair:${remote}`, Boolean(row))
+    if (!row) return json(response, 401, { error: '连接码不正确或已经过期。' })
+    const token = makeToken()
+    const timestamp = now()
+    const deviceId = randomUUID()
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const used = db.prepare('UPDATE terminal_pair_codes SET used_at = ? WHERE id = ? AND used_at IS NULL').run(timestamp, row.id)
+      if (!used.changes) throw Object.assign(new Error('连接码已经使用，请让家长重新生成。'), { status: 409 })
+      db.prepare(`INSERT INTO devices (id, family_id, token_hash, role, name, created_at, last_seen_at, mode, bound_profile_id, kind, capabilities_json)
+        VALUES (?, ?, ?, 'child', ?, ?, ?, 'dedicated', ?, 'terminal', ?)`).run(deviceId, row.familyId, sha256(token), String(body.deviceName || '口袋终端').slice(0, 40), timestamp, timestamp, row.profileId, JSON.stringify({ display: true, buttons: 3, microphone: true }))
+      db.exec('COMMIT')
+    } catch (error) { db.exec('ROLLBACK'); throw error }
+    const state = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(row.familyId).stateJson))
+    const profile = state.profiles.find((item) => item.id === row.profileId)
+    return json(response, 201, { token, device: { id: deviceId, kind: 'terminal', mode: 'dedicated', boundProfileId: row.profileId }, profile: { id: profile.id, name: profile.name } })
+  }
+
   const identity = authenticate(request)
   if (!identity) return json(response, 401, { error: '设备连接已失效，请重新连接家庭。' })
+
+  if (request.method === 'POST' && url.pathname === '/api/cloud/devices/terminal-code') {
+    if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
+    const body = await readJson(request)
+    const profileId = String(body.profileId || '')
+    const state = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
+    const profile = state.profiles.find((item) => item.id === profileId)
+    if (!profile) return json(response, 404, { error: '找不到要连接的孩子。' })
+    const timestamp = now()
+    const expiresAt = timestamp + 10 * 60_000
+    db.prepare('DELETE FROM terminal_pair_codes WHERE expires_at <= ? OR used_at IS NOT NULL').run(timestamp)
+    let code
+    for (let attempts = 0; attempts < 12; attempts += 1) {
+      code = String(randomInt(0, 1_000_000)).padStart(6, '0')
+      try {
+        db.prepare('INSERT INTO terminal_pair_codes (id, family_id, profile_id, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(randomUUID(), identity.familyId, profileId, sha256(code), expiresAt, timestamp)
+        break
+      } catch (error) { if (attempts === 11) throw error }
+    }
+    return json(response, 201, { code, expiresAt, profile: { id: profile.id, name: profile.name } })
+  }
+
+  const terminalOnly = () => {
+    if (identity.role !== 'child' || identity.kind !== 'terminal' || identity.mode !== 'dedicated' || !identity.boundProfileId) throw Object.assign(new Error('这个接口只提供给已绑定的口袋终端。'), { status: 403 })
+    return identity.boundProfileId
+  }
+  const terminalToday = () => {
+    const profileId = terminalOnly()
+    const root = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
+    const state = toLegacyView(root, profileId)
+    const candidate = deriveTodayCandidate(state, profileId)
+    return { root, state, profileId, candidate }
+  }
+
+  if (request.method === 'GET' && url.pathname === '/api/v2/device/today') {
+    const { state, profileId, candidate } = terminalToday()
+    const profile = state.profiles.find((item) => item.id === profileId)
+    return json(response, 200, { profile: { id: profile.id, name: profile.name }, today: { period: candidate.period, context: candidate.context, title: candidate.title, subtitle: candidate.subtitle, routineId: candidate.routineId, free: candidate.free, completed: candidate.completed, options: candidate.options.slice(0, 2).map((item) => ({ id: item.id, title: item.title, action: item.action, estimatedMinutes: item.estimatedMinutes })), actions: { later: candidate.supportActions.includes('later'), help: candidate.supportActions.includes('help') } } })
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/v2/device/choice') {
+    const { profileId, candidate } = terminalToday()
+    const body = await readJson(request)
+    const dateKey = localDateKey()
+    let action
+    if (body.choice === 'later' && candidate.supportActions.includes('later')) action = { type: 'TODAY_LATER', profileId, dateKey, routineId: candidate.routineId, laterMinutes: 20 }
+    else if (body.choice === 'complete' && candidate.options.some((item) => item.action === 'complete')) action = { type: 'TODAY_COMPLETE_ITEM', profileId, dateKey }
+    else if (body.choice === 'start') {
+      const option = candidate.options.find((item) => item.id === body.optionId) || candidate.options[0]
+      if (!option || option.route) return json(response, 409, { error: '这项活动请在 iPad 上继续。', route: option?.route || '/today' })
+      action = { type: 'TODAY_CHOOSE_ITEM', profileId, dateKey, routineId: candidate.routineId, itemId: option.id }
+    } else return json(response, 400, { error: '这个选择现在不可用。' })
+    const operationId = `op_${randomUUID()}`
+    const operation = createOperationEnvelope(action, profileId, now(), operationId)
+    runAction(identity, operationId, operation)
+    return json(response, 200, { ok: true, message: body.choice === 'later' ? '好，20 分钟后再看看。' : '记下啦。' })
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/v2/device/help') {
+    const { profileId, candidate } = terminalToday()
+    if (!candidate.supportActions.includes('help')) return json(response, 409, { error: '当前活动暂时不需要求助。' })
+    const dateKey = localDateKey()
+    const action = { type: 'TODAY_CHOOSE_SUPPORT', profileId, dateKey, routineId: candidate.routineId, supportMode: 'help' }
+    const operationId = `op_${randomUUID()}`
+    runAction(identity, operationId, createOperationEnvelope(action, profileId, now(), operationId))
+    return json(response, 200, { ok: true, message: '已经告诉家长：我需要陪一下。' })
+  }
+
+  if (request.method === 'POST' && url.pathname === '/api/v2/device/reflection') {
+    const profileId = terminalOnly()
+    const body = await readJson(request)
+    const answer = String(body.answer || '').trim().slice(0, 160)
+    if (!answer) return json(response, 400, { error: '这次没有听清，可以稍后再说。' })
+    const reflectionId = `terminal-${randomUUID()}`
+    const action = { type: 'RECORD_ASSISTANT_REFLECTION', profileId, reflectionId, promptId: String(body.promptId || 'terminal-voice').slice(0, 80), answerId: String(body.answerId || 'voice').slice(0, 40), answer, source: 'terminal-voice' }
+    const operationId = `op_${randomUUID()}`
+    runAction(identity, operationId, createOperationEnvelope(action, profileId, now(), operationId))
+    return json(response, 201, { ok: true, reflectionId, message: '这句话已经留在家庭应用里。' })
+  }
 
   const mediaMatch = url.pathname.match(/^\/api\/cloud\/media\/([A-Za-z0-9_-]{8,160})$/)
   if (mediaMatch && request.method === 'PUT') {
@@ -421,7 +539,7 @@ async function handleApi(request, response) {
 
   if (request.method === 'GET' && ['/api/cloud/devices', '/api/v2/devices'].includes(url.pathname)) {
     if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
-    const devices = db.prepare(`SELECT id, name, mode, bound_profile_id AS boundProfileId,
+    const devices = db.prepare(`SELECT id, name, mode, kind, bound_profile_id AS boundProfileId,
       created_at AS createdAt, last_seen_at AS lastSeenAt, revoked_at AS revokedAt
       FROM devices WHERE family_id = ? ORDER BY revoked_at IS NOT NULL, last_seen_at DESC`).all(identity.familyId)
     return json(response, 200, { devices })

@@ -120,6 +120,10 @@ export function fetchCloudDevices() {
   return request(appPath('api/cloud/devices'), { token: getParentToken() })
 }
 
+export function createTerminalPairCode(profileId) {
+  return request(appPath('api/cloud/devices/terminal-code'), { token: getParentToken(), method: 'POST', body: { profileId } })
+}
+
 export function updateCloudDevice(deviceId, payload) {
   return request(appPath(`api/cloud/devices/${deviceId}`), { token: getParentToken(), method: 'PATCH', body: payload })
 }

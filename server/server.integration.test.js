@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { createDefaultData } from '../src/domain/model.js'
 import { createOperationEnvelope } from '../src/core/sync/operationSchemas.js'
 
@@ -42,6 +43,41 @@ async function jsonRequest(url, { token, body } = {}) {
 }
 
 describe('growing squad cloud identity isolation', () => {
+  it('pairs a one-time dedicated terminal and keeps its reflection on the bound child', async () => {
+    temporaryDirectory = await mkdtemp(join(tmpdir(), 'growing-squad-terminal-'))
+    const seed = createDefaultData()
+    seed.setupComplete = true
+    seed.security.pinHash = createHash('sha256').update('晚安小队:2468').digest('hex')
+    seed.profiles.push({ ...seed.profiles[0], id: 'child-2', name: '小禾', createdAt: Date.now(), updatedAt: Date.now() })
+    const seedPath = join(temporaryDirectory, 'seed.json')
+    await writeFile(seedPath, JSON.stringify(seed))
+    const port = 18897
+    childProcess = spawn(process.execPath, ['server/server.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, BEDTIME_PORT: String(port), BEDTIME_DATA_DIR: temporaryDirectory, BEDTIME_SEED_FILE: seedPath, BEDTIME_PAIR_CODE: 'TERMINAL-CODE' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    await waitForServer(childProcess)
+    const base = `http://127.0.0.1:${port}`
+    const web = await jsonRequest(`${base}/api/cloud/pair`, { body: { code: 'TERMINAL-CODE', deviceName: '家长浏览器' } })
+    const unlocked = await jsonRequest(`${base}/api/cloud/parent/unlock`, { token: web.body.token, body: { pin: '2468' } })
+    expect(unlocked.status).toBe(200)
+    const code = await jsonRequest(`${base}/api/cloud/devices/terminal-code`, { token: unlocked.body.token, body: { profileId: 'child-1' } })
+    expect(code.status).toBe(201)
+    expect(code.body.code).toMatch(/^\d{6}$/)
+    const terminal = await jsonRequest(`${base}/api/v2/device/pair`, { body: { code: code.body.code, deviceName: '眠眠终端' } })
+    expect(terminal.status).toBe(201)
+    expect(terminal.body.device).toMatchObject({ kind: 'terminal', mode: 'dedicated', boundProfileId: 'child-1' })
+    expect((await jsonRequest(`${base}/api/v2/device/pair`, { body: { code: code.body.code } })).status).toBe(401)
+    const today = await jsonRequest(`${base}/api/v2/device/today`, { token: terminal.body.token })
+    expect(today.status).toBe(200)
+    expect(today.body.profile).toMatchObject({ id: 'child-1' })
+    const reflection = await jsonRequest(`${base}/api/v2/device/reflection`, { token: terminal.body.token, body: { promptId: 'device-check', answer: '我想自己先试一试' } })
+    expect(reflection.status).toBe(201)
+    const state = await jsonRequest(`${base}/api/cloud/state`, { token: web.body.token })
+    expect(Object.values(state.body.state.modules.assistant.reflections)).toEqual([expect.objectContaining({ profileId: 'child-1', answer: '我想自己先试一试', source: 'terminal-voice' })])
+  })
+
   it('keeps two dedicated devices isolated and rejects a different child target', async () => {
     temporaryDirectory = await mkdtemp(join(tmpdir(), 'growing-squad-server-'))
     const seed = createDefaultData()
@@ -119,5 +155,22 @@ describe('growing squad cloud identity isolation', () => {
     expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(bytes)
     const health = await jsonRequest(`${base}/api/cloud/health`)
     expect(health.body).toMatchObject({ mediaAvailable: true, mediaLimitBytes: 12 * 1024 * 1024 })
+  })
+
+  it('writes newly introduced v7 module defaults during startup normalization', async () => {
+    temporaryDirectory = await mkdtemp(join(tmpdir(), 'growing-squad-normalize-'))
+    const seed = createDefaultData()
+    delete seed.modules.assistant
+    const seedPath = join(temporaryDirectory, 'seed.json')
+    await writeFile(seedPath, JSON.stringify(seed))
+    const port = 18898
+    childProcess = spawn(process.execPath, ['server/server.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, BEDTIME_PORT: String(port), BEDTIME_DATA_DIR: temporaryDirectory, BEDTIME_SEED_FILE: seedPath, BEDTIME_PAIR_CODE: 'NORMALIZE-CODE' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    await waitForServer(childProcess)
+    const pair = await jsonRequest(`http://127.0.0.1:${port}/api/cloud/pair`, { body: { code: 'NORMALIZE-CODE', deviceName: '验证设备' } })
+    expect(pair.body.state.modules.assistant).toMatchObject({ version: 1, settingsByProfile: {}, suggestions: {}, reflections: {} })
   })
 })

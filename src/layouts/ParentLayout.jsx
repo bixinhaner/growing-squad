@@ -9,6 +9,8 @@ import { CharacterPose } from '../ui/ThemeArt.jsx'
 const navItems = [
   { to: '/parent/overview', label: '家庭概览', icon: 'home' },
   { to: '/parent/timeline', label: '今日与时间线', icon: 'clock' },
+  { to: '/parent/report', label: '小队周报', icon: 'book' },
+  { to: '/parent/assistant', label: '小队助手', icon: 'sparkle' },
   { to: '/parent/support', label: '孩子与支持', icon: 'heart' },
   { to: '/parent/movement', label: '运动小队', icon: 'sparkle' },
   { to: '/parent/reading', label: '阅读桥梁', icon: 'book' },
