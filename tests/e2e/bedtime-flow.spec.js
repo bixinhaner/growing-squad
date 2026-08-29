@@ -28,6 +28,7 @@ async function unlockParent(page) {
 }
 
 test('family setup, child bedtime, persistence and parent gate work end to end', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-08-29T20:00:00+08:00'))
   await page.setViewportSize({ width: 1440, height: 900 })
   await setupFamily(page, { openTonight: true, screenshotPath: 'artifacts/visual-qa/25-setup-updated-desktop.png' })
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'growing-squad-v20'
+const CACHE_NAME = 'growing-squad-v21'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]
@@ -17,6 +17,11 @@ const MOVEMENT_ASSETS = [
 const READING_ASSETS = [
   'hedgehog-lantern', 'star-path', 'leaf-boat', 'four-seasons-garden', 'talking-tree', 'cloud-whisper',
   'robot-seed', 'fox-bridge', 'dream-train', 'waiting-dinosaur', 'pocket-ocean', 'singing-tree',
+]
+const RESPONSIBILITY_ASSETS = [
+  'place-settings', 'fold-napkins', 'pack-backpack', 'tidy-toys', 'laundry-basket', 'water-plant',
+  'set-cups', 'match-socks', 'wipe-table', 'feed-pet', 'shelve-books', 'bring-tissues',
+  'place-settings-carry', 'place-settings-position', 'place-settings-check',
 ]
 const PRODUCT_ASSETS = [
   ...[
@@ -51,10 +56,14 @@ const PRODUCT_ASSETS = [
   ...OBJECT_ASSETS.map((id) => appPath(`assets/objects/${id}.webp`)),
   ...MOVEMENT_ASSETS.map((id) => appPath(`assets/movement/${id}.webp`)),
   ...READING_ASSETS.map((id) => appPath(`assets/reading/${id}.webp`)),
+  ...RESPONSIBILITY_ASSETS.map((id) => appPath(`assets/responsibility/${id}.webp`)),
   appPath('assets/movement/energy-plaza-hero.webp'),
   appPath('assets/movement/balloon-active-hero.webp'),
   appPath('assets/reading/story-treehouse-hero.webp'),
   appPath('assets/reading/reading-companion.webp'),
+  appPath('assets/responsibility/family-cottage-hero.webp'),
+  appPath('assets/responsibility/family-table-active.webp'),
+  appPath('assets/responsibility/family-table-complete.webp'),
 ]
 
 async function precacheApp() {

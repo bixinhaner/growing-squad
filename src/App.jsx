@@ -1,11 +1,8 @@
-import { Component, useEffect, useRef, useState } from 'react'
+import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ChildShell } from './layouts/ChildShell.jsx'
 import { ParentLayout } from './layouts/ParentLayout.jsx'
-import { AccessibilityPage } from './pages/AccessibilityPage.jsx'
 import { CloudPairPage } from './pages/CloudPairPage.jsx'
-import { DataPage } from './pages/DataPage.jsx'
-import { DevicesPage } from './pages/DevicesPage.jsx'
 import { GardenPage } from './pages/GardenPage.jsx'
 import { GoodnightPage } from './pages/GoodnightPage.jsx'
 import { ParentGatePage } from './pages/ParentGatePage.jsx'
@@ -24,11 +21,6 @@ import { WorldPage } from './pages/WorldPage.jsx'
 import { MePage } from './pages/MePage.jsx'
 import { FamilyTimelinePage } from './pages/FamilyTimelinePage.jsx'
 import { SupportPage } from './pages/SupportPage.jsx'
-import { MovementChoicePage, MovementPlayPage, MovementReadyPage } from './pages/MovementPage.jsx'
-import { EnergyPlazaPage } from './pages/EnergyPlazaPage.jsx'
-import { MovementParentPage } from './pages/MovementParentPage.jsx'
-import { ReadingShelfPage, ReadingBookPage, ReadingPlayPage } from './pages/ReadingPage.jsx'
-import { ReadingParentPage } from './pages/ReadingParentPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -37,6 +29,24 @@ import { useBedtimeActions } from './store/useBedtime.js'
 import { Icon } from './ui/Icons.jsx'
 import { SoundEffectsBridge } from './audio/SoundEffectsBridge.jsx'
 import './app.css'
+
+const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })))
+const MovementChoicePage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementChoicePage')
+const MovementReadyPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementReadyPage')
+const MovementPlayPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementPlayPage')
+const EnergyPlazaPage = lazyNamed(() => import('./pages/EnergyPlazaPage.jsx'), 'EnergyPlazaPage')
+const MovementParentPage = lazyNamed(() => import('./pages/MovementParentPage.jsx'), 'MovementParentPage')
+const ReadingShelfPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingShelfPage')
+const ReadingBookPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingBookPage')
+const ReadingPlayPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingPlayPage')
+const ReadingParentPage = lazyNamed(() => import('./pages/ReadingParentPage.jsx'), 'ReadingParentPage')
+const FamilyCottagePage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'FamilyCottagePage')
+const ResponsibilityRolePage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'ResponsibilityRolePage')
+const ResponsibilityPlayPage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'ResponsibilityPlayPage')
+const ResponsibilityParentPage = lazyNamed(() => import('./pages/ResponsibilityParentPage.jsx'), 'ResponsibilityParentPage')
+const AccessibilityPage = lazyNamed(() => import('./pages/AccessibilityPage.jsx'), 'AccessibilityPage')
+const DevicesPage = lazyNamed(() => import('./pages/DevicesPage.jsx'), 'DevicesPage')
+const DataPage = lazyNamed(() => import('./pages/DataPage.jsx'), 'DataPage')
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
@@ -100,6 +110,10 @@ function AppRoutes() {
           <Route path="/story-treehouse" element={<ReadingShelfPage />} />
           <Route path="/reading/book/:bookId" element={<ReadingBookPage />} />
           <Route path="/reading/play/:sessionId" element={<ReadingPlayPage />} />
+          <Route path="/responsibility" element={<FamilyCottagePage />} />
+          <Route path="/family-cottage" element={<FamilyCottagePage />} />
+          <Route path="/responsibility/role/:activityId/:sessionId" element={<ResponsibilityRolePage />} />
+          <Route path="/responsibility/play/:activityId/:sessionId" element={<ResponsibilityPlayPage />} />
         </Route>
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
@@ -112,6 +126,7 @@ function AppRoutes() {
             <Route path="support" element={<SupportPage />} />
             <Route path="movement" element={<MovementParentPage />} />
             <Route path="reading" element={<ReadingParentPage />} />
+            <Route path="responsibility" element={<ResponsibilityParentPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />
@@ -134,7 +149,7 @@ function CloudBoundary() {
     return <main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>成长小队正在打开家庭花园…</strong><span className="spinner" /></main>
   }
   if (cloud.mode === 'pairing') return <CloudPairPage onPaired={pairCloud} />
-  return <><SoundEffectsBridge /><BrowserRouter basename={APP_BASENAME}><AppRoutes /></BrowserRouter><UpdateNotice /></>
+  return <><SoundEffectsBridge /><BrowserRouter basename={APP_BASENAME}><Suspense fallback={<main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>正在打开这片小天地…</strong><span className="spinner" /></main>}><AppRoutes /></Suspense></BrowserRouter><UpdateNotice /></>
 }
 
 function UpdateNotice() {

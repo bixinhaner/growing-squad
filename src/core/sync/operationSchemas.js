@@ -61,6 +61,15 @@ const DEFINITIONS = {
   COMPLETE_READING_SESSION: ['reading', 'reading.session.completed', 'reading-session'],
   RECORD_READING_DIFFICULTY: ['reading', 'reading.difficulty.recorded', 'reading-session'],
   ADD_READING_REFLECTION: ['reading', 'reading.reflection.added', 'reading-session'],
+  UPSERT_RESPONSIBILITY_ROUTINE: ['responsibility', 'responsibility.routine.upserted', 'responsibility-routine'],
+  ROTATE_RESPONSIBILITY_ROLES: ['responsibility', 'responsibility.rotation.updated', 'responsibility-routine'],
+  UPDATE_RESPONSIBILITY_SCAFFOLD: ['responsibility', 'responsibility.scaffold.updated', 'responsibility-scaffold'],
+  REQUEST_RESPONSIBILITY_ROLE_CHANGE: ['responsibility', 'responsibility.role-change.requested', 'responsibility-request'],
+  RESOLVE_RESPONSIBILITY_REQUEST: ['responsibility', 'responsibility.request.resolved', 'responsibility-request'],
+  START_RESPONSIBILITY_SESSION: ['responsibility', 'responsibility.session.started', 'responsibility-session'],
+  REQUEST_RESPONSIBILITY_HELP: ['responsibility', 'responsibility.help.requested', 'responsibility-session'],
+  COMPLETE_RESPONSIBILITY_ROLE: ['responsibility', 'responsibility.role.completed', 'responsibility-session'],
+  ADD_RESPONSIBILITY_REFLECTION: ['responsibility', 'responsibility.reflection.added', 'responsibility-session'],
 }
 
 export function operationId() {
@@ -101,5 +110,7 @@ export function isChildOperation(operation) {
     'movement.activity.completed', 'movement.feedback.recorded', 'movement.activity.skipped',
     'reading.mode.selected', 'reading.session.started', 'reading.help.requested',
     'reading.session.completed', 'reading.difficulty.recorded', 'reading.reflection.added',
+    'responsibility.session.started', 'responsibility.help.requested',
+    'responsibility.role.completed', 'responsibility.reflection.added', 'responsibility.role-change.requested',
   ]).has(operation.type)
 }

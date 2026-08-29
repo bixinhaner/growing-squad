@@ -17,7 +17,9 @@ export function ChildShell() {
   const [chestOpen, setChestOpen] = useState(false)
   const platformView = ['/today', '/world', '/me'].includes(location.pathname)
   const readingView = location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse'
-  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes' || location.pathname.startsWith('/movement') || location.pathname === '/energy-plaza' || location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse'
+  const responsibilityView = location.pathname.startsWith('/responsibility') || location.pathname === '/family-cottage'
+  const moduleNavView = readingView || responsibilityView
+  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes' || location.pathname.startsWith('/movement') || location.pathname === '/energy-plaza' || location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse' || responsibilityView
   const showChildTabs = location.pathname === '/garden' || location.pathname === '/wishes'
   const viewName = (location.pathname.replace(/^\//, '').replaceAll('/', '-') || 'today')
   const dateKey = localDateKey()
@@ -39,7 +41,7 @@ export function ChildShell() {
       <header className="child-header">
         <Brand />
         {daytime ? (
-          readingView ? <nav className="child-tabs reading-tabs" aria-label="阅读导航">
+          moduleNavView ? <nav className="child-tabs reading-tabs" aria-label="成长模块导航">
             <NavLink to="/today">今天</NavLink>
             <NavLink to="/world">小队世界</NavLink>
             <NavLink to="/me">我的</NavLink>
@@ -52,7 +54,7 @@ export function ChildShell() {
         <div className="child-header__actions">
           <CompanionArt id={character.id} label={`陪伴角色：${character.name}`} className="child-character" />
           <span className="child-greeting">{daytime ? `你好，${profile.name}` : `晚安，${profile.name}`}</span>
-          {readingView ? null : <StarBalance onClick={() => setChestOpen(true)} />}
+          {moduleNavView ? null : <StarBalance onClick={() => setChestOpen(true)} />}
           <button className="parent-link" type="button" onClick={() => navigate('/parent')}>家长区</button>
         </div>
       </header>

@@ -58,6 +58,7 @@ export function TodayPage() {
         <div className="today-module-entries" aria-label="成长探索">
           <button className="today-movement-entry" type="button" onClick={() => navigate('/movement')}><img src={appPath('assets/movement/balloon-keep-up.webp')} alt="" /><span><small>运动小队</small><strong>选一个好玩的活动</strong></span><Icon name="chevron" /></button>
           <button className="today-reading-entry" type="button" onClick={() => navigate('/reading')}><img src={appPath('assets/reading/hedgehog-lantern.webp')} alt="" /><span><small>故事树屋</small><strong>选一本家里的书</strong></span><Icon name="chevron" /></button>
+          <button className="today-responsibility-entry" type="button" onClick={() => navigate('/family-cottage')}><img src={appPath('assets/responsibility/place-settings.webp')} alt="" /><span><small>家庭小屋</small><strong>看看我的小角色</strong></span><Icon name="chevron" /></button>
         </div>
         <span className="today-context">{candidate.context}</span>
         <h1 id="today-title">{candidate.title}</h1>
