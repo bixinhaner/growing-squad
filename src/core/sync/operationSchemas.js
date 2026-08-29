@@ -46,6 +46,13 @@ const DEFINITIONS = {
   TODAY_SKIP: ['core', 'core.today.skipped', 'today-decision'],
   TODAY_LATER: ['core', 'core.today.later', 'today-decision'],
   UPDATE_SCAFFOLD: ['core', 'core.scaffold.updated', 'scaffold-state'],
+  SELECT_MOVEMENT_ACTIVITY: ['movement', 'movement.activity.selected', 'movement-session'],
+  START_MOVEMENT_ACTIVITY: ['movement', 'movement.activity.started', 'movement-session'],
+  REQUEST_MOVEMENT_HELP: ['movement', 'movement.help.requested', 'movement-session'],
+  COMPLETE_MOVEMENT_ACTIVITY: ['movement', 'movement.activity.completed', 'movement-session'],
+  RECORD_MOVEMENT_FEEDBACK: ['movement', 'movement.feedback.recorded', 'movement-session'],
+  SKIP_MOVEMENT_ACTIVITY: ['movement', 'movement.activity.skipped', 'movement-session'],
+  UPDATE_MOVEMENT_PREFERENCES: ['movement', 'movement.preferences.updated', 'movement-preferences'],
 }
 
 export function operationId() {
@@ -56,7 +63,7 @@ export function createOperationEnvelope(action, profileId, clientSequence, id = 
   const [moduleId, type, entityType] = DEFINITIONS[action.type] || ['core', `core.legacy.${String(action.type || 'unknown').toLowerCase()}`, 'family']
   const payload = Object.fromEntries(Object.entries(action).filter(([key]) => !['type', 'profileId', 'expectedVersion'].includes(key)))
   const dateKey = action.dateKey || payload.dateKey
-  const entityId = action.stepId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
+  const entityId = action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
   return operationEnvelopeSchema.parse({
     id,
     schemaVersion: 1,
@@ -82,5 +89,7 @@ export function isChildOperation(operation) {
     'bedtime.in-bed.confirmed', 'rewards.wish.requested',
     'core.today.item-selected', 'core.today.completed', 'core.today.support-chosen',
     'core.today.skipped', 'core.today.later',
+    'movement.activity.selected', 'movement.activity.started', 'movement.help.requested',
+    'movement.activity.completed', 'movement.feedback.recorded', 'movement.activity.skipped',
   ]).has(operation.type)
 }

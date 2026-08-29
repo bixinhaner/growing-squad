@@ -16,8 +16,9 @@ export function ChildShell() {
   const navigate = useNavigate()
   const [chestOpen, setChestOpen] = useState(false)
   const platformView = ['/today', '/world', '/me'].includes(location.pathname)
-  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes'
-  const viewName = location.pathname.replace('/', '') || 'today'
+  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes' || location.pathname.startsWith('/movement') || location.pathname === '/energy-plaza'
+  const showChildTabs = location.pathname === '/garden' || location.pathname === '/wishes'
+  const viewName = (location.pathname.replace(/^\//, '').replaceAll('/', '-') || 'today')
   const dateKey = localDateKey()
   const dayType = dayTypeFor()
   const schedule = getSchedule(state, dayType, dateKey)
@@ -37,7 +38,7 @@ export function ChildShell() {
       <header className="child-header">
         <Brand />
         {daytime ? (
-          !platformView ? <nav className="child-tabs" aria-label="儿童导航">
+          showChildTabs ? <nav className="child-tabs" aria-label="儿童导航">
             <NavLink to="/today">返回今天</NavLink>
             <NavLink to="/tonight">{returningToActiveRoutine ? `返回今晚 · ${remaining}` : '今晚'}</NavLink>
             <NavLink to="/garden">星星花园</NavLink>
@@ -45,7 +46,7 @@ export function ChildShell() {
         ) : null}
         <div className="child-header__actions">
           <CompanionArt id={character.id} label={`陪伴角色：${character.name}`} className="child-character" />
-          <span className="child-greeting">{platformView ? `你好，${profile.name}` : `晚安，${profile.name}`}</span>
+          <span className="child-greeting">{daytime ? `你好，${profile.name}` : `晚安，${profile.name}`}</span>
           <StarBalance onClick={() => setChestOpen(true)} />
           <button className="parent-link" type="button" onClick={() => navigate('/parent')}>家长区</button>
         </div>

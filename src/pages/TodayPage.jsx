@@ -55,6 +55,7 @@ export function TodayPage() {
         <span>慢慢来，一次只做一件</span>
       </aside>
       <article className={`today-card ${candidate.free ? 'today-card--free' : ''}`}>
+        <button className="today-movement-entry" type="button" onClick={() => navigate('/movement')}><img src={appPath('assets/movement/balloon-keep-up.webp')} alt="" /><span><small>运动小队</small><strong>选一个好玩的活动</strong></span><Icon name="chevron" /></button>
         <span className="today-context">{candidate.context}</span>
         <h1 id="today-title">{candidate.title}</h1>
         <p>{candidate.subtitle}</p>

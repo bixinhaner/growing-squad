@@ -1,4 +1,4 @@
-const CACHE_NAME = 'growing-squad-v18'
+const CACHE_NAME = 'growing-squad-v19'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]
@@ -7,6 +7,12 @@ const OBJECT_ASSETS = [
   'lamp', 'pillow', 'lotion', 'vitamin', 'craft', 'game', 'pancake', 'park',
   'icecream', 'pizza', 'movie', 'marshmallow', 'coin', 'bicycle', 'courage', 'outing',
   'toy-train', 'music-box', 'dinosaur', 'sleepover', 'blocks', 'zoo', 'cooking', 'surprise',
+]
+const MOVEMENT_ASSETS = [
+  'balloon-keep-up', 'robot-dance', 'pillow-obstacle', 'sock-basket', 'animal-jumps',
+  'tape-balance', 'color-reaction', 'robot-delivery', 'bike-color-hunt', 'scooter-slalom',
+  'park-treasure', 'family-relay', 'hopscotch', 'jump-rope', 'beanbag-catch', 'ball-pass',
+  'safe-climb', 'one-foot-statue', 'shadow-chase', 'stump-expedition',
 ]
 const PRODUCT_ASSETS = [
   ...[
@@ -39,6 +45,9 @@ const PRODUCT_ASSETS = [
     'platform/support-pack-bag.webp',
   ].map((path) => appPath(`assets/${path}`)),
   ...OBJECT_ASSETS.map((id) => appPath(`assets/objects/${id}.webp`)),
+  ...MOVEMENT_ASSETS.map((id) => appPath(`assets/movement/${id}.webp`)),
+  appPath('assets/movement/energy-plaza-hero.webp'),
+  appPath('assets/movement/balloon-active-hero.webp'),
 ]
 
 async function precacheApp() {

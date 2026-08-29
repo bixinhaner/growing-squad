@@ -10,6 +10,7 @@ const navItems = [
   { to: '/parent/overview', label: '家庭概览', icon: 'home' },
   { to: '/parent/timeline', label: '今日与时间线', icon: 'clock' },
   { to: '/parent/support', label: '孩子与支持', icon: 'heart' },
+  { to: '/parent/movement', label: '运动小队', icon: 'sparkle' },
   { to: '/parent/schedule', label: '作息与提醒', icon: 'clock' },
   { to: '/parent/routine', label: '睡前流程', icon: 'book' },
   { to: '/parent/rewards', label: '星光与奖励', icon: 'star' },

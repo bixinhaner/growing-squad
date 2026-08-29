@@ -24,6 +24,9 @@ import { WorldPage } from './pages/WorldPage.jsx'
 import { MePage } from './pages/MePage.jsx'
 import { FamilyTimelinePage } from './pages/FamilyTimelinePage.jsx'
 import { SupportPage } from './pages/SupportPage.jsx'
+import { MovementChoicePage, MovementPlayPage, MovementReadyPage } from './pages/MovementPage.jsx'
+import { EnergyPlazaPage } from './pages/EnergyPlazaPage.jsx'
+import { MovementParentPage } from './pages/MovementParentPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -87,6 +90,10 @@ function AppRoutes() {
           <Route path="/tonight" element={<TonightPage />} />
           <Route path="/garden" element={<GardenPage />} />
           <Route path="/wishes" element={<WishesPage />} />
+          <Route path="/movement" element={<MovementChoicePage />} />
+          <Route path="/movement/ready/:activityId/:sessionId" element={<MovementReadyPage />} />
+          <Route path="/movement/play/:sessionId" element={<MovementPlayPage />} />
+          <Route path="/energy-plaza" element={<EnergyPlazaPage />} />
         </Route>
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
@@ -97,6 +104,7 @@ function AppRoutes() {
             <Route path="overview" element={<ParentOverviewPage />} />
             <Route path="timeline" element={<FamilyTimelinePage />} />
             <Route path="support" element={<SupportPage />} />
+            <Route path="movement" element={<MovementParentPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />
