@@ -101,6 +101,13 @@ db.exec(`
     used_at INTEGER,
     created_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS guardian_checks (
+    id TEXT PRIMARY KEY,
+    family_id TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    details_json TEXT NOT NULL,
+    checked_at INTEGER NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS schema_migrations (
     id TEXT PRIMARY KEY,
     applied_at INTEGER NOT NULL
@@ -110,6 +117,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_operations_family ON operations(family_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_media_assets_family_project ON media_assets(family_id, project_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_terminal_pair_codes_expiry ON terminal_pair_codes(expires_at);
+  CREATE INDEX IF NOT EXISTS idx_guardian_checks_family_time ON guardian_checks(family_id, checked_at DESC);
 `)
 
 function ensureColumn(table, name, definition) {
@@ -326,6 +334,88 @@ function createParentSession(identity) {
   return { token, expiresAt }
 }
 
+function readableBytes(value) {
+  return Number.isFinite(Number(value)) ? Number(value) : 0
+}
+
+function latestDailyBackup() {
+  const entries = readdirSync(join(dataDir, 'backups'))
+    .filter((name) => /^bedtime-\d{4}-\d{2}-\d{2}\.sqlite$/.test(name))
+    .map((name) => ({ name, path: join(dataDir, 'backups', name) }))
+    .map((item) => ({ ...item, stat: statSync(item.path) }))
+    .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)
+  return { latest: entries[0] || null, count: entries.length }
+}
+
+function verifySqliteFile(path) {
+  if (!path) return { ok: false, result: 'missing' }
+  let database
+  try {
+    database = new DatabaseSync(path, { readOnly: true })
+    const result = String(database.prepare('PRAGMA quick_check').get()?.quick_check || '')
+    return { ok: result === 'ok', result }
+  } catch {
+    return { ok: false, result: 'unreadable' }
+  } finally { database?.close() }
+}
+
+function guardianSnapshot(familyId) {
+  const family = db.prepare('SELECT state_json AS stateJson, revision, updated_at AS updatedAt FROM families WHERE id = ?').get(familyId)
+  if (!family) throw Object.assign(new Error('家庭数据不存在'), { status: 404 })
+  const state = assertState(JSON.parse(family.stateJson))
+  const primaryResult = String(db.prepare('PRAGMA quick_check').get()?.quick_check || '')
+  const { latest, count: backupCount } = latestDailyBackup()
+  const backupCheck = verifySqliteFile(latest?.path)
+  const mediaRows = db.prepare('SELECT storage_name AS storageName, byte_size AS byteSize FROM media_assets WHERE family_id = ?').all(familyId)
+  let mediaBytes = 0
+  let missingMedia = 0
+  for (const item of mediaRows) {
+    try { mediaBytes += statSync(join(mediaDir, item.storageName)).size }
+    catch { missingMedia += 1; mediaBytes += readableBytes(item.byteSize) }
+  }
+  const operations = db.prepare('SELECT COUNT(*) AS count, MAX(created_at) AS lastAt FROM operations WHERE family_id = ?').get(familyId)
+  const lastCheck = db.prepare('SELECT status, checked_at AS checkedAt FROM guardian_checks WHERE family_id = ? ORDER BY checked_at DESC LIMIT 1').get(familyId)
+  const status = primaryResult === 'ok' && backupCheck.ok && missingMedia === 0 ? 'healthy' : 'attention'
+  return {
+    status,
+    checkedAt: now(),
+    lastVerifiedAt: lastCheck?.checkedAt || null,
+    steps: {
+      cloud: { ok: true, revision: family.revision, updatedAt: family.updatedAt },
+      backup: { ok: backupCheck.ok, createdAt: latest?.stat.mtimeMs || null, date: latest?.name.slice(8, 18) || null },
+      integrity: { ok: primaryResult === 'ok' && backupCheck.ok, primary: primaryResult === 'ok', backup: backupCheck.ok },
+    },
+    records: {
+      profiles: state.profiles.length,
+      sessions: Object.keys(state.modules?.bedtime?.sessions || {}).length,
+      growthMoments: (state.growth?.moments || []).length,
+      operations: Number(operations.count || 0),
+      lastOperationAt: operations.lastAt || null,
+    },
+    storage: {
+      databaseBytes: statSync(dbPath).size,
+      mediaBytes,
+      mediaCount: mediaRows.length,
+      missingMedia,
+      latestBackupBytes: latest?.stat.size || 0,
+      backupCount,
+      retentionDays: 14,
+    },
+    privacy: { externalAiUpload: false, publicSharing: false, childTracking: false },
+  }
+}
+
+function recordGuardianCheck(familyId) {
+  const snapshot = guardianSnapshot(familyId)
+  snapshot.lastVerifiedAt = snapshot.checkedAt
+  db.prepare('INSERT INTO guardian_checks (id, family_id, status, details_json, checked_at) VALUES (?, ?, ?, ?, ?)')
+    .run(randomUUID(), familyId, snapshot.status, JSON.stringify(snapshot), snapshot.checkedAt)
+  db.prepare(`DELETE FROM guardian_checks WHERE family_id = ? AND id NOT IN (
+    SELECT id FROM guardian_checks WHERE family_id = ? ORDER BY checked_at DESC LIMIT 60
+  )`).run(familyId, familyId)
+  return snapshot
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, 'http://localhost')
   if (request.method === 'GET' && ['/api/cloud/health', '/api/v2/health'].includes(url.pathname)) {
@@ -399,6 +489,12 @@ async function handleApi(request, response) {
       } catch (error) { if (attempts === 11) throw error }
     }
     return json(response, 201, { code, expiresAt, profile: { id: profile.id, name: profile.name } })
+  }
+
+  if (['GET', 'POST'].includes(request.method) && url.pathname === '/api/cloud/guardian/health') {
+    if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
+    const snapshot = request.method === 'POST' ? recordGuardianCheck(identity.familyId) : guardianSnapshot(identity.familyId)
+    return json(response, 200, snapshot)
   }
 
   const terminalOnly = () => {
@@ -639,6 +735,7 @@ function createDailyBackup() {
     .filter((name) => /^bedtime-\d{4}-\d{2}-\d{2}\.sqlite$/.test(name))
     .sort().reverse()
   backups.slice(14).forEach((name) => unlinkSync(join(dataDir, 'backups', name)))
+  for (const family of db.prepare('SELECT id FROM families').all()) recordGuardianCheck(family.id)
 }
 
 setInterval(() => sendScheduledReminders().catch((error) => console.error('reminder scheduler failed', error)), 30_000).unref()

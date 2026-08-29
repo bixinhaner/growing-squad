@@ -38,6 +38,7 @@ export function BedtimeProvider({ children }) {
   const latestState = useRef(domainState)
   const cloudRef = useRef(cloud)
   const outboxRef = useRef(loadOutbox())
+  const [pendingCount, setPendingCount] = useState(outboxRef.current.length)
   const syncingRef = useRef(false)
   const mediaSyncingRef = useRef(false)
   const clientSequenceRef = useRef(Number(window.localStorage.getItem('growing-squad:client-sequence:v1') || 0))
@@ -56,6 +57,7 @@ export function BedtimeProvider({ children }) {
       window.localStorage.setItem('growing-squad:unresolved-outbox:v6', JSON.stringify(legacyItems))
       outboxRef.current = outboxRef.current.filter((item) => !legacyItems.includes(item))
       saveOutbox(outboxRef.current)
+      setPendingCount(outboxRef.current.length)
       setSaveStatus('retrying')
       setSaveMessage('发现旧版未同步操作。为避免记到错误的孩子，已安全保留，需由家长确认后恢复。')
       return
@@ -67,6 +69,7 @@ export function BedtimeProvider({ children }) {
     })
     clientSequenceRef.current += legacyItems.length
     saveOutbox(outboxRef.current)
+    setPendingCount(outboxRef.current.length)
   }, [domainState.profiles])
   useEffect(() => {
     let active = true
@@ -75,7 +78,7 @@ export function BedtimeProvider({ children }) {
       if (snapshot?.version === 7 && Number(snapshot.meta?.updatedAt || 0) > Number(latestState.current.meta?.updatedAt || 0)) {
         localDispatch({ type: 'REPLACE_DATA', payload: snapshot })
       }
-      if (outbox.length) outboxRef.current = outbox
+      if (outbox.length) { outboxRef.current = outbox; setPendingCount(outbox.length) }
       else saveSnapshotAndOutbox(latestState.current, outboxRef.current).catch(() => {})
     }).catch(() => {})
     return () => { active = false }
@@ -106,6 +109,7 @@ export function BedtimeProvider({ children }) {
         readItems: () => outboxRef.current,
         writeItems: (items) => {
           outboxRef.current = items
+          setPendingCount(items.length)
           saveOutbox(items)
           saveSnapshotAndOutbox(latestState.current, items).catch(() => {})
         },
@@ -223,6 +227,7 @@ export function BedtimeProvider({ children }) {
     if (!['connected', 'offline'].includes(cloudRef.current.mode)) return
     const item = { id: operation.id, operation, requiresParent: !isChildOperation(operation), queuedAt: Date.now() }
     outboxRef.current = [...outboxRef.current, item]
+    setPendingCount(outboxRef.current.length)
     saveOutbox(outboxRef.current)
     saveSnapshotAndOutbox(nextState, outboxRef.current).catch(() => {})
     if (cloudRef.current.mode === 'connected') {
@@ -342,6 +347,7 @@ export function BedtimeProvider({ children }) {
     saveDeviceToken(payload.token)
     saveOutbox([])
     outboxRef.current = []
+    setPendingCount(0)
     const nextCloud = { ...cloudRef.current, mode: 'connected', revision: payload.revision || 0, message: null }
     cloudRef.current = nextCloud
     setCloud(nextCloud)
@@ -402,7 +408,7 @@ export function BedtimeProvider({ children }) {
     } catch { setSaveStatus('error') }
   }, [connectCloud, flushCloud])
 
-  const stateValue = useMemo(() => ({ state, domainState, saveStatus, saveMessage, parentUnlocked, cloud, device: preferences }), [cloud, domainState, parentUnlocked, preferences, saveMessage, saveStatus, state])
+  const stateValue = useMemo(() => ({ state, domainState, saveStatus, saveMessage, parentUnlocked, cloud, device: preferences, pendingCount }), [cloud, domainState, parentUnlocked, pendingCount, preferences, saveMessage, saveStatus, state])
   const actionsValue = useMemo(() => ({ dispatch, unlockParent, lockParent, resetApp, replaceData, retrySave, pairCloud }), [dispatch, lockParent, pairCloud, replaceData, resetApp, retrySave, unlockParent])
 
   return (

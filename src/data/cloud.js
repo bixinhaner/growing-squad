@@ -132,6 +132,14 @@ export function revokeCloudDevice(deviceId) {
   return request(appPath(`api/cloud/devices/${deviceId}`), { token: getParentToken(), method: 'DELETE' })
 }
 
+export function fetchGuardianHealth() {
+  return request(appPath('api/cloud/guardian/health'), { token: getParentToken() })
+}
+
+export function runGuardianCheck() {
+  return request(appPath('api/cloud/guardian/health'), { token: getParentToken(), method: 'POST', body: {} })
+}
+
 export function getPushKey() {
   return request(appPath('api/cloud/push/key'), { token: getParentToken() || getDeviceToken() })
 }

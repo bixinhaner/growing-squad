@@ -245,9 +245,9 @@ test('parent can manage schedules, routines, profile, accessibility and backups'
   await expect(page.getByText('连接家庭云端后管理设备')).toBeVisible()
   await page.screenshot({ path: 'artifacts/visual-qa/63-parent-devices-desktop.png', fullPage: true })
 
-  await page.getByRole('link', { name: '数据与隐私' }).click()
-  await page.getByRole('button', { name: /创建备份/ }).click()
-  await expect(page.getByRole('status')).toContainText('已创建一份本地备份')
+  await page.getByRole('link', { name: '家庭守护' }).click()
+  await page.getByRole('button', { name: /创建本机备份/ }).click()
+  await expect(page.getByRole('status')).toContainText('已在这台设备创建一份可恢复备份')
   await expect(page.getByText('1 份')).toBeVisible()
 
   await page.reload()
@@ -255,7 +255,7 @@ test('parent can manage schedules, routines, profile, accessibility and backups'
   for (const digit of ['2', '4', '6', '8']) {
     await page.getByRole('button', { name: digit, exact: true }).click()
   }
-  await expect(page.getByRole('heading', { name: '数据与隐私' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '家庭守护中心' })).toBeVisible()
   await expect(page.getByText('1 份')).toBeVisible()
 })
 

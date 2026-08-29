@@ -76,6 +76,12 @@ describe('growing squad cloud identity isolation', () => {
     expect(reflection.status).toBe(201)
     const state = await jsonRequest(`${base}/api/cloud/state`, { token: web.body.token })
     expect(Object.values(state.body.state.modules.assistant.reflections)).toEqual([expect.objectContaining({ profileId: 'child-1', answer: '我想自己先试一试', source: 'terminal-voice' })])
+    expect((await jsonRequest(`${base}/api/cloud/guardian/health`, { token: web.body.token })).status).toBe(403)
+    const guardian = await jsonRequest(`${base}/api/cloud/guardian/health`, { token: unlocked.body.token })
+    expect(guardian.status).toBe(200)
+    expect(guardian.body).toMatchObject({ status: 'healthy', steps: { cloud: { ok: true }, backup: { ok: true }, integrity: { ok: true } }, records: { profiles: 2 }, storage: { backupCount: 1, retentionDays: 14 }, privacy: { externalAiUpload: false, publicSharing: false } })
+    const checked = await jsonRequest(`${base}/api/cloud/guardian/health`, { token: unlocked.body.token, body: {} })
+    expect(checked.body.lastVerifiedAt).toBe(checked.body.checkedAt)
   })
 
   it('keeps two dedicated devices isolated and rejects a different child target', async () => {
