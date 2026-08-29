@@ -17,18 +17,46 @@ export const DEFAULT_CAPABILITIES = [
 export function getScaffoldStates(state, profileId) {
   return DEFAULT_CAPABILITIES.map((capability) => {
     const key = `${profileId}:${capability.key}`
-    return { ...capability, id: key, profileId, ...(state.scaffold?.states?.[key] || {}) }
+    return { ...capability, id: key, profileId, ...(state.scaffold?.states?.[key] || {}), evidence: scaffoldEvidence(state, profileId, capability.key) }
   })
 }
 
 export function getScaffoldSuggestion(states) {
-  const packBag = states.find((item) => item.key === 'bedtime.pack-bag') || states[0]
-  if (!packBag) return null
-  const nextLevel = Math.min(4, Number(packBag.level || 0) + 1)
+  const candidate = states
+    .filter((item) => item.evidence.count >= 3)
+    .filter((item) => item.evidence.independentRate >= 0.75 && item.evidence.helpRate <= 0.25)
+    .filter((item) => Number(item.level || 0) < 4)
+    .sort((left, right) => right.evidence.count - left.evidence.count || right.evidence.independentRate - left.evidence.independentRate)[0]
+  if (!candidate) return null
+  const nextLevel = Math.min(4, Number(candidate.level || 0) + 1)
   return {
-    capabilityId: packBag.id,
+    capabilityId: candidate.id,
     nextLevel,
-    title: `整理书包现在使用“${SCAFFOLD_LEVELS[Number(packBag.level || 0)].label}”。`,
-    body: `如果孩子最近做起来比较轻松，下周可以试试“${SCAFFOLD_LEVELS[nextLevel].label}”。觉得吃力时随时调回来。`,
+    title: `${candidate.title}最近 ${candidate.evidence.independentCount} 次能独立完成。`,
+    body: `可以试一周“${SCAFFOLD_LEVELS[nextLevel].label}”。这是根据最近 ${candidate.evidence.count} 次记录提出的建议；觉得吃力时随时调回来。`,
+    evidence: candidate.evidence,
   }
+}
+
+function newest(values, timeKey) {
+  return values.filter(Boolean).sort((left, right) => Number(right[timeKey] || 0) - Number(left[timeKey] || 0)).slice(0, 8)
+}
+
+export function scaffoldEvidence(state, profileId, capabilityKey) {
+  let records = []
+  if (capabilityKey.startsWith('bedtime.')) {
+    const stepId = capabilityKey === 'bedtime.wash' ? 'wash' : 'backpack'
+    const sessions = Object.values(state.modules?.bedtime?.sessions || state.sessions || {}).filter((item) => item.profileId === profileId && item.stepStatus?.[stepId])
+    records = newest(sessions, 'routineCompletedAt').map((item) => ({ completed: item.stepStatus[stepId] === 'done', helped: Boolean(item.helpRequestedAt), at: item.routineCompletedAt || item.startedAt }))
+  } else if (capabilityKey.startsWith('reading.')) {
+    const sessions = Object.values(state.modules?.reading?.sessions || {}).filter((item) => item.profileId === profileId && item.startedAt)
+    records = newest(sessions, 'startedAt').map((item) => ({ completed: Boolean(item.completedAt), helped: Boolean(item.helpRequestedAt), at: item.completedAt || item.startedAt }))
+  } else if (capabilityKey.startsWith('responsibility.')) {
+    const sessions = Object.values(state.modules?.responsibility?.sessions || {}).filter((item) => item.profileId === profileId && item.startedAt)
+    records = newest(sessions, 'startedAt').map((item) => ({ completed: Boolean(item.completedAt || item.status === 'done'), helped: Boolean(item.helpRequestedAt), at: item.completedAt || item.startedAt }))
+  }
+  const count = records.length
+  const independentCount = records.filter((item) => item.completed && !item.helped).length
+  const helpCount = records.filter((item) => item.helped).length
+  return { count, independentCount, helpCount, independentRate: count ? independentCount / count : 0, helpRate: count ? helpCount / count : 0, records }
 }

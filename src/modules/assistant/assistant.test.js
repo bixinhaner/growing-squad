@@ -23,6 +23,7 @@ describe('controlled assistant', () => {
   it('stores per-child settings and local suggestions without changing core rules', () => {
     let state = initial()
     const profileId = state.profiles[0].id
+    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`${profileId}:2026-08-${20 + index}`] = { id: `${profileId}:2026-08-${20 + index}`, profileId, routineCompletedAt: 1000 + index, stepStatus: { backpack: 'done' } }
     state = reduce(state, { type: 'UPDATE_ASSISTANT_SETTINGS', profileId, settings: { enabled: true, childOneQuestion: true, scopes: { childQuotes: true } } })
     const suggestions = buildAssistantSuggestions(state, profileId)
     state = reduce(state, { type: 'CREATE_ASSISTANT_SUGGESTIONS', profileId, suggestions }, 2)

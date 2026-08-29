@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { createDefaultData, dayTypeFor, getAccessibility, getSchedule, localDateKey } from '../domain/model.js'
 import { toLegacyView } from '../domain/v7.js'
-import { deleteAllData, hashPin, loadAppData, saveAppData } from '../data/storage.js'
+import { deleteAllData, loadAppData, saveAppData, verifyPin } from '../data/storage.js'
 import {
   checkCloud,
   clearCloudConnection,
@@ -13,7 +13,7 @@ import {
   saveDeviceToken,
   saveOutbox,
   saveParentToken,
-  sendCloudAction,
+  sendCloudOperations,
   unlockCloudParent,
 } from '../data/cloud.js'
 import { BedtimeActionsContext, BedtimeStateContext } from './contexts.js'
@@ -21,10 +21,20 @@ import { drainCloudActions } from './drainCloudActions.js'
 import { playActionSound } from '../audio/soundscape.js'
 import { getCompanionPack } from '../domain/themePacks.js'
 import { useDevice } from '../core/device/deviceContext.js'
-import { createOperationEnvelope, isChildOperation } from '../core/sync/operationSchemas.js'
+import { createOperationEnvelope, entityKeyForOperation, isChildOperation, operationRequiresVersion, toLegacyAction } from '../core/sync/operationSchemas.js'
 import { rootReducer } from '../modules/registry.js'
-import { clearIndexedPersistence, loadIndexedPersistence, saveSnapshotAndOutbox } from '../core/persistence/idb.js'
+import { clearIndexedPersistence, commitOperation, loadIndexedPersistence, saveConflicts, saveSnapshotAndOutbox, storeChanges } from '../core/persistence/idb.js'
 import { syncPendingInventorMedia } from '../modules/inventor/inventorMedia.js'
+
+const SYNC_RETRY_DELAYS = [0, 1000, 3000, 10_000, 30_000, 120_000]
+const LEGACY_RECOVERY_KEY = 'growing-squad:unresolved-outbox:v6'
+
+function loadLegacyRecoveryItems() {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(LEGACY_RECOVERY_KEY) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch { return [] }
+}
 
 export function BedtimeProvider({ children }) {
   const { preferences, selectProfile, applyServerDevice } = useDevice()
@@ -39,9 +49,15 @@ export function BedtimeProvider({ children }) {
   const cloudRef = useRef(cloud)
   const outboxRef = useRef(loadOutbox())
   const [pendingCount, setPendingCount] = useState(outboxRef.current.length)
+  const [syncConflicts, setSyncConflicts] = useState([])
+  const [legacyRecoveryItems, setLegacyRecoveryItems] = useState(loadLegacyRecoveryItems)
   const syncingRef = useRef(false)
   const mediaSyncingRef = useRef(false)
   const clientSequenceRef = useRef(Number(window.localStorage.getItem('growing-squad:client-sequence:v1') || 0))
+  const cursorRef = useRef(0)
+  const entityVersionsRef = useRef({})
+  const persistenceQueueRef = useRef(Promise.resolve())
+  const retryAttemptRef = useRef(0)
   const selectedProfileId = preferences.boundProfileId
     || (domainState.profiles.some((profile) => profile.id === preferences.selectedProfileId) ? preferences.selectedProfileId : null)
     || (domainState.profiles.some((profile) => profile.id === initial.selectedProfileId) ? initial.selectedProfileId : null)
@@ -54,7 +70,8 @@ export function BedtimeProvider({ children }) {
     const legacyItems = outboxRef.current.filter((item) => !item.operation && item.action)
     if (!legacyItems.length) return
     if (domainState.profiles.length > 1 && legacyItems.some((item) => !item.action.profileId)) {
-      window.localStorage.setItem('growing-squad:unresolved-outbox:v6', JSON.stringify(legacyItems))
+      window.localStorage.setItem(LEGACY_RECOVERY_KEY, JSON.stringify(legacyItems))
+      setLegacyRecoveryItems(legacyItems)
       outboxRef.current = outboxRef.current.filter((item) => !legacyItems.includes(item))
       saveOutbox(outboxRef.current)
       setPendingCount(outboxRef.current.length)
@@ -73,13 +90,15 @@ export function BedtimeProvider({ children }) {
   }, [domainState.profiles])
   useEffect(() => {
     let active = true
-    loadIndexedPersistence().then(({ snapshot, outbox }) => {
+    loadIndexedPersistence().then(({ snapshot, outbox, cursor, conflicts }) => {
       if (!active) return
       if (snapshot?.version === 7 && Number(snapshot.meta?.updatedAt || 0) > Number(latestState.current.meta?.updatedAt || 0)) {
         localDispatch({ type: 'REPLACE_DATA', payload: snapshot })
       }
       if (outbox.length) { outboxRef.current = outbox; setPendingCount(outbox.length) }
       else saveSnapshotAndOutbox(latestState.current, outboxRef.current).catch(() => {})
+      cursorRef.current = Number(cursor || 0)
+      setSyncConflicts(conflicts || [])
     }).catch(() => {})
     return () => { active = false }
   }, [])
@@ -91,6 +110,10 @@ export function BedtimeProvider({ children }) {
   const replaceFromCloud = useCallback((payload) => {
     if (!payload?.state) return
     localDispatch({ type: 'REPLACE_DATA', payload: payload.state })
+    latestState.current = payload.state
+    cursorRef.current = Number(payload.cursor || cursorRef.current)
+    entityVersionsRef.current = { ...(payload.entityVersions || entityVersionsRef.current) }
+    if (payload.changes?.length) storeChanges(payload.changes, cursorRef.current).catch(() => {})
     if (payload.device) applyServerDevice(payload.device)
     setCloud((value) => {
       const nextCloud = { ...value, mode: 'connected', revision: payload.revision || value.revision, message: null }
@@ -110,19 +133,28 @@ export function BedtimeProvider({ children }) {
         writeItems: (items) => {
           outboxRef.current = items
           setPendingCount(items.length)
-          saveOutbox(items)
-          saveSnapshotAndOutbox(latestState.current, items).catch(() => {})
+          saveSnapshotAndOutbox(latestState.current, items, { cursor: cursorRef.current }).catch(() => {})
         },
         getToken: (item) => item.requiresParent ? getParentToken() : getDeviceToken(),
-        sendAction: (item, token) => sendCloudAction(item.id, item.operation || item.action, token),
+        cursor: cursorRef.current,
+        sendBatch: (items, cursor, token) => sendCloudOperations(items.map((item) => item.operation || item.action), cursor, token),
       })
       if (result.status === 'needs-parent') {
         setSaveStatus('retrying')
         setSaveMessage('家长设置尚未同步，请重新进入家长区验证 PIN。')
         return
       }
+      cursorRef.current = Number(result.cursor || cursorRef.current)
+      if (result.conflicts?.length) {
+        const nextConflicts = [...result.conflicts, ...syncConflicts].slice(0, 100)
+        setSyncConflicts(nextConflicts)
+        saveConflicts(nextConflicts).catch(() => {})
+      }
       if (result.payload) replaceFromCloud(result.payload)
-      else {
+      if (result.status === 'conflict') {
+        setSaveStatus('retrying')
+        setSaveMessage('另一台设备更新了其中一项，已保留最新版本；请让家长确认。')
+      } else if (!result.payload) {
         setSaveStatus('saved')
         setSaveMessage(null)
       }
@@ -147,9 +179,15 @@ export function BedtimeProvider({ children }) {
     } finally {
       syncingRef.current = false
     }
-  }, [replaceFromCloud])
+  }, [replaceFromCloud, syncConflicts])
 
   const connectCloud = useCallback(async (signal) => {
+    if (import.meta.env.VITE_DISABLE_CLOUD === 'true') {
+      const nextCloud = { mode: 'local', revision: 0, pushAvailable: false, message: null }
+      cloudRef.current = nextCloud
+      setCloud(nextCloud)
+      return
+    }
     try {
       const health = await checkCloud(signal)
       const token = getDeviceToken()
@@ -203,6 +241,20 @@ export function BedtimeProvider({ children }) {
     return () => { window.removeEventListener('online', retry); document.removeEventListener('visibilitychange', retryWhenVisible) }
   }, [connectCloud, flushCloud])
 
+  useEffect(() => {
+    if (!pendingCount || !['connected', 'offline'].includes(cloud.mode)) {
+      retryAttemptRef.current = 0
+      return undefined
+    }
+    const index = Math.min(retryAttemptRef.current, SYNC_RETRY_DELAYS.length - 1)
+    const timer = window.setTimeout(() => {
+      retryAttemptRef.current = Math.min(index + 1, SYNC_RETRY_DELAYS.length - 1)
+      if (cloudRef.current.mode === 'offline') connectCloud()
+      else flushCloud()
+    }, SYNC_RETRY_DELAYS[index])
+    return () => window.clearTimeout(timer)
+  }, [cloud.mode, connectCloud, flushCloud, pendingCount, saveStatus])
+
   const dispatch = useCallback((action) => {
     if (action.type === 'SWITCH_PROFILE') {
       if (!preferences.boundProfileId && domainState.profiles.some((profile) => profile.id === action.profileId)) selectProfile(action.profileId)
@@ -216,28 +268,44 @@ export function BedtimeProvider({ children }) {
     playActionSound(action, muted)
     clientSequenceRef.current += 1
     window.localStorage.setItem('growing-squad:client-sequence:v1', String(clientSequenceRef.current))
-    const operation = createOperationEnvelope(action, targetProfileId, clientSequenceRef.current)
-    const nextState = rootReducer(latestState.current, operation)
-    localDispatch(operation)
-    if (action.type === 'ADD_PROFILE' && action.payload?.id) selectProfile(action.payload.id)
-    if (action.type === 'DELETE_PROFILE' && targetProfileId === action.profileId) {
-      const fallback = domainState.profiles.find((profile) => profile.id !== action.profileId)
-      if (fallback) selectProfile(fallback.id)
-    }
-    if (!['connected', 'offline'].includes(cloudRef.current.mode)) return
-    const item = { id: operation.id, operation, requiresParent: !isChildOperation(operation), queuedAt: Date.now() }
-    outboxRef.current = [...outboxRef.current, item]
-    setPendingCount(outboxRef.current.length)
-    saveOutbox(outboxRef.current)
-    saveSnapshotAndOutbox(nextState, outboxRef.current).catch(() => {})
-    if (cloudRef.current.mode === 'connected') {
-      setSaveStatus('saving')
-      setSaveMessage(null)
-      queueMicrotask(flushCloud)
-    } else {
-      setSaveStatus('retrying')
-      setSaveMessage('已保存在这台设备，联网后会自动同步。')
-    }
+    const sequence = clientSequenceRef.current
+    persistenceQueueRef.current = persistenceQueueRef.current.then(async () => {
+      const draft = createOperationEnvelope(action, targetProfileId, sequence)
+      const entityKey = entityKeyForOperation(draft)
+      const currentEntityVersion = Number(entityVersionsRef.current[entityKey] || 0)
+      const operation = { ...draft, expectedVersion: operationRequiresVersion(draft) ? currentEntityVersion : null }
+      const nextState = rootReducer(latestState.current, operation)
+      const cloudBacked = Boolean(getDeviceToken()) && cloudRef.current.mode !== 'pairing'
+      const item = { id: operation.id, operation, requiresParent: !isChildOperation(operation), queuedAt: Date.now() }
+      if (cloudBacked) await commitOperation(nextState, item)
+      else saveAppData(nextState)
+      latestState.current = nextState
+      entityVersionsRef.current = { ...entityVersionsRef.current, [entityKey]: currentEntityVersion + 1 }
+      if (cloudBacked) {
+        outboxRef.current = [...outboxRef.current, item]
+        setPendingCount(outboxRef.current.length)
+      }
+      localDispatch(operation)
+      if (action.type === 'ADD_PROFILE' && action.payload?.id) selectProfile(action.payload.id)
+      if (action.type === 'DELETE_PROFILE' && targetProfileId === action.profileId) {
+        const fallback = latestState.current.profiles.find((profile) => profile.id !== action.profileId)
+        if (fallback) selectProfile(fallback.id)
+      }
+      if (!cloudBacked) {
+        setSaveStatus('saved')
+        setSaveMessage(null)
+      } else if (cloudRef.current.mode === 'connected') {
+        setSaveStatus('saving')
+        setSaveMessage(null)
+        queueMicrotask(flushCloud)
+      } else {
+        setSaveStatus('retrying')
+        setSaveMessage('已保存在这台设备，联网后会自动同步。')
+      }
+    }).catch(() => {
+      setSaveStatus('error')
+      setSaveMessage('这次操作还没有安全写入，请保持页面打开并重试。')
+    })
   }, [domainState.profiles, flushCloud, preferences.boundProfileId, selectProfile, selectedProfileId])
 
   useEffect(() => {
@@ -363,8 +431,7 @@ export function BedtimeProvider({ children }) {
       return true
     }
     if (cloudRef.current.mode === 'offline') throw new Error('当前离线。孩子任务可以继续，联网后再进入家长区。')
-    const hashed = await hashPin(pin)
-    if (hashed !== latestState.current.security.pinHash) return false
+    if (!await verifyPin(pin, latestState.current.security.pinHash)) return false
     setParentUnlocked(true)
     return true
   }, [flushCloud])
@@ -382,12 +449,13 @@ export function BedtimeProvider({ children }) {
     return payload.state
   }, [replaceFromCloud])
 
-  const resetApp = useCallback(async () => {
+  const resetApp = useCallback(async ({ localOnly = false } = {}) => {
     const next = { ...createDefaultData(), security: { ...latestState.current.security } }
-    if (cloudRef.current.mode === 'connected') await replaceData(next)
+    if (cloudRef.current.mode === 'connected' && !localOnly) await replaceData(next)
     else {
       deleteAllData()
       await clearIndexedPersistence()
+      if (localOnly) clearCloudConnection()
       localDispatch({ type: 'REPLACE_DATA', payload: next })
     }
     setParentUnlocked(false)
@@ -408,8 +476,40 @@ export function BedtimeProvider({ children }) {
     } catch { setSaveStatus('error') }
   }, [connectCloud, flushCloud])
 
-  const stateValue = useMemo(() => ({ state, domainState, saveStatus, saveMessage, parentUnlocked, cloud, device: preferences, pendingCount }), [cloud, domainState, parentUnlocked, pendingCount, preferences, saveMessage, saveStatus, state])
-  const actionsValue = useMemo(() => ({ dispatch, unlockParent, lockParent, resetApp, replaceData, retrySave, pairCloud }), [dispatch, lockParent, pairCloud, replaceData, resetApp, retrySave, unlockParent])
+  const resolveSyncConflict = useCallback((id, strategy = 'keep-latest') => {
+    const conflict = syncConflicts.find((item) => item.id === id)
+    if (!conflict) return
+    const next = syncConflicts.filter((item) => item.id !== id)
+    setSyncConflicts(next)
+    saveConflicts(next).catch(() => {})
+    if (strategy === 'retry-local' && conflict.item?.operation) dispatch(toLegacyAction(conflict.item.operation))
+  }, [dispatch, syncConflicts])
+
+  const resolveLegacyOutbox = useCallback(async (assignments = {}) => {
+    const recovered = legacyRecoveryItems.flatMap((item) => {
+      const profileId = assignments[item.id]
+      if (!profileId || !domainState.profiles.some((profile) => profile.id === profileId)) return []
+      clientSequenceRef.current += 1
+      return [{ ...item, operation: createOperationEnvelope({ ...item.action, profileId }, profileId, clientSequenceRef.current, item.id), action: undefined }]
+    })
+    outboxRef.current = [...outboxRef.current, ...recovered]
+    setPendingCount(outboxRef.current.length)
+    setLegacyRecoveryItems([])
+    window.localStorage.removeItem(LEGACY_RECOVERY_KEY)
+    window.localStorage.setItem('growing-squad:client-sequence:v1', String(clientSequenceRef.current))
+    await saveSnapshotAndOutbox(latestState.current, outboxRef.current, { cursor: cursorRef.current })
+    if (cloudRef.current.mode === 'connected') flushCloud()
+    else setSaveMessage('旧版操作已确认归属，联网后会按原顺序补交。')
+  }, [domainState.profiles, flushCloud, legacyRecoveryItems])
+
+  const discardLegacyOutbox = useCallback(() => {
+    setLegacyRecoveryItems([])
+    window.localStorage.removeItem(LEGACY_RECOVERY_KEY)
+    setSaveMessage('旧版未同步操作已放弃；现有成长记录没有改变。')
+  }, [])
+
+  const stateValue = useMemo(() => ({ state, domainState, saveStatus, saveMessage, parentUnlocked, cloud, device: preferences, pendingCount, syncConflicts, legacyRecoveryItems }), [cloud, domainState, legacyRecoveryItems, parentUnlocked, pendingCount, preferences, saveMessage, saveStatus, state, syncConflicts])
+  const actionsValue = useMemo(() => ({ dispatch, unlockParent, lockParent, resetApp, replaceData, retrySave, pairCloud, resolveSyncConflict, resolveLegacyOutbox, discardLegacyOutbox }), [discardLegacyOutbox, dispatch, lockParent, pairCloud, replaceData, resetApp, retrySave, resolveLegacyOutbox, resolveSyncConflict, unlockParent])
 
   return (
     <BedtimeStateContext.Provider value={stateValue}>

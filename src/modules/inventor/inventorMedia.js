@@ -1,6 +1,6 @@
 import { strToU8, zipSync } from 'fflate'
-import { fetchCloudMedia, getDeviceToken, getParentToken, uploadCloudMedia } from '../../data/cloud.js'
-import { getMediaDraft, listMediaDrafts, putMediaDraft } from '../../core/persistence/idb.js'
+import { deleteCloudMedia, fetchCloudMedia, getDeviceToken, getParentToken, uploadCloudMedia } from '../../data/cloud.js'
+import { deleteMediaDraft, getMediaDraft, listMediaDrafts, putMediaDraft } from '../../core/persistence/idb.js'
 
 export const INVENTOR_MEDIA_LIMIT = 12 * 1024 * 1024
 
@@ -47,6 +47,11 @@ export async function inventorMediaBlob(asset) {
   const blob = await fetchCloudMedia(asset.id)
   await putMediaDraft({ ...asset, blob, mediaType: blob.type || asset.mediaType, status: 'synced', remote: true, updatedAt: Date.now() })
   return blob
+}
+
+export async function deleteInventorMedia(asset) {
+  if (asset.remote || asset.status === 'synced') await deleteCloudMedia(asset.id)
+  await deleteMediaDraft(asset.id)
 }
 
 function safeName(value) {

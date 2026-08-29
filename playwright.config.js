@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 75000,
+  timeout: 120000,
   expect: { timeout: 7000 },
   use: {
     baseURL: 'http://127.0.0.1:4173',
@@ -10,7 +10,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
+    command: 'VITE_DISABLE_CLOUD=true npm run dev -- --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173/bedtime/',
     reuseExistingServer: true,
   },

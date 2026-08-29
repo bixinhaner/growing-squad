@@ -14,7 +14,7 @@ describe('drainCloudActions', () => {
       sendAction,
     })
 
-    expect(result).toEqual({ status: 'saved', payload })
+    expect(result).toEqual({ status: 'saved', payload, cursor: 0, conflicts: [] })
     expect(items).toEqual([])
     expect(sendAction).toHaveBeenCalledTimes(1)
   })

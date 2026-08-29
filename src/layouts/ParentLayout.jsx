@@ -26,7 +26,7 @@ const navItems = [
 ]
 
 export function ParentLayout() {
-  const { state } = useBedtimeState()
+  const { state, syncConflicts } = useBedtimeState()
   const { dispatch } = useBedtimeActions()
   const navigate = useNavigate()
   const profile = getActiveProfile(state)
@@ -43,6 +43,7 @@ export function ParentLayout() {
       <aside className="parent-sidebar">
         <div><Brand compact /><span className="parent-sidebar__caption">家长区</span></div>
         <nav aria-label="家长导航">
+          {syncConflicts.length ? <NavLink className="parent-sync-alert" to="/parent/sync" title="家庭同步站"><Icon name="bell" /><span>同步确认</span><b>{syncConflicts.length}</b></NavLink> : null}
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} title={item.label}>
               <Icon name={item.icon} /><span>{item.label}</span>

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchGuardianHealth, runGuardianCheck, unlockCloudParent } from '../data/cloud.js'
+import { downloadCloudArchive, eraseCloudFamilyData, fetchGuardianHealth, runGuardianCheck, unlockCloudParent } from '../data/cloud.js'
 import { appPath } from '../data/paths.js'
-import { createBackup, exportData, hashPin, importData, listBackups, restoreBackup } from '../data/storage.js'
+import { createBackup, exportData, importData, listBackups, restoreBackup, verifyPin } from '../data/storage.js'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { Icon } from '../ui/Icons.jsx'
 import { Modal, PageTitle } from '../ui/Shared.jsx'
+import { deleteInventorMedia } from '../modules/inventor/inventorMedia.js'
 
 const formatBytes = (value) => {
   const bytes = Number(value || 0)
@@ -21,8 +22,8 @@ function GuardianStep({ ok, waiting, icon, title, copy }) {
 }
 
 export function DataPage() {
-  const { state, saveStatus, cloud, pendingCount } = useBedtimeState()
-  const { replaceData, resetApp } = useBedtimeActions()
+  const { state, saveStatus, cloud, pendingCount, legacyRecoveryItems = [] } = useBedtimeState()
+  const { dispatch, replaceData, resetApp, resolveLegacyOutbox, discardLegacyOutbox } = useBedtimeActions()
   const [backups, setBackups] = useState(() => listBackups())
   const [health, setHealth] = useState(null)
   const [healthLoading, setHealthLoading] = useState(false)
@@ -30,12 +31,14 @@ export function DataPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deletePin, setDeletePin] = useState('')
   const [deleteError, setDeleteError] = useState('')
+  const [legacyAssignments, setLegacyAssignments] = useState({})
   const fileRef = useRef(null)
   const navigate = useNavigate()
   const cloudBacked = cloud.mode === 'connected' || cloud.mode === 'offline'
   const mediaPending = Object.values(state.modules?.inventor?.artifacts || {}).filter((item) => item.status !== 'synced').length
   const refresh = () => setBackups(listBackups())
   const migrationReport = state.meta?.timeMigrationReport
+  const mediaAssets = Object.values(state.modules?.inventor?.artifacts || {}).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
 
   const loadHealth = useCallback(async () => {
     if (cloud.mode !== 'connected') return
@@ -70,17 +73,32 @@ export function DataPage() {
     try { await replaceData(await importData(file)); setMessage('数据导入完成并同步到家庭云端。') } catch (error) { setMessage(error instanceof Error ? error.message : '导入失败') }
     event.target.value = ''
   }
+  const exportArchive = async (profileId = null) => {
+    if (cloud.mode !== 'connected') { setMessage('完整档案包含云端媒体，请联网后再导出。'); return }
+    try { await downloadCloudArchive(profileId); setMessage(profileId ? '这个孩子的成长档案和媒体已经导出。' : '全家成长档案、媒体和校验清单已经导出。') }
+    catch (error) { setMessage(error instanceof Error ? error.message : '档案导出没有完成。') }
+  }
+  const removeMedia = async (asset) => {
+    if (cloud.mode !== 'connected') { setMessage('为了避免云端重新出现这份资料，请联网后再删除。'); return }
+    try {
+      await deleteInventorMedia(asset)
+      dispatch({ type: 'DELETE_INVENTOR_ARTIFACT', profileId: asset.profileId, projectId: asset.projectId, artifactId: asset.id })
+      setMessage(`“${asset.fileName || '这份资料'}”已经从本机和云端删除。`)
+    } catch (error) { setMessage(error instanceof Error ? error.message : '资料删除没有完成。') }
+  }
   const removeAll = async () => {
     setDeleteError('')
     try {
-      if (cloud.mode === 'connected') await unlockCloudParent(deletePin)
+      if (cloud.mode === 'connected') {
+        const unlocked = await unlockCloudParent(deletePin)
+        await eraseCloudFamilyData(unlocked.token)
+      }
       else if (cloudBacked) { setDeleteError('当前没有联网。为了防止误删，请联网后再删除云端数据。'); return }
       else {
-        const hash = await hashPin(deletePin)
-        if (hash !== state.security.pinHash) { setDeleteError('PIN 不正确，数据没有删除。'); return }
+        if (!await verifyPin(deletePin, state.security.pinHash)) { setDeleteError('PIN 不正确，数据没有删除。'); return }
       }
     } catch { setDeleteError('PIN 不正确，数据没有删除。'); return }
-    await resetApp()
+    await resetApp({ localOnly: cloud.mode === 'connected' })
     navigate('/welcome', { replace: true })
   }
 
@@ -115,9 +133,11 @@ export function DataPage() {
       <article className="guardian-panel guardian-panel--privacy"><header><span><Icon name="shield" /></span><div><small>数据只属于这个家庭</small><h2>没有公开分享和儿童追踪</h2></div></header><ul><li><Icon name="check" /><span><strong>外部 AI 上传关闭</strong><small>活动数据、照片和语音不会发给外部模型</small></span></li><li><Icon name="check" /><span><strong>没有公开链接</strong><small>成长记录只能由家庭设备和家长会话读取</small></span></li><li><Icon name="check" /><span><strong>媒体不进主数据包</strong><small>{health ? `${health.storage.mediaCount} 份媒体，占用 ${formatBytes(health.storage.mediaBytes)}` : '照片和语音独立保存，避免拖慢启动'}</small></span></li></ul></article>
     </div>
 
-    <details className="guardian-tools"><summary><span><Icon name="database" /><b>备份、导入与 iPad 安装</b><small>需要时再展开，不打扰日常使用</small></span><Icon name="chevron" /></summary><div className="guardian-tools__body"><section><h3>本机备份</h3>{backups.length ? backups.slice(0, 5).map((item) => <div className="backup-row" key={item.key}><div><strong>{formatTime(item.timestamp)}</strong><small>可恢复副本</small></div><button type="button" onClick={() => restore(item.key)}>恢复</button></div>) : <p>还没有手动备份。</p>}</section><section><h3>迁移数据</h3><button className="data-row" type="button" onClick={() => exportData(state)}><span><Icon name="download" /></span><div><strong>导出数据</strong><small>下载 JSON 备份文件</small></div><Icon name="chevron" /></button><button className="data-row" type="button" onClick={() => fileRef.current?.click()}><span><Icon name="upload" /></span><div><strong>导入备份</strong><small>选择以前导出的文件</small></div><Icon name="chevron" /></button><input ref={fileRef} type="file" hidden accept="application/json" onChange={importFile} /></section><section><h3>放到 iPad 主屏幕</h3><ol><li>使用 Safari 打开成长小队。</li><li>点“分享”，选择“添加到主屏幕”。</li><li>开启“作为 Web App 打开”。</li></ol></section></div></details>
+    <details className="guardian-tools"><summary><span><Icon name="database" /><b>备份、导入与 iPad 安装</b><small>需要时再展开，不打扰日常使用</small></span><Icon name="chevron" /></summary><div className="guardian-tools__body"><section><h3>本机备份</h3>{backups.length ? backups.slice(0, 5).map((item) => <div className="backup-row" key={item.key}><div><strong>{formatTime(item.timestamp)}</strong><small>可恢复副本</small></div><button type="button" onClick={() => restore(item.key)}>恢复</button></div>) : <p>还没有手动备份。</p>}</section><section><h3>完整隐私档案</h3><button className="data-row" type="button" onClick={() => exportArchive()}><span><Icon name="download" /></span><div><strong>导出全家完整档案</strong><small>包含 JSON、照片语音和校验清单</small></div><Icon name="chevron" /></button><button className="data-row" type="button" onClick={() => exportArchive(state.activeProfileId)}><span><Icon name="user" /></span><div><strong>只导出当前孩子</strong><small>不包含其他孩子的活动记录</small></div><Icon name="chevron" /></button></section><section><h3>迁移与 iPad</h3><button className="data-row" type="button" onClick={() => exportData(state)}><span><Icon name="download" /></span><div><strong>导出轻量 JSON</strong><small>用于快速迁移设置和记录</small></div><Icon name="chevron" /></button><button className="data-row" type="button" onClick={() => fileRef.current?.click()}><span><Icon name="upload" /></span><div><strong>导入备份</strong><small>选择以前导出的文件</small></div><Icon name="chevron" /></button><input ref={fileRef} type="file" hidden accept="application/json" onChange={importFile} /><ol><li>Safari 打开成长小队。</li><li>点“分享”并添加到主屏幕。</li></ol></section>{mediaAssets.length ? <section className="media-privacy-list"><h3>照片、语音与视频</h3><p>可以单独删除一份资料，不影响整份发明记录。</p>{mediaAssets.map((asset) => <div key={asset.id}><span><strong>{asset.fileName || '项目资料'}</strong><small>{state.profiles.find((profile) => profile.id === asset.profileId)?.name || '孩子'} · {formatBytes(asset.byteSize)}</small></span><button type="button" onClick={() => removeMedia(asset)}>删除</button></div>)}</section> : null}</div></details>
 
     {migrationReport?.sourceVersion === 5 ? <section className="migration-report"><div><Icon name="check" size={26} /><span><strong>时间记录和家庭数据已升级到 v7</strong><small>原星光账本、愿望和晚间历史完整保留；没有证据的时间保持“未记录”。</small></span></div><dl><div><dt>检查记录</dt><dd>{migrationReport.sessionsReviewed} 晚</dd></div><div><dt>回填实际上床</dt><dd>{migrationReport.inBedBackfilled} 晚</dd></div><div><dt>任务完成未知</dt><dd>{migrationReport.completionLeftUnknown} 晚</dd></div><div><dt>入睡时间未知</dt><dd>{migrationReport.sleepLeftUnknown} 晚</dd></div></dl></section> : null}
+
+    {legacyRecoveryItems.length ? <section className="migration-recovery" aria-labelledby="legacy-recovery-title"><header><span><Icon name="shield" /></span><div><h2 id="legacy-recovery-title">确认旧版未同步记录属于谁</h2><p>这些操作发生在升级前。系统不会猜孩子，确认后才会补交。</p></div></header>{legacyRecoveryItems.map((item, index) => <label key={item.id}><span><strong>{item.action?.type || '旧版操作'}</strong><small>第 {index + 1} 条 · 原始记录已安全保留</small></span><select aria-label={`第 ${index + 1} 条记录属于哪个孩子`} value={legacyAssignments[item.id] || ''} onChange={(event) => setLegacyAssignments((current) => ({ ...current, [item.id]: event.target.value }))}><option value="">请选择孩子</option>{state.profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>)}<div><button className="button button--primary" type="button" disabled={legacyRecoveryItems.some((item) => !legacyAssignments[item.id])} onClick={() => resolveLegacyOutbox(legacyAssignments)}>确认归属并补交</button><button className="button button--secondary" type="button" onClick={discardLegacyOutbox}>放弃这些旧操作</button></div></section> : null}
 
     <details className="guardian-danger"><summary><span><Icon name="trash" /><b>危险操作</b><small>删除全部数据不会放在日常操作旁边</small></span><Icon name="chevron" /></summary><div className="danger-zone"><div><h2>删除全部数据</h2><p>会删除流程、星星、愿望和历史记录，且无法撤销。</p></div><button className="button button--danger" type="button" onClick={() => setDeleteOpen(true)}><Icon name="trash" />删除全部数据</button></div></details>
     {deleteOpen ? <Modal title="删除全部数据" onClose={() => setDeleteOpen(false)} className="delete-modal"><div className="danger-icon"><Icon name="trash" size={32} /></div><h2>确定删除全部数据吗？</h2><p>请输入家长 PIN。删除后将返回首次设置，所有记录都无法恢复。</p><label>家长 PIN<input inputMode="numeric" value={deletePin} maxLength={4} onChange={(event) => setDeletePin(event.target.value.replace(/\D/g, ''))} /></label>{deleteError ? <div className="form-error" role="alert">{deleteError}</div> : null}<button className="button button--danger button--wide" type="button" onClick={removeAll}>确认永久删除</button><button className="button button--secondary button--wide" type="button" onClick={() => setDeleteOpen(false)}>保留我的数据</button></Modal> : null}

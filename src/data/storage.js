@@ -628,7 +628,32 @@ export function legacyDataView(data, profileId) {
 }
 
 export async function hashPin(pin) {
+  const iterations = 210_000
+  const salt = globalThis.crypto.getRandomValues(new Uint8Array(16))
+  const keyMaterial = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits'])
+  const bits = await globalThis.crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, keyMaterial, 256)
+  const encode = (bytes) => btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
+  return `pbkdf2-sha256$${iterations}$${encode(salt)}$${encode(new Uint8Array(bits))}`
+}
+
+export async function verifyPin(pin, verifier) {
+  if (String(verifier || '').startsWith('pbkdf2-sha256$')) {
+    const [, iterationText, saltText, expectedText] = String(verifier).split('$')
+    const decode = (value) => {
+      const normalized = value.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - value.length % 4) % 4)
+      return Uint8Array.from(atob(normalized), (character) => character.charCodeAt(0))
+    }
+    const keyMaterial = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), 'PBKDF2', false, ['deriveBits'])
+    const bits = await globalThis.crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: decode(saltText), iterations: Number(iterationText) }, keyMaterial, 256)
+    const actual = new Uint8Array(bits)
+    const expected = decode(expectedText)
+    if (actual.length !== expected.length) return false
+    let difference = 0
+    for (let index = 0; index < actual.length; index += 1) difference |= actual[index] ^ expected[index]
+    return difference === 0
+  }
   const bytes = new TextEncoder().encode(`晚安小队:${pin}`)
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  const legacy = Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  return legacy === verifier
 }

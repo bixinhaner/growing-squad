@@ -63,7 +63,7 @@ test('child keeps a complete invention story with offline evidence, a timely kno
   await expect(page.getByText('已经保存在这台设备，联网后会自动同步。')).toBeVisible()
   expect(await page.evaluate(async () => {
     const db = await new Promise((resolve, reject) => {
-      const request = indexedDB.open('growing-squad-v1', 1)
+      const request = indexedDB.open('growing-squad-v1')
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
     })

@@ -18,6 +18,41 @@ export const operationEnvelopeSchema = z.object({
   payload: z.record(z.string(), z.any()),
 })
 
+const VERSIONED_OPERATION_TYPES = new Set([
+  'bedtime.step.completed', 'bedtime.step.reset', 'bedtime.step.skipped',
+  'bedtime.in-bed.confirmed', 'bedtime.asleep.recorded', 'bedtime.asleep.skipped',
+  'bedtime.settlement.reverted', 'bedtime.schedule.updated', 'bedtime.routine.updated',
+  'rewards.wish.approved', 'rewards.wish.reverted', 'rewards.catalog.updated',
+  'core.profile.deleted', 'core.profile.updated', 'core.accessibility.updated',
+  'core.routines.updated', 'core.scaffold.updated',
+  'core.today.item-selected', 'core.today.completed', 'core.today.support-chosen',
+  'core.today.skipped', 'core.today.later',
+  'movement.activity.selected', 'movement.activity.started', 'movement.activity.completed',
+  'movement.feedback.recorded', 'movement.activity.skipped', 'movement.preferences.updated',
+  'reading.book.updated', 'reading.mode.selected', 'reading.session.started',
+  'reading.session.completed', 'reading.difficulty.recorded',
+  'responsibility.routine.upserted', 'responsibility.rotation.updated',
+  'responsibility.scaffold.updated', 'responsibility.request.resolved',
+  'responsibility.session.started', 'responsibility.role.completed',
+  'inventor.project.stage-updated', 'inventor.artifact.synced', 'inventor.test.recorded',
+  'inventor.artifact.deleted',
+  'inventor.showcase.method-selected', 'inventor.project.archived',
+  'assistant.settings.updated', 'assistant.suggestion.edited',
+  'assistant.suggestion.approved', 'assistant.derived.deleted',
+])
+
+export function operationRequiresVersion(operationOrType) {
+  const type = typeof operationOrType === 'string' ? operationOrType : operationOrType?.type
+  return VERSIONED_OPERATION_TYPES.has(type)
+}
+
+export function entityKeyForOperation(operation) {
+  const profileId = operation?.target?.profileId || 'family'
+  const entityType = operation?.target?.entityType || 'family'
+  const entityId = operation?.target?.entityId || 'root'
+  return `${operation?.moduleId || 'core'}:${profileId}:${entityType}:${entityId}`
+}
+
 const DEFINITIONS = {
   COMPLETE_TASK: ['bedtime', 'bedtime.step.completed', 'bedtime-session'],
   RESET_TASK: ['bedtime', 'bedtime.step.reset', 'bedtime-session'],
@@ -74,6 +109,7 @@ const DEFINITIONS = {
   UPDATE_INVENTOR_STAGE: ['inventor', 'inventor.project.stage-updated', 'inventor-project'],
   ADD_INVENTOR_ARTIFACT: ['inventor', 'inventor.artifact.added', 'inventor-artifact'],
   MARK_INVENTOR_ARTIFACT_SYNCED: ['inventor', 'inventor.artifact.synced', 'inventor-artifact'],
+  DELETE_INVENTOR_ARTIFACT: ['inventor', 'inventor.artifact.deleted', 'inventor-artifact'],
   RECORD_INVENTOR_TEST: ['inventor', 'inventor.test.recorded', 'inventor-project'],
   ADD_INVENTOR_KNOWLEDGE: ['inventor', 'inventor.knowledge.added', 'inventor-project'],
   CREATE_INVENTOR_ITERATION: ['inventor', 'inventor.iteration.created', 'inventor-project'],
@@ -96,7 +132,11 @@ export function createOperationEnvelope(action, profileId, clientSequence, id = 
   const [moduleId, type, entityType] = DEFINITIONS[action.type] || ['core', `core.legacy.${String(action.type || 'unknown').toLowerCase()}`, 'family']
   const payload = Object.fromEntries(Object.entries(action).filter(([key]) => !['type', 'profileId', 'expectedVersion'].includes(key)))
   const dateKey = action.dateKey || payload.dateKey
-  const entityId = action.suggestionId || action.reflectionId || action.artifactId || action.projectId || action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
+  let entityId = action.suggestionId || action.reflectionId || action.artifactId || action.projectId || action.sessionId || action.requestId || action.momentId || action.payload?.id || null
+  if (type.startsWith('bedtime.step.') || type.startsWith('bedtime.in-bed.') || type.startsWith('bedtime.asleep.') || type.startsWith('bedtime.settlement.')) entityId = dateKey && profileId ? `${profileId}:${dateKey}` : entityId
+  else if (type === 'bedtime.schedule.updated' || type === 'bedtime.routine.updated') entityId = `${profileId}:${action.payload?.dayType || action.dayType || 'default'}`
+  else if (type.startsWith('core.today.')) entityId = dateKey && profileId ? `${profileId}:${dateKey}` : entityId
+  else if (!entityId && dateKey && profileId) entityId = `${profileId}:${dateKey}`
   return operationEnvelopeSchema.parse({
     id,
     schemaVersion: 1,

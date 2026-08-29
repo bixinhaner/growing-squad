@@ -74,6 +74,15 @@ export function sendCloudAction(operationId, action, token = getParentToken() ||
   return request(appPath('api/cloud/actions'), { token, method: 'POST', body: { operationId, action } })
 }
 
+export function sendCloudOperations(operations, cursor = 0, token = getParentToken() || getDeviceToken()) {
+  return request(appPath('api/v2/operations:batch'), { token, method: 'POST', body: { cursor, operations } })
+}
+
+export function fetchCloudChanges(after = 0, limit = 500, token = getDeviceToken()) {
+  const query = new URLSearchParams({ after: String(Math.max(0, Number(after) || 0)), limit: String(Math.min(500, Math.max(1, Number(limit) || 500))) })
+  return request(`${appPath('api/v2/changes')}?${query}`, { token })
+}
+
 export async function uploadCloudMedia(draft, token = getParentToken() || getDeviceToken()) {
   const response = await fetch(appPath(`api/cloud/media/${encodeURIComponent(draft.id)}`), {
     method: 'PUT',
@@ -138,6 +147,32 @@ export function fetchGuardianHealth() {
 
 export function runGuardianCheck() {
   return request(appPath('api/cloud/guardian/health'), { token: getParentToken(), method: 'POST', body: {} })
+}
+
+export async function downloadCloudArchive(profileId = null) {
+  const query = profileId ? `?${new URLSearchParams({ profileId })}` : ''
+  const response = await fetch(`${appPath('api/v2/export')}${query}`, { headers: { Authorization: `Bearer ${getParentToken()}` } })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}))
+    const error = new Error(payload.error || '暂时无法导出家庭档案')
+    error.status = response.status
+    throw error
+  }
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = profileId ? `growing-squad-${profileId}.zip` : 'growing-squad-family.zip'
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+export function eraseCloudFamilyData(token = getParentToken()) {
+  return request(appPath('api/v2/privacy/data'), { token, method: 'DELETE' })
+}
+
+export function deleteCloudMedia(id, token = getParentToken()) {
+  return request(appPath(`api/cloud/media/${encodeURIComponent(id)}`), { token, method: 'DELETE' })
 }
 
 export function getPushKey() {

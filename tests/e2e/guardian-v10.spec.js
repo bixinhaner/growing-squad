@@ -35,7 +35,7 @@ test('guardian center gives verifiable protection and progressive disclosure on 
   await expect(page.getByRole('status')).toContainText('本地备份已完成')
   await expect(page.getByText('全部成长记录已安全保存')).toBeVisible()
   await page.getByText('备份、导入与 iPad 安装').click()
-  await expect(page.getByRole('button', { name: '导出数据' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /导出轻量 JSON/ })).toBeVisible()
   await page.screenshot({ path: 'artifacts/visual-qa/130-family-guardian-desktop.png', fullPage: true })
 })
 

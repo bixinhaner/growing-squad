@@ -53,4 +53,14 @@ describe('inventor workshop', () => {
     expect(archived.parentNotes[0].text).toContain('孩子说')
     expect(activeInventorProject(state, 'kid-1')).toBeNull()
   })
+
+  it('removes one media artifact without deleting the invention project', () => {
+    const project = { id: 'project-media', title: '纸板机器', problem: '想帮忙', status: 'testing', versions: [{ number: 1, artifactIds: [], testArtifactIds: [] }] }
+    let state = inventorReducer(base, op('inventor.project.created', { projectId: project.id, project }))
+    state = inventorReducer(state, op('inventor.artifact.added', { projectId: project.id, versionNumber: 1, artifact: { id: 'photo-one', projectId: project.id, kind: 'photo' } }, 110))
+    state = inventorReducer(state, op('inventor.artifact.deleted', { projectId: project.id, artifactId: 'photo-one' }, 120))
+    expect(state.modules.inventor.artifacts['photo-one']).toBeUndefined()
+    expect(state.modules.inventor.projects).toHaveLength(1)
+    expect(state.modules.inventor.projects[0].versions[0].artifactIds).not.toContain('photo-one')
+  })
 })

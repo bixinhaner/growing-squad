@@ -14,10 +14,18 @@ describe('scaffold engine', () => {
 
   it('only proposes a change and never mutates the current level', () => {
     const state = createDefaultData()
+    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`child-1:2026-08-${20 + index}`] = { id: `child-1:2026-08-${20 + index}`, profileId: 'child-1', routineCompletedAt: 1000 + index, stepStatus: { backpack: 'done' } }
     const values = getScaffoldStates(state, state.profiles[0].id)
     const current = values.find((item) => item.key === 'bedtime.pack-bag').level
     const suggestion = getScaffoldSuggestion(values)
     expect(suggestion.nextLevel).toBe(current + 1)
     expect(values.find((item) => item.key === 'bedtime.pack-bag').level).toBe(current)
+    expect(suggestion.evidence).toMatchObject({ count: 4, independentCount: 4 })
+  })
+
+  it('does not suggest less support when recent evidence includes frequent help', () => {
+    const state = createDefaultData()
+    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`child-1:2026-08-${20 + index}`] = { id: `child-1:2026-08-${20 + index}`, profileId: 'child-1', routineCompletedAt: 1000 + index, helpRequestedAt: index < 2 ? 900 + index : null, stepStatus: { backpack: 'done' } }
+    expect(getScaffoldSuggestion(getScaffoldStates(state, 'child-1'))).toBeNull()
   })
 })

@@ -1,52 +1,50 @@
-# Story Treehouse v0.5 · Design QA
+# 家庭同步站 Design QA
 
-## Result
+- Source visual truth: `public/assets/sync/family-sync-station-reference.png`
+- Browser implementation: `artifacts/design-qa-sync-station-v2.png`
+- Same-input comparison: `artifacts/design-qa-sync-station-comparison.png`
+- Source pixels: 1550 × 1014
+- Implementation pixels: 1280 × 1056
+- Browser CSS viewport: 1280 px wide, device scale factor 1
+- State: one real `bedtime.schedule.updated` conflict created by two authenticated devices; local value 21:30, family latest value 21:50
+- Density normalization: both images were normalized to 600 px width in the browser comparison board; comparison evidence was captured at 1280 × 720
 
-passed
+## Full-view comparison
 
-## Source of truth
+The implementation keeps the selected ImageGen hierarchy: story illustration on the left, calm conflict explanation and two-version comparison on the right, recommended latest-version action, progressive technical details, and a reassuring delivered-record footer. The production parent shell remains visible intentionally, so the content region is narrower than the standalone mockup.
 
-- ImageGen UI references: `design/v0.5/01-story-treehouse-shelf.png` through `design/v0.5/05-parent-reading.png`
-- ImageGen production masters: `design/v0.5/assets/`
-- Runtime artwork: `public/assets/reading/`
-- Implementation: `src/pages/ReadingPage.jsx`, `src/pages/ReadingParentPage.jsx`, and the reading rules under `src/modules/reading/`
+## Focused comparison
 
-## Visual comparison
+The conflict card was inspected at full browser resolution because its values, labels, recommended action, button hierarchy, icon treatment, radii and technical disclosure are the fidelity-critical region. No separate crop was needed after the full-resolution implementation capture confirmed legible text and touch targets.
 
-| State | Reference | Rendered implementation | Viewport |
-| --- | --- | --- | --- |
-| Child shelf | `design/v0.5/01-story-treehouse-shelf.png` (1543×1019) | `artifacts/visual-qa/93-reading-shelf-ipad.png` | 1366×900, DPR 1 |
-| Mode choice | `design/v0.5/02-reading-mode.png` (1545×1018) | `artifacts/visual-qa/96-reading-mode-ipad.png` | 1366×900, DPR 1 |
-| Active reading | `design/v0.5/03-reading-active.png` (1545×1018) | `artifacts/visual-qa/97-reading-active-ipad.png` | 1366×900, DPR 1 |
-| Parent bridge | `design/v0.5/05-parent-reading.png` (1586×992) | `artifacts/visual-qa/98-reading-parent-desktop.png` | 1366×900, full page 1366×943 |
-| Child reflection | responsive adaptation of `design/v0.5/04-reading-reflection.png` | `artifacts/visual-qa/94-reading-reflection-mobile.png` | 390×844, DPR 1 |
+## Required fidelity surfaces
 
-Combined side-by-side evidence is stored in `artifacts/visual-qa/comparisons/`. The final pass checked the shelf grid, cover proportions, companion mode selection, low-attention reading state, reflection controls, parent insights, and navigation.
+- Fonts and typography: hierarchy, Chinese weight and wrapping are consistent with the current Growing Squad parent shell; no truncation or unreadable small labels.
+- Spacing and layout rhythm: the illustration/card split, internal gaps, radii and footer rhythm match the source. The persistent sidebar is an intentional application constraint.
+- Colors and tokens: ivory paper, navy ink, muted sage and moon-gold accents match the target; conflict handling avoids danger-red treatment.
+- Image quality: the page uses the dedicated ImageGen moonlight-post-office hero at an uncropped, sharp 4:5 presentation. No emoji, placeholder art or CSS-drawn illustration is used.
+- Copy and content: the implementation uses live device values and therefore shows 21:50 rather than the mockup's sample 21:45. The recovery explanation and three decisions match the selected target.
 
-## Browser and interaction checks
+## Comparison history
 
-- Verified in the in-app browser against an isolated copy of the production SQLite database; production data was not changed during QA.
-- Added six household books, selected a companionship mode, started a reading session, requested help, completed the session, chose difficulty, optionally reflected, and returned to Story Treehouse.
-- Verified reading state survives reload and appears in the parent Reading Bridge.
-- Verified the child shelf, mode choice, active session, and reflection each fit one viewport at the target sizes without horizontal overflow.
-- Verified child reading routes hide star balance, timers, speed, ranks, and reward pressure.
-- Verified the parent flow stores only book metadata, mode, help, difficulty, and optional reflection; no copyrighted full text is stored.
-- Browser console was clean in the interaction pass. The in-app browser screenshot endpoint produced blank/cropped captures, so normalized screenshot evidence was taken from the same local build with Playwright after semantic in-app-browser verification.
+1. Initial browser pass: latest family value incorrectly displayed the local 21:30 because the active schedule helper intentionally hid a future pending schedule. Severity P1 because choosing the recommended option could be misleading.
+2. Fix: read the server-returned pending schedule for conflict comparison while retaining the normal schedule helper as fallback.
+3. Post-fix evidence: `artifacts/design-qa-sync-station-v2.png` shows local 21:30 and family latest 21:50, with the recommended action using the same truthful value.
 
-## Issues found and fixed
+## Primary interactions tested
 
-1. Removed the star balance from reading routes to keep reading non-transactional.
-2. Reworked an over-stretched single-card shelf into a stable two-row book grid.
-3. Corrected portrait book-cover proportions instead of stretching generated artwork.
-4. Compressed the mobile reflection layout so all decisions remain visible without scrolling.
-5. Added persistent child navigation to prevent the Story Treehouse becoming a dead end.
-6. Changed parent reading accents from reward purple to forest sage and navy.
-7. Made the parent navigation independently scrollable and pinned “返回孩子模式”; this fixed the 720px-height full-suite regression.
+- Created a real conflicting schedule update from two authenticated devices.
+- Verified the sidebar conflict badge appears automatically.
+- Opened the sync station from the badge.
+- Verified latest/local choices, defer action and technical disclosure are available.
+- Verified no visible runtime error or broken asset occurred during the flow.
 
-## Automated verification
+## Findings
 
-- ESLint: passed
-- Vitest: 12 files, 71 tests passed
-- Production build: passed
-- Playwright: 14 end-to-end tests passed, including two dedicated reading tests
-- `git diff --check`: passed
+No actionable P0, P1 or P2 visual differences remain. The existing parent sidebar makes the implementation denser than the standalone ImageGen mockup, but preserves navigation context and does not reduce usability.
+
+## Follow-up polish
+
+- P3: when the server later exposes the originating device name, replace “家庭最新版本” with the actual device label.
+
+final result: passed

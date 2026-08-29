@@ -79,9 +79,20 @@ describe('growing squad cloud identity isolation', () => {
     expect((await jsonRequest(`${base}/api/cloud/guardian/health`, { token: web.body.token })).status).toBe(403)
     const guardian = await jsonRequest(`${base}/api/cloud/guardian/health`, { token: unlocked.body.token })
     expect(guardian.status).toBe(200)
-    expect(guardian.body).toMatchObject({ status: 'healthy', steps: { cloud: { ok: true }, backup: { ok: true }, integrity: { ok: true } }, records: { profiles: 2 }, storage: { backupCount: 1, retentionDays: 14 }, privacy: { externalAiUpload: false, publicSharing: false } })
+    expect(guardian.body).toMatchObject({ status: 'healthy', steps: { cloud: { ok: true }, backup: { ok: true, bundle: 'ok' }, integrity: { ok: true, mediaSnapshot: true } }, records: { profiles: 2 }, storage: { backupCount: 1, retentionDays: 30 }, privacy: { externalAiUpload: false, publicSharing: false } })
     const checked = await jsonRequest(`${base}/api/cloud/guardian/health`, { token: unlocked.body.token, body: {} })
     expect(checked.body.lastVerifiedAt).toBe(checked.body.checkedAt)
+    const archive = await fetch(`${base}/api/v2/export?profileId=child-1`, { headers: { Authorization: `Bearer ${unlocked.body.token}` } })
+    expect(archive.status).toBe(200)
+    expect(archive.headers.get('content-type')).toBe('application/zip')
+    expect(Array.from(new Uint8Array(await archive.arrayBuffer()).slice(0, 2))).toEqual([80, 75])
+    expect((await fetch(`${base}/api/v2/export`, { headers: { Authorization: `Bearer ${web.body.token}` } })).status).toBe(403)
+    const erased = await fetch(`${base}/api/v2/privacy/data`, { method: 'DELETE', headers: { Authorization: `Bearer ${unlocked.body.token}` } })
+    expect(erased.status).toBe(200)
+    expect(await erased.json()).toMatchObject({ ok: true })
+    expect((await fetch(`${base}/api/cloud/state`, { headers: { Authorization: `Bearer ${web.body.token}` } })).status).toBe(401)
+    const reconnected = await jsonRequest(`${base}/api/cloud/pair`, { body: { code: 'TERMINAL-CODE', deviceName: '重新连接的浏览器' } })
+    expect(reconnected.body.state.setupComplete).toBe(false)
   })
 
   it('keeps two dedicated devices isolated and rejects a different child target', async () => {
@@ -119,6 +130,24 @@ describe('growing squad cloud identity isolation', () => {
     expect(sessions['child-1:2026-08-29'].stepStatus).toMatchObject({ brush: 'done', wash: 'todo' })
     expect(sessions['child-2:2026-08-29'].stepStatus).toMatchObject({ brush: 'todo', wash: 'done' })
     expect(result.body.device).toMatchObject({ mode: 'dedicated', boundProfileId: 'child-1' })
+
+    const currentVersion = result.body.entityVersions['bedtime:child-1:bedtime-session:child-1:2026-08-29']
+    const batchOperation = createOperationEnvelope({ type: 'COMPLETE_TASK', stepId: 'story', dateKey: '2026-08-29', timestamp: 1300, expectedVersion: currentVersion }, 'child-1', 3, 'op_batch_child_one')
+    const batch = await jsonRequest(`${base}/api/v2/operations:batch`, { token: first.body.token, body: { cursor: result.body.cursor, operations: [batchOperation] } })
+    expect(batch.status).toBe(200)
+    expect(batch.body.accepted).toEqual([expect.objectContaining({ id: batchOperation.id, entityVersion: currentVersion + 1 })])
+    expect(batch.body.state.modules.bedtime.sessions['child-1:2026-08-29'].stepStatus.story).toBe('done')
+
+    const staleOperation = createOperationEnvelope({ type: 'RESET_TASK', stepId: 'story', dateKey: '2026-08-29', timestamp: 1400, expectedVersion: currentVersion }, 'child-1', 4, 'op_stale_child_one')
+    const stale = await jsonRequest(`${base}/api/v2/operations:batch`, { token: first.body.token, body: { cursor: 0, operations: [staleOperation] } })
+    expect(stale.status).toBe(200)
+    expect(stale.body.rejected).toEqual([expect.objectContaining({ id: staleOperation.id, status: 409, details: expect.objectContaining({ expectedVersion: currentVersion, currentEntityVersion: currentVersion + 1 }) })])
+    expect(stale.body.state.modules.bedtime.sessions['child-1:2026-08-29'].stepStatus.story).toBe('done')
+
+    const changes = await jsonRequest(`${base}/api/v2/changes?after=0&limit=500`, { token: first.body.token })
+    expect(changes.status).toBe(200)
+    expect(changes.body.requiresBootstrap).toBe(false)
+    expect(changes.body.changes.map((item) => item.operation.id)).toContain(batchOperation.id)
   })
 
   it('stores protected inventor media and returns it only to an authenticated device', async () => {
@@ -159,6 +188,7 @@ describe('growing squad cloud identity isolation', () => {
     expect(downloaded.status).toBe(200)
     expect(downloaded.headers.get('content-type')).toContain('image/png')
     expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(bytes)
+    expect((await fetch(mediaUrl, { method: 'DELETE', headers: { Authorization: `Bearer ${pair.body.token}` } })).status).toBe(403)
     const health = await jsonRequest(`${base}/api/cloud/health`)
     expect(health.body).toMatchObject({ mediaAvailable: true, mediaLimitBytes: 12 * 1024 * 1024 })
   })

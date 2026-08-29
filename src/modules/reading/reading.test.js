@@ -9,7 +9,8 @@ const op = (type, payload, at = 100) => ({ type, payload, occurredAt: at, target
 describe('reading bridge', () => {
   it('uses original covers and separates listening from independent reading', () => {
     expect(READING_COVER_OPTIONS).toHaveLength(12)
-    expect(READING_MODES.map((mode) => mode.family)).toEqual(['listen', 'together', 'together', 'independent'])
+    expect(READING_MODES).toHaveLength(8)
+    expect(new Set(READING_MODES.map((mode) => mode.family))).toEqual(new Set(['listen', 'bridge', 'together', 'independent']))
     expect(JSON.stringify(READING_MODES)).not.toMatch(/score|star|rank|speed|minute|星光|排名|速度|分钟/)
   })
 

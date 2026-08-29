@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createDefaultData } from '../domain/model.js'
-import { STORAGE_KEY, hashPin, loadAppData, mergeLegacyIntoV5, migrateV5, saveAppData } from './storage.js'
+import { STORAGE_KEY, hashPin, loadAppData, mergeLegacyIntoV5, migrateV5, saveAppData, verifyPin } from './storage.js'
 
 describe('local data repository', () => {
   beforeEach(() => window.localStorage.clear())
@@ -108,11 +108,14 @@ describe('local data repository', () => {
     expect(second.data.rewardMoments).toHaveLength(first.data.rewardMoments.length)
   })
 
-  it('hashes the same pin deterministically without storing the pin itself', async () => {
+  it('stores a salted pin verifier and validates without storing the pin itself', async () => {
     const first = await hashPin('2468')
     const second = await hashPin('2468')
-    expect(first).toBe(second)
+    expect(first).not.toBe(second)
+    expect(first).toMatch(/^pbkdf2-sha256\$/)
     expect(first).not.toContain('2468')
+    expect(await verifyPin('2468', first)).toBe(true)
+    expect(await verifyPin('1357', first)).toBe(false)
   })
 
   it('backfills v5 bed confirmation without inventing completion or sleep times', () => {

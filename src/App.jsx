@@ -3,24 +3,6 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'rea
 import { ChildShell } from './layouts/ChildShell.jsx'
 import { ParentLayout } from './layouts/ParentLayout.jsx'
 import { CloudPairPage } from './pages/CloudPairPage.jsx'
-import { GardenPage } from './pages/GardenPage.jsx'
-import { GoodnightPage } from './pages/GoodnightPage.jsx'
-import { ParentGatePage } from './pages/ParentGatePage.jsx'
-import { ParentOverviewPage } from './pages/ParentOverviewPage.jsx'
-import { ProfilePage } from './pages/ProfilePage.jsx'
-import { RewardsPage } from './pages/RewardsPage.jsx'
-import { RoutinePage } from './pages/RoutinePage.jsx'
-import { SchedulePage } from './pages/SchedulePage.jsx'
-import { SetupPage } from './pages/SetupPage.jsx'
-import { TonightPage } from './pages/TonightPage.jsx'
-import { WateringPage } from './pages/WateringPage.jsx'
-import { WelcomePage } from './pages/WelcomePage.jsx'
-import { WishesPage } from './pages/WishesPage.jsx'
-import { TodayPage } from './pages/TodayPage.jsx'
-import { WorldPage } from './pages/WorldPage.jsx'
-import { MePage } from './pages/MePage.jsx'
-import { FamilyTimelinePage } from './pages/FamilyTimelinePage.jsx'
-import { SupportPage } from './pages/SupportPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -31,6 +13,24 @@ import { SoundEffectsBridge } from './audio/SoundEffectsBridge.jsx'
 import './app.css'
 
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })))
+const WelcomePage = lazyNamed(() => import('./pages/WelcomePage.jsx'), 'WelcomePage')
+const SetupPage = lazyNamed(() => import('./pages/SetupPage.jsx'), 'SetupPage')
+const TodayPage = lazyNamed(() => import('./pages/TodayPage.jsx'), 'TodayPage')
+const WorldPage = lazyNamed(() => import('./pages/WorldPage.jsx'), 'WorldPage')
+const MePage = lazyNamed(() => import('./pages/MePage.jsx'), 'MePage')
+const TonightPage = lazyNamed(() => import('./pages/TonightPage.jsx'), 'TonightPage')
+const GardenPage = lazyNamed(() => import('./pages/GardenPage.jsx'), 'GardenPage')
+const WishesPage = lazyNamed(() => import('./pages/WishesPage.jsx'), 'WishesPage')
+const WateringPage = lazyNamed(() => import('./pages/WateringPage.jsx'), 'WateringPage')
+const GoodnightPage = lazyNamed(() => import('./pages/GoodnightPage.jsx'), 'GoodnightPage')
+const ParentGatePage = lazyNamed(() => import('./pages/ParentGatePage.jsx'), 'ParentGatePage')
+const ParentOverviewPage = lazyNamed(() => import('./pages/ParentOverviewPage.jsx'), 'ParentOverviewPage')
+const FamilyTimelinePage = lazyNamed(() => import('./pages/FamilyTimelinePage.jsx'), 'FamilyTimelinePage')
+const SupportPage = lazyNamed(() => import('./pages/SupportPage.jsx'), 'SupportPage')
+const SchedulePage = lazyNamed(() => import('./pages/SchedulePage.jsx'), 'SchedulePage')
+const RoutinePage = lazyNamed(() => import('./pages/RoutinePage.jsx'), 'RoutinePage')
+const RewardsPage = lazyNamed(() => import('./pages/RewardsPage.jsx'), 'RewardsPage')
+const ProfilePage = lazyNamed(() => import('./pages/ProfilePage.jsx'), 'ProfilePage')
 const MovementChoicePage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementChoicePage')
 const MovementReadyPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementReadyPage')
 const MovementPlayPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementPlayPage')
@@ -55,6 +55,7 @@ const InventorParentPage = lazyNamed(() => import('./pages/InventorParentPage.js
 const AssistantPage = lazyNamed(() => import('./pages/AssistantPage.jsx'), 'AssistantPage')
 const WeeklyReportPage = lazyNamed(() => import('./pages/WeeklyReportPage.jsx'), 'WeeklyReportPage')
 const CompanionQuestionPage = lazyNamed(() => import('./pages/CompanionQuestionPage.jsx'), 'CompanionQuestionPage')
+const SyncStationPage = lazyNamed(() => import('./pages/SyncStationPage.jsx'), 'SyncStationPage')
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
@@ -150,6 +151,7 @@ function AppRoutes() {
             <Route path="accessibility" element={<AccessibilityPage />} />
             <Route path="devices" element={<DevicesPage />} />
             <Route path="data" element={<DataPage />} />
+            <Route path="sync" element={<SyncStationPage />} />
           </Route>
         </Route>
       </Route>

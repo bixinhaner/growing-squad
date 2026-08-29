@@ -34,7 +34,7 @@ export function CloudPairPage({ onPaired }) {
       <section className="cloud-pair-card" aria-labelledby="cloud-pair-title">
         <span className="cloud-pair-card__badge"><Icon name="shield" size={24} /> 家庭私有空间</span>
         <h1 id="cloud-pair-title">把这台 iPad<br />带回成长小队</h1>
-        <p>只需由家长连接一次。以后孩子打开主屏幕图标，就会直接看到自己的今晚任务。</p>
+        <p>只需由家长连接一次。以后孩子打开主屏幕图标，就会直接进入自己的成长小队。</p>
         <form onSubmit={connect}>
           <label htmlFor="device-name">设备名字</label>
           <input id="device-name" name="deviceName" value={deviceName} maxLength={40} autoComplete="off" onChange={(event) => setDeviceName(event.target.value)} />

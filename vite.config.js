@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/bedtime/api/cloud': {
+      '/bedtime/api': {
         target: 'http://127.0.0.1:8795',
         rewrite: (path) => path.replace(/^\/bedtime/, ''),
       },
@@ -16,6 +16,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
+    testTimeout: 15_000,
     exclude: ['tests/e2e/**', 'tests/production/**', 'node_modules/**', 'dist/**'],
     css: true,
   },

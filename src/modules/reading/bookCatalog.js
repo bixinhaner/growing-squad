@@ -9,9 +9,13 @@ export const READING_COVER_OPTIONS = [
 
 export const READING_MODES = [
   { id: 'listen-parent', title: '听家长读', subtitle: '我来听故事', family: 'listen' },
+  { id: 'follow-audio', title: '听一句跟一句', subtitle: '跟着家人的录音读', family: 'listen' },
+  { id: 'audio-pause-read', title: '听听停停自己读', subtitle: '需要时再听一小段', family: 'bridge' },
   { id: 'read-together', title: '一起读', subtitle: '你一句，我一句', family: 'together', recommended: true },
+  { id: 'turn-taking', title: '轮流读', subtitle: '每人读一小段', family: 'together' },
   { id: 'dialogue-role', title: '角色读', subtitle: '我读对话', family: 'together' },
   { id: 'independent-short', title: '自己读一点', subtitle: '先读一小段', family: 'independent' },
+  { id: 'independent-book', title: '自己读整本', subtitle: '需要时再来帮我', family: 'independent' },
 ]
 
 export const DIFFICULTY_OPTIONS = [

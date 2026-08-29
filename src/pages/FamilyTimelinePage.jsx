@@ -37,6 +37,10 @@ export function FamilyTimelinePage() {
   return (
     <section className="timeline-page">
       <header className="platform-page-header"><div><span className="eyebrow">今日与时间线</span><h1>家庭时间线</h1><p>家长安排完整节奏，孩子每次只看到一件事。</p></div><div><button type="button" className="button button--secondary" onClick={restore}>恢复温和模板</button><button type="button" className="button button--primary" onClick={save}>{saved ? '已保存' : '保存时间线'}</button></div></header>
+      <section className="timeline-profile-tracks" aria-label="家庭三轨时间线">{state.profiles.map((child) => {
+        const candidate = deriveTodayCandidate(state, child.id)
+        return <button type="button" className={child.id === profile.id ? 'is-active' : ''} key={child.id} onClick={() => dispatch({ type: 'SWITCH_PROFILE', profileId: child.id })}><AssetArt id={candidate.options[0]?.assetId || 'heart'} decorative /><span><small>{child.name}的时间线</small><strong>{candidate.title}</strong><em>{child.id === profile.id ? '正在编辑' : '点按查看和编辑'}</em></span></button>
+      })}<article><AssetArt id="story" decorative /><span><small>全家共同活动</small><strong>家庭阅读与自由相处</strong><em>不强制打卡，不做孩子排名</em></span></article></section>
       {warnings.length ? <aside className="schedule-advice"><Icon name="sparkle" /><div><strong>当前安排有点密</strong><p>{warnings.join('；')}。建议先留出自由玩耍，再决定是否增加活动。</p></div><button type="button" onClick={() => { const target = routines.find((item) => item.period === 'after-school'); if (target && !target.items.some((item) => item.kind === 'free')) updateRoutine(target.id, { items: [{ id: 'free-play', title: '自由玩耍', kind: 'free', assetId: 'park', estimatedMinutes: 30, required: false }, ...target.items] }) }}>留出自由时间</button></aside> : null}
       <div className="timeline-workspace">
         <div className="timeline-board">

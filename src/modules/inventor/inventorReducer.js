@@ -48,6 +48,16 @@ export function inventorReducer(state, operation) {
     }
   } else if (operation.type === 'inventor.artifact.synced') {
     if (module.artifacts[payload.artifactId]) module.artifacts[payload.artifactId] = { ...module.artifacts[payload.artifactId], status: 'synced', remote: true, updatedAt: operation.occurredAt }
+  } else if (operation.type === 'inventor.artifact.deleted') {
+    delete module.artifacts[payload.artifactId]
+    module.projects = module.projects.map((item) => ({
+      ...item,
+      versions: (item.versions || []).map((version) => ({
+        ...version,
+        artifactIds: (version.artifactIds || []).filter((id) => id !== payload.artifactId),
+        testArtifactIds: (version.testArtifactIds || []).filter((id) => id !== payload.artifactId),
+      })),
+    }))
   } else if (project && operation.type === 'inventor.test.recorded') {
     const versions = project.versions.map((version) => version.number === 1 ? { ...version, testFinding: payload.finding, testFindingTitle: payload.findingTitle, testArtifactIds: payload.artifactIds || version.testArtifactIds || [] } : version)
     module.projects[projectIndex] = { ...project, versions, status: 'learning', nextQuestion: payload.nextQuestion, nextChange: payload.nextChange, nextChangeTitle: payload.nextChangeTitle, updatedAt: operation.occurredAt }
