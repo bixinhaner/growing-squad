@@ -53,6 +53,14 @@ const DEFINITIONS = {
   RECORD_MOVEMENT_FEEDBACK: ['movement', 'movement.feedback.recorded', 'movement-session'],
   SKIP_MOVEMENT_ACTIVITY: ['movement', 'movement.activity.skipped', 'movement-session'],
   UPDATE_MOVEMENT_PREFERENCES: ['movement', 'movement.preferences.updated', 'movement-preferences'],
+  ADD_READING_BOOK: ['reading', 'reading.book.added', 'reading-book'],
+  UPDATE_READING_BOOK: ['reading', 'reading.book.updated', 'reading-book'],
+  SELECT_READING_MODE: ['reading', 'reading.mode.selected', 'reading-session'],
+  START_READING_SESSION: ['reading', 'reading.session.started', 'reading-session'],
+  REQUEST_READING_HELP: ['reading', 'reading.help.requested', 'reading-session'],
+  COMPLETE_READING_SESSION: ['reading', 'reading.session.completed', 'reading-session'],
+  RECORD_READING_DIFFICULTY: ['reading', 'reading.difficulty.recorded', 'reading-session'],
+  ADD_READING_REFLECTION: ['reading', 'reading.reflection.added', 'reading-session'],
 }
 
 export function operationId() {
@@ -91,5 +99,7 @@ export function isChildOperation(operation) {
     'core.today.skipped', 'core.today.later',
     'movement.activity.selected', 'movement.activity.started', 'movement.help.requested',
     'movement.activity.completed', 'movement.feedback.recorded', 'movement.activity.skipped',
+    'reading.mode.selected', 'reading.session.started', 'reading.help.requested',
+    'reading.session.completed', 'reading.difficulty.recorded', 'reading.reflection.added',
   ]).has(operation.type)
 }

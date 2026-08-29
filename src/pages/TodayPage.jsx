@@ -55,7 +55,10 @@ export function TodayPage() {
         <span>慢慢来，一次只做一件</span>
       </aside>
       <article className={`today-card ${candidate.free ? 'today-card--free' : ''}`}>
-        <button className="today-movement-entry" type="button" onClick={() => navigate('/movement')}><img src={appPath('assets/movement/balloon-keep-up.webp')} alt="" /><span><small>运动小队</small><strong>选一个好玩的活动</strong></span><Icon name="chevron" /></button>
+        <div className="today-module-entries" aria-label="成长探索">
+          <button className="today-movement-entry" type="button" onClick={() => navigate('/movement')}><img src={appPath('assets/movement/balloon-keep-up.webp')} alt="" /><span><small>运动小队</small><strong>选一个好玩的活动</strong></span><Icon name="chevron" /></button>
+          <button className="today-reading-entry" type="button" onClick={() => navigate('/reading')}><img src={appPath('assets/reading/hedgehog-lantern.webp')} alt="" /><span><small>故事树屋</small><strong>选一本家里的书</strong></span><Icon name="chevron" /></button>
+        </div>
         <span className="today-context">{candidate.context}</span>
         <h1 id="today-title">{candidate.title}</h1>
         <p>{candidate.subtitle}</p>

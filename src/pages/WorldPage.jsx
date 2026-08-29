@@ -6,7 +6,7 @@ import { appPath } from '../data/paths.js'
 const areas = [
   { id: 'garden', title: '月光花园', copy: '种下想法，收获光芒', assetId: 'lamp', route: '/garden' },
   { id: 'movement', title: '能量广场', copy: '动一动，点亮快乐', assetId: 'bicycle', route: '/energy-plaza' },
-  { id: 'reading', title: '故事树屋', copy: '读一读，发现世界', assetId: 'story' },
+  { id: 'reading', title: '故事树屋', copy: '读一读，发现世界', assetId: 'story', route: '/story-treehouse' },
   { id: 'family', title: '家庭小屋', copy: '一起做，分享温暖', assetId: 'heart' },
   { id: 'inventor', title: '发明工坊', copy: '想一想，创造惊喜', assetId: 'craft' },
   { id: 'memory', title: '记忆码头', copy: '看一看，珍藏美好', assetId: 'outing' },

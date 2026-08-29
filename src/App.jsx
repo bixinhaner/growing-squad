@@ -27,6 +27,8 @@ import { SupportPage } from './pages/SupportPage.jsx'
 import { MovementChoicePage, MovementPlayPage, MovementReadyPage } from './pages/MovementPage.jsx'
 import { EnergyPlazaPage } from './pages/EnergyPlazaPage.jsx'
 import { MovementParentPage } from './pages/MovementParentPage.jsx'
+import { ReadingShelfPage, ReadingBookPage, ReadingPlayPage } from './pages/ReadingPage.jsx'
+import { ReadingParentPage } from './pages/ReadingParentPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -94,6 +96,10 @@ function AppRoutes() {
           <Route path="/movement/ready/:activityId/:sessionId" element={<MovementReadyPage />} />
           <Route path="/movement/play/:sessionId" element={<MovementPlayPage />} />
           <Route path="/energy-plaza" element={<EnergyPlazaPage />} />
+          <Route path="/reading" element={<ReadingShelfPage />} />
+          <Route path="/story-treehouse" element={<ReadingShelfPage />} />
+          <Route path="/reading/book/:bookId" element={<ReadingBookPage />} />
+          <Route path="/reading/play/:sessionId" element={<ReadingPlayPage />} />
         </Route>
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
@@ -105,6 +111,7 @@ function AppRoutes() {
             <Route path="timeline" element={<FamilyTimelinePage />} />
             <Route path="support" element={<SupportPage />} />
             <Route path="movement" element={<MovementParentPage />} />
+            <Route path="reading" element={<ReadingParentPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />
