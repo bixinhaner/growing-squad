@@ -238,6 +238,11 @@ test('parent can manage schedules, routines, profile, accessibility and backups'
   await page.getByRole('switch', { name: '减少动态' }).click()
   await expect(page.locator('html')).toHaveClass(/reduce-motion/)
 
+  await page.getByRole('link', { name: '家庭设备' }).click()
+  await expect(page.getByRole('heading', { name: '家庭设备' })).toBeVisible()
+  await expect(page.getByText('连接家庭云端后管理设备')).toBeVisible()
+  await page.screenshot({ path: 'artifacts/visual-qa/63-parent-devices-desktop.png', fullPage: true })
+
   await page.getByRole('link', { name: '数据与隐私' }).click()
   await page.getByRole('button', { name: /创建备份/ }).click()
   await expect(page.getByRole('status')).toContainText('已创建一份本地备份')

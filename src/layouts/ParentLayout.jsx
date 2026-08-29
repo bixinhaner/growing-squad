@@ -13,6 +13,7 @@ const navItems = [
   { to: '/parent/rewards', label: '星光与奖励', icon: 'star' },
   { to: '/parent/profile', label: '孩子资料', icon: 'user' },
   { to: '/parent/accessibility', label: '无障碍', icon: 'accessibility' },
+  { to: '/parent/devices', label: '家庭设备', icon: 'device' },
   { to: '/parent/data', label: '数据与隐私', icon: 'shield' },
 ]
 

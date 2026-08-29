@@ -5,6 +5,7 @@ import { ParentLayout } from './layouts/ParentLayout.jsx'
 import { AccessibilityPage } from './pages/AccessibilityPage.jsx'
 import { CloudPairPage } from './pages/CloudPairPage.jsx'
 import { DataPage } from './pages/DataPage.jsx'
+import { DevicesPage } from './pages/DevicesPage.jsx'
 import { GardenPage } from './pages/GardenPage.jsx'
 import { GoodnightPage } from './pages/GoodnightPage.jsx'
 import { ParentGatePage } from './pages/ParentGatePage.jsx'
@@ -18,7 +19,8 @@ import { TonightPage } from './pages/TonightPage.jsx'
 import { WateringPage } from './pages/WateringPage.jsx'
 import { WelcomePage } from './pages/WelcomePage.jsx'
 import { WishesPage } from './pages/WishesPage.jsx'
-import { BedtimeProvider } from './store/BedtimeProvider.jsx'
+import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
+import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
 import { useBedtimeState } from './store/useBedtime.js'
 import { useBedtimeActions } from './store/useBedtime.js'
@@ -90,6 +92,7 @@ function AppRoutes() {
             <Route path="rewards" element={<RewardsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="accessibility" element={<AccessibilityPage />} />
+            <Route path="devices" element={<DevicesPage />} />
             <Route path="data" element={<DataPage />} />
           </Route>
         </Route>
@@ -138,9 +141,11 @@ function UpdateNotice() {
 export default function App() {
   return (
     <AppErrorBoundary>
-      <BedtimeProvider>
-        <CloudBoundary />
-      </BedtimeProvider>
+      <DeviceProvider>
+        <GrowingSquadProvider>
+          <CloudBoundary />
+        </GrowingSquadProvider>
+      </DeviceProvider>
     </AppErrorBoundary>
   )
 }

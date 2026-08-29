@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { bedtimeReducer, createDefaultData, dayTypeFor, getAccessibility, getSchedule, localDateKey } from '../domain/model.js'
+import { createDefaultData, dayTypeFor, getAccessibility, getSchedule, localDateKey } from '../domain/model.js'
+import { toLegacyView } from '../domain/v7.js'
 import { deleteAllData, hashPin, loadAppData, saveAppData } from '../data/storage.js'
 import {
   checkCloud,
@@ -9,7 +10,6 @@ import {
   getParentToken,
   importCloudState,
   loadOutbox,
-  operationId,
   saveDeviceToken,
   saveOutbox,
   saveParentToken,
@@ -20,29 +20,73 @@ import { BedtimeActionsContext, BedtimeStateContext } from './contexts.js'
 import { drainCloudActions } from './drainCloudActions.js'
 import { playActionSound } from '../audio/soundscape.js'
 import { getCompanionPack } from '../domain/themePacks.js'
-
-const CHILD_ACTIONS = new Set(['COMPLETE_TASK', 'RESET_TASK', 'SKIP_TASK', 'CONFIRM_BED', 'REQUEST_REWARD', 'SWITCH_PROFILE'])
+import { useDevice } from '../core/device/deviceContext.js'
+import { createOperationEnvelope, isChildOperation } from '../core/sync/operationSchemas.js'
+import { rootReducer } from '../modules/registry.js'
+import { clearIndexedPersistence, loadIndexedPersistence, saveSnapshotAndOutbox } from '../core/persistence/idb.js'
 
 export function BedtimeProvider({ children }) {
+  const { preferences, selectProfile, applyServerDevice } = useDevice()
   const [initial] = useState(loadAppData)
-  const [state, localDispatch] = useReducer(bedtimeReducer, initial.data)
+  const [domainState, localDispatch] = useReducer(rootReducer, initial.data)
   const [saveStatus, setSaveStatus] = useState(initial.issue ? 'error' : 'saved')
   const [saveMessage, setSaveMessage] = useState(initial.issue)
   const [parentUnlocked, setParentUnlocked] = useState(false)
   const [cloud, setCloud] = useState({ mode: 'checking', revision: 0, pushAvailable: false, message: '正在连接家庭云端…' })
   const firstRender = useRef(true)
-  const latestState = useRef(state)
+  const latestState = useRef(domainState)
   const cloudRef = useRef(cloud)
   const outboxRef = useRef(loadOutbox())
   const syncingRef = useRef(false)
+  const clientSequenceRef = useRef(Number(window.localStorage.getItem('growing-squad:client-sequence:v1') || 0))
+  const selectedProfileId = preferences.boundProfileId
+    || (domainState.profiles.some((profile) => profile.id === preferences.selectedProfileId) ? preferences.selectedProfileId : null)
+    || (domainState.profiles.some((profile) => profile.id === initial.selectedProfileId) ? initial.selectedProfileId : null)
+    || domainState.profiles[0]?.id
+  const state = useMemo(() => toLegacyView(domainState, selectedProfileId), [domainState, selectedProfileId])
   const activeAccessibility = getAccessibility(state)
 
-  useEffect(() => { latestState.current = state }, [state])
+  useEffect(() => { latestState.current = domainState }, [domainState])
+  useEffect(() => {
+    const legacyItems = outboxRef.current.filter((item) => !item.operation && item.action)
+    if (!legacyItems.length) return
+    if (domainState.profiles.length > 1 && legacyItems.some((item) => !item.action.profileId)) {
+      window.localStorage.setItem('growing-squad:unresolved-outbox:v6', JSON.stringify(legacyItems))
+      outboxRef.current = outboxRef.current.filter((item) => !legacyItems.includes(item))
+      saveOutbox(outboxRef.current)
+      setSaveStatus('retrying')
+      setSaveMessage('发现旧版未同步操作。为避免记到错误的孩子，已安全保留，需由家长确认后恢复。')
+      return
+    }
+    const fallbackProfileId = domainState.profiles[0]?.id
+    outboxRef.current = outboxRef.current.map((item, index) => item.operation ? item : {
+      ...item,
+      operation: createOperationEnvelope(item.action, item.action.profileId || fallbackProfileId, clientSequenceRef.current + index + 1, item.id),
+    })
+    clientSequenceRef.current += legacyItems.length
+    saveOutbox(outboxRef.current)
+  }, [domainState.profiles])
+  useEffect(() => {
+    let active = true
+    loadIndexedPersistence().then(({ snapshot, outbox }) => {
+      if (!active) return
+      if (snapshot?.version === 7 && Number(snapshot.meta?.updatedAt || 0) > Number(latestState.current.meta?.updatedAt || 0)) {
+        localDispatch({ type: 'REPLACE_DATA', payload: snapshot })
+      }
+      if (outbox.length) outboxRef.current = outbox
+      else saveSnapshotAndOutbox(latestState.current, outboxRef.current).catch(() => {})
+    }).catch(() => {})
+    return () => { active = false }
+  }, [])
+  useEffect(() => {
+    if (selectedProfileId && selectedProfileId !== preferences.selectedProfileId) selectProfile(selectedProfileId)
+  }, [preferences.selectedProfileId, selectProfile, selectedProfileId])
   useEffect(() => { cloudRef.current = cloud }, [cloud])
 
   const replaceFromCloud = useCallback((payload) => {
     if (!payload?.state) return
     localDispatch({ type: 'REPLACE_DATA', payload: payload.state })
+    if (payload.device) applyServerDevice(payload.device)
     setCloud((value) => {
       const nextCloud = { ...value, mode: 'connected', revision: payload.revision || value.revision, message: null }
       cloudRef.current = nextCloud
@@ -50,7 +94,7 @@ export function BedtimeProvider({ children }) {
     })
     setSaveStatus('saved')
     setSaveMessage(null)
-  }, [])
+  }, [applyServerDevice])
 
   const flushCloud = useCallback(async () => {
     if (syncingRef.current || cloudRef.current.mode !== 'connected' || !getDeviceToken()) return
@@ -61,9 +105,10 @@ export function BedtimeProvider({ children }) {
         writeItems: (items) => {
           outboxRef.current = items
           saveOutbox(items)
+          saveSnapshotAndOutbox(latestState.current, items).catch(() => {})
         },
         getToken: (item) => item.requiresParent ? getParentToken() : getDeviceToken(),
-        sendAction: (item, token) => sendCloudAction(item.id, item.action, token),
+        sendAction: (item, token) => sendCloudAction(item.id, item.operation || item.action, token),
       })
       if (result.status === 'needs-parent') {
         setSaveStatus('retrying')
@@ -153,16 +198,31 @@ export function BedtimeProvider({ children }) {
   }, [connectCloud, flushCloud])
 
   const dispatch = useCallback((action) => {
-    const currentAccessibility = getAccessibility(latestState.current)
+    if (action.type === 'SWITCH_PROFILE') {
+      if (!preferences.boundProfileId && domainState.profiles.some((profile) => profile.id === action.profileId)) selectProfile(action.profileId)
+      return
+    }
+    const targetProfileId = action.profileId || preferences.boundProfileId || selectedProfileId
+    const currentAccessibility = getAccessibility(toLegacyView(latestState.current, targetProfileId), targetProfileId)
     const muted = action.type === 'UPDATE_ACCESSIBILITY' && action.payload?.soundOff === false
       ? false
       : currentAccessibility.soundOff
     playActionSound(action, muted)
-    localDispatch(action)
+    clientSequenceRef.current += 1
+    window.localStorage.setItem('growing-squad:client-sequence:v1', String(clientSequenceRef.current))
+    const operation = createOperationEnvelope(action, targetProfileId, clientSequenceRef.current)
+    const nextState = rootReducer(latestState.current, operation)
+    localDispatch(operation)
+    if (action.type === 'ADD_PROFILE' && action.payload?.id) selectProfile(action.payload.id)
+    if (action.type === 'DELETE_PROFILE' && targetProfileId === action.profileId) {
+      const fallback = domainState.profiles.find((profile) => profile.id !== action.profileId)
+      if (fallback) selectProfile(fallback.id)
+    }
     if (!['connected', 'offline'].includes(cloudRef.current.mode)) return
-    const item = { id: operationId(), action, requiresParent: !CHILD_ACTIONS.has(action.type), queuedAt: Date.now() }
+    const item = { id: operation.id, operation, requiresParent: !isChildOperation(operation), queuedAt: Date.now() }
     outboxRef.current = [...outboxRef.current, item]
     saveOutbox(outboxRef.current)
+    saveSnapshotAndOutbox(nextState, outboxRef.current).catch(() => {})
     if (cloudRef.current.mode === 'connected') {
       setSaveStatus('saving')
       setSaveMessage(null)
@@ -171,7 +231,7 @@ export function BedtimeProvider({ children }) {
       setSaveStatus('retrying')
       setSaveMessage('已保存在这台设备，联网后会自动同步。')
     }
-  }, [flushCloud])
+  }, [domainState.profiles, flushCloud, preferences.boundProfileId, selectProfile, selectedProfileId])
 
   useEffect(() => {
     if (firstRender.current) {
@@ -180,7 +240,8 @@ export function BedtimeProvider({ children }) {
     }
     let active = true
     try {
-      saveAppData(state)
+      saveAppData(domainState)
+      saveSnapshotAndOutbox(domainState, outboxRef.current).catch(() => {})
       queueMicrotask(() => {
         if (!active || outboxRef.current.length) return
         setSaveStatus('saved')
@@ -194,7 +255,7 @@ export function BedtimeProvider({ children }) {
       })
     }
     return () => { active = false }
-  }, [initial.migrated, state])
+  }, [domainState, initial.migrated])
 
   useEffect(() => {
     const preserveLatestState = () => {
@@ -301,6 +362,7 @@ export function BedtimeProvider({ children }) {
     if (cloudRef.current.mode === 'connected') await replaceData(next)
     else {
       deleteAllData()
+      await clearIndexedPersistence()
       localDispatch({ type: 'REPLACE_DATA', payload: next })
     }
     setParentUnlocked(false)
@@ -321,7 +383,7 @@ export function BedtimeProvider({ children }) {
     } catch { setSaveStatus('error') }
   }, [connectCloud, flushCloud])
 
-  const stateValue = useMemo(() => ({ state, saveStatus, saveMessage, parentUnlocked, cloud }), [state, saveStatus, saveMessage, parentUnlocked, cloud])
+  const stateValue = useMemo(() => ({ state, domainState, saveStatus, saveMessage, parentUnlocked, cloud, device: preferences }), [cloud, domainState, parentUnlocked, preferences, saveMessage, saveStatus, state])
   const actionsValue = useMemo(() => ({ dispatch, unlockParent, lockParent, resetApp, replaceData, retrySave, pairCloud }), [dispatch, lockParent, pairCloud, replaceData, resetApp, retrySave, unlockParent])
 
   return (

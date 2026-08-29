@@ -6,7 +6,10 @@ import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 import webpush from 'web-push'
 import { migrateV5 } from '../src/data/storage.js'
-import { bedtimeReducer, dayTypeFor, getSchedule, localDateKey, timeToMinutes } from '../src/domain/model.js'
+import { dayTypeFor, getSchedule, localDateKey, timeToMinutes } from '../src/domain/model.js'
+import { migrateV6ToV7, normalizeV7 } from '../src/domain/v7.js'
+import { isChildOperation, operationEnvelopeSchema } from '../src/core/sync/operationSchemas.js'
+import { rootReducer } from '../src/modules/registry.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const port = Number(process.env.BEDTIME_PORT || 8795)
@@ -71,10 +74,42 @@ db.exec(`
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at INTEGER NOT NULL
+  );
   CREATE INDEX IF NOT EXISTS idx_sessions_token ON parent_sessions(token_hash);
   CREATE INDEX IF NOT EXISTS idx_devices_token ON devices(token_hash);
   CREATE INDEX IF NOT EXISTS idx_operations_family ON operations(family_id, created_at);
 `)
+
+function ensureColumn(table, name, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all()
+  if (!columns.some((column) => column.name === name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`)
+}
+
+db.exec('BEGIN IMMEDIATE')
+try {
+  ensureColumn('devices', 'mode', "TEXT NOT NULL DEFAULT 'shared'")
+  ensureColumn('devices', 'bound_profile_id', 'TEXT')
+  ensureColumn('devices', 'capabilities_json', "TEXT NOT NULL DEFAULT '{}'")
+  ensureColumn('operations', 'module_id', 'TEXT')
+  ensureColumn('operations', 'profile_id', 'TEXT')
+  ensureColumn('operations', 'entity_type', 'TEXT')
+  ensureColumn('operations', 'entity_id', 'TEXT')
+  ensureColumn('operations', 'schema_version', 'INTEGER NOT NULL DEFAULT 1')
+  ensureColumn('operations', 'client_occurred_at', 'INTEGER')
+  ensureColumn('operations', 'client_sequence', 'INTEGER')
+  ensureColumn('operations', 'base_revision', 'INTEGER')
+  ensureColumn('operations', 'payload_hash', 'TEXT')
+  ensureColumn('operations', 'server_sequence', 'INTEGER')
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_operations_server_sequence ON operations(server_sequence)')
+  db.prepare('INSERT OR IGNORE INTO schema_migrations (id, applied_at) VALUES (?, ?)').run('v7-platform-foundation', Date.now())
+  db.exec('COMMIT')
+} catch (error) {
+  db.exec('ROLLBACK')
+  throw error
+}
 
 const sha256 = (value) => createHash('sha256').update(String(value)).digest('hex')
 const makeToken = () => randomBytes(32).toString('base64url')
@@ -88,10 +123,9 @@ function safeEqual(left, right) {
 
 function assertState(value) {
   if (Number(value?.version) === 5) value = migrateV5(value)
-  if (!value || typeof value !== 'object' || Number(value.version) !== 6 || !Array.isArray(value.profiles)) {
-    throw new Error('云端数据必须是晚安小队 v6 格式')
-  }
-  return value
+  if (Number(value?.version) === 6) value = migrateV6ToV7(value)
+  try { return normalizeV7(value) }
+  catch { throw new Error('云端数据必须是成长小队 v7 格式') }
 }
 
 function initializeFamily() {
@@ -106,16 +140,19 @@ function initializeFamily() {
 
 initializeFamily()
 
-if (vapidPublicKey && vapidPrivateKey) webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+function migrateFamilyStateToV7() {
+  const rows = db.prepare('SELECT id, state_json AS stateJson FROM families').all()
+  const update = db.prepare('UPDATE families SET state_json = ?, revision = revision + 1, updated_at = ? WHERE id = ?')
+  for (const row of rows) {
+    const parsed = JSON.parse(row.stateJson)
+    if (Number(parsed.version) === 7) continue
+    update.run(JSON.stringify(assertState(parsed)), now(), row.id)
+  }
+}
 
-const childActions = new Set(['COMPLETE_TASK', 'RESET_TASK', 'SKIP_TASK', 'CONFIRM_BED', 'REQUEST_REWARD', 'SWITCH_PROFILE'])
-const parentActions = new Set([
-  ...childActions,
-  'RECORD_ASLEEP_TIME', 'SKIP_ASLEEP_TIME', 'ADD_REWARD_EVENT', 'UNDO_REWARD_EVENT',
-  'UNDO_BEDTIME_SETTLEMENT',
-  'APPROVE_REWARD', 'UNDO_REWARD', 'UPDATE_SCHEDULE', 'UPDATE_ROUTINE', 'ADD_PROFILE',
-  'DELETE_PROFILE', 'UPDATE_PROFILE', 'UPDATE_WISHES', 'UPDATE_ACCESSIBILITY', 'SETUP_COMPLETE',
-])
+migrateFamilyStateToV7()
+
+if (vapidPublicKey && vapidPrivateKey) webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
 
 const attempts = new Map()
 function checkAttempt(key) {
@@ -174,7 +211,7 @@ function authenticate(request, allowParent = true) {
     if (session) return { ...session, role: 'parent' }
   }
   const device = db.prepare(`
-    SELECT id AS deviceId, family_id AS familyId, role FROM devices
+    SELECT id AS deviceId, family_id AS familyId, role, mode, bound_profile_id AS boundProfileId FROM devices
     WHERE token_hash = ? AND revoked_at IS NULL
   `).get(tokenHash)
   if (!device) return null
@@ -182,35 +219,53 @@ function authenticate(request, allowParent = true) {
   return device
 }
 
-function familyPayload(familyId) {
+function familyPayload(familyId, deviceId = null) {
   const row = db.prepare('SELECT state_json AS stateJson, revision, updated_at AS updatedAt FROM families WHERE id = ?').get(familyId)
   if (!row) return null
-  const state = JSON.parse(row.stateJson)
-  return { state: { ...state, security: { ...(state.security || {}), pinHash: null } }, revision: row.revision, updatedAt: row.updatedAt }
+  const state = assertState(JSON.parse(row.stateJson))
+  const device = deviceId ? db.prepare('SELECT id, name, mode, bound_profile_id AS boundProfileId FROM devices WHERE id = ?').get(deviceId) : null
+  return { state: { ...state, security: { ...(state.security || {}), pinHash: null } }, revision: row.revision, updatedAt: row.updatedAt, device: device || undefined }
 }
 
-function runAction(identity, operationId, action) {
-  const allowed = identity.role === 'parent' ? parentActions : childActions
-  if (!action || !allowed.has(action.type)) throw Object.assign(new Error('这个设备不能执行该操作'), { status: 403 })
+function runAction(identity, operationId, submittedOperation) {
+  const parsed = operationEnvelopeSchema.safeParse(submittedOperation)
+  if (!parsed.success) throw Object.assign(new Error('请先更新成长小队，再继续操作。'), { status: 426 })
+  const operation = parsed.data
+  if (operation.id !== operationId) throw Object.assign(new Error('操作编号不一致'), { status: 400 })
+  if (identity.role !== 'parent' && !isChildOperation(operation)) throw Object.assign(new Error('这个设备不能执行该操作'), { status: 403 })
+  const profileId = operation.target.profileId
+  if (!profileId) throw Object.assign(new Error('操作必须明确属于哪个孩子'), { status: 400 })
+  if (identity.role !== 'parent' && identity.mode === 'dedicated' && identity.boundProfileId !== profileId) {
+    throw Object.assign(new Error('这台设备只属于已绑定的孩子'), { status: 403 })
+  }
   if (!/^[A-Za-z0-9:_-]{8,160}$/.test(String(operationId || ''))) throw Object.assign(new Error('操作编号不正确'), { status: 400 })
   db.exec('BEGIN IMMEDIATE')
   try {
     const duplicate = db.prepare('SELECT id FROM operations WHERE id = ?').get(operationId)
     if (duplicate) {
       db.exec('COMMIT')
-      return familyPayload(identity.familyId)
+      return familyPayload(identity.familyId, identity.deviceId)
     }
     const family = db.prepare('SELECT state_json AS stateJson, revision FROM families WHERE id = ?').get(identity.familyId)
     if (!family) throw Object.assign(new Error('家庭数据不存在'), { status: 404 })
-    const previous = JSON.parse(family.stateJson)
-    const next = assertState(bedtimeReducer(previous, action))
+    const previous = assertState(JSON.parse(family.stateJson))
+    if (!previous.profiles.some((profile) => profile.id === profileId)) throw Object.assign(new Error('找不到目标孩子'), { status: 404 })
+    const next = assertState(rootReducer(previous, operation))
     const timestamp = now()
+    const serverSequence = Number(db.prepare('SELECT COALESCE(MAX(server_sequence), 0) + 1 AS value FROM operations').get().value)
     db.prepare('UPDATE families SET state_json = ?, pin_hash = ?, revision = revision + 1, updated_at = ? WHERE id = ?')
       .run(JSON.stringify(next), next.security?.pinHash || null, timestamp, identity.familyId)
-    db.prepare('INSERT INTO operations (id, family_id, device_id, action_type, created_at) VALUES (?, ?, ?, ?, ?)')
-      .run(operationId, identity.familyId, identity.deviceId || null, action.type, timestamp)
+    db.prepare(`INSERT INTO operations (
+      id, family_id, device_id, action_type, created_at, module_id, profile_id, entity_type,
+      entity_id, schema_version, client_occurred_at, client_sequence, base_revision, payload_hash, server_sequence
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      operationId, identity.familyId, identity.deviceId || null, operation.type, timestamp,
+      operation.moduleId, profileId, operation.target.entityType, operation.target.entityId,
+      operation.schemaVersion, operation.occurredAt, operation.clientSequence, family.revision,
+      sha256(JSON.stringify(operation.payload)), serverSequence,
+    )
     db.exec('COMMIT')
-    return familyPayload(identity.familyId)
+    return familyPayload(identity.familyId, identity.deviceId)
   } catch (error) {
     db.exec('ROLLBACK')
     throw error
@@ -229,8 +284,8 @@ function createParentSession(identity) {
 
 async function handleApi(request, response) {
   const url = new URL(request.url, 'http://localhost')
-  if (request.method === 'GET' && url.pathname === '/api/cloud/health') {
-    return json(response, 200, { ok: true, service: 'bedtime-cloud', storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), time: now() })
+  if (request.method === 'GET' && ['/api/cloud/health', '/api/v2/health'].includes(url.pathname)) {
+    return json(response, 200, { ok: true, service: 'growing-squad', apiVersion: 2, dataVersion: 7, storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), mediaAvailable: false, time: now() })
   }
 
   if (request.method === 'POST' && url.pathname === '/api/cloud/pair') {
@@ -244,16 +299,20 @@ async function handleApi(request, response) {
     const token = makeToken()
     const timestamp = now()
     const deviceId = randomUUID()
-    db.prepare('INSERT INTO devices (id, family_id, token_hash, role, name, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(deviceId, family.id, sha256(token), 'child', String(body.deviceName || '家庭设备').slice(0, 40), timestamp, timestamp)
-    return json(response, 201, { token, deviceId, ...familyPayload(family.id) })
+    const mode = body.mode === 'dedicated' ? 'dedicated' : 'shared'
+    const boundProfileId = mode === 'dedicated' ? String(body.profileId || '') : null
+    const familyState = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(family.id).stateJson))
+    if (mode === 'dedicated' && !familyState.profiles.some((profile) => profile.id === boundProfileId)) return json(response, 400, { error: '找不到要绑定的孩子。' })
+    db.prepare('INSERT INTO devices (id, family_id, token_hash, role, name, created_at, last_seen_at, mode, bound_profile_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(deviceId, family.id, sha256(token), 'child', String(body.deviceName || '家庭设备').slice(0, 40), timestamp, timestamp, mode, boundProfileId)
+    return json(response, 201, { token, deviceId, ...familyPayload(family.id, deviceId) })
   }
 
   const identity = authenticate(request)
   if (!identity) return json(response, 401, { error: '设备连接已失效，请重新连接家庭。' })
 
   if (request.method === 'GET' && url.pathname === '/api/cloud/state') {
-    return json(response, 200, { ...familyPayload(identity.familyId), role: identity.role })
+    return json(response, 200, { ...familyPayload(identity.familyId, identity.deviceId), role: identity.role })
   }
 
   if (request.method === 'POST' && url.pathname === '/api/cloud/actions') {
@@ -288,6 +347,36 @@ async function handleApi(request, response) {
     db.prepare('INSERT OR IGNORE INTO operations (id, family_id, device_id, action_type, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(String(body.operationId || randomUUID()), identity.familyId, identity.deviceId, 'IMPORT_STATE', timestamp)
     return json(response, 200, familyPayload(identity.familyId))
+  }
+
+  if (request.method === 'GET' && ['/api/cloud/devices', '/api/v2/devices'].includes(url.pathname)) {
+    if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
+    const devices = db.prepare(`SELECT id, name, mode, bound_profile_id AS boundProfileId,
+      created_at AS createdAt, last_seen_at AS lastSeenAt, revoked_at AS revokedAt
+      FROM devices WHERE family_id = ? ORDER BY revoked_at IS NOT NULL, last_seen_at DESC`).all(identity.familyId)
+    return json(response, 200, { devices })
+  }
+
+  const deviceMatch = url.pathname.match(/^\/api\/(?:cloud|v2)\/devices\/([^/]+)$/)
+  if (deviceMatch && request.method === 'PATCH') {
+    if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
+    const body = await readJson(request)
+    const mode = body.mode === 'dedicated' ? 'dedicated' : 'shared'
+    const boundProfileId = mode === 'dedicated' ? String(body.profileId || '') : null
+    const state = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
+    if (mode === 'dedicated' && !state.profiles.some((profile) => profile.id === boundProfileId)) return json(response, 400, { error: '找不到要绑定的孩子。' })
+    const result = db.prepare('UPDATE devices SET mode = ?, bound_profile_id = ? WHERE id = ? AND family_id = ? AND revoked_at IS NULL')
+      .run(mode, boundProfileId, deviceMatch[1], identity.familyId)
+    if (!result.changes) return json(response, 404, { error: '找不到这台设备。' })
+    return json(response, 200, { ok: true })
+  }
+
+  if (deviceMatch && request.method === 'DELETE') {
+    if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
+    const result = db.prepare('UPDATE devices SET revoked_at = ? WHERE id = ? AND family_id = ? AND revoked_at IS NULL')
+      .run(now(), deviceMatch[1], identity.familyId)
+    if (!result.changes) return json(response, 404, { error: '找不到这台设备。' })
+    return json(response, 200, { ok: true })
   }
 
   if (request.method === 'GET' && url.pathname === '/api/cloud/push/key') {

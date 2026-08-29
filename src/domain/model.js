@@ -1,4 +1,6 @@
-export const DATA_VERSION = 6
+import { DATA_VERSION, isV7State, mergeLegacyView, migrateV6ToV7, toLegacyView } from './v7.js'
+
+export { DATA_VERSION }
 export const ON_TIME_WINDOW_MINUTES = 15
 export const EARLY_TIME_CONFIRM_MINUTES = 120
 
@@ -108,11 +110,11 @@ export function isRoutineOpen(schedule, date = new Date()) {
   return now >= prepare || now < 4 * 60
 }
 
-export function createDefaultData() {
+export function createDefaultLegacyData() {
   const now = Date.now()
   const profile = createProfile()
   return {
-    version: DATA_VERSION,
+    version: 6,
     setupComplete: false,
     activeProfileId: 'child-1',
     profiles: [profile],
@@ -130,41 +132,57 @@ export function createDefaultData() {
   }
 }
 
+export function createDefaultData() {
+  const root = migrateV6ToV7(createDefaultLegacyData())
+  return toLegacyView(root, root.profiles[0].id)
+}
+
 export function getActiveProfile(data) {
-  return data.profiles.find((profile) => profile.id === data.activeProfileId) || data.profiles[0]
+  const view = toLegacyView(data, data.activeProfileId)
+  return view.profiles.find((profile) => profile.id === view.activeProfileId) || view.profiles[0]
 }
 
 export function getAccessibility(data, profileId = data.activeProfileId) {
-  return data.accessibilityByProfile?.[profileId] || data.accessibility || DEFAULT_ACCESSIBILITY
+  const view = toLegacyView(data, profileId)
+  return view.accessibilityByProfile?.[profileId || view.activeProfileId] || view.accessibility || DEFAULT_ACCESSIBILITY
 }
 
 export function getSchedule(data, dayType = dayTypeFor(), dateKey = localDateKey(), profileId = data.activeProfileId) {
-  const schedule = data.schedules.find((item) => item.profileId === profileId && item.dayType === dayType)
-  if (!schedule) return createDefaultData().schedules[0]
+  const view = toLegacyView(data, profileId)
+  const targetProfileId = profileId || view.activeProfileId
+  const schedule = view.schedules.find((item) => item.profileId === targetProfileId && item.dayType === dayType)
+  if (!schedule) return createDefaultLegacyData().schedules[0]
   if (schedule.pending && dateKey >= schedule.pending.effectiveFrom) {
     return { ...schedule, ...schedule.pending, pending: null }
   }
   return schedule
 }
 
-export function getRoutine(data, dayType = dayTypeFor()) {
-  return data.routines.find((item) => item.profileId === data.activeProfileId && item.dayType === dayType) || createDefaultData().routines[0]
+export function getRoutine(data, dayType = dayTypeFor(), profileId = data.activeProfileId) {
+  const view = toLegacyView(data, profileId)
+  const targetProfileId = profileId || view.activeProfileId
+  return view.routines.find((item) => item.profileId === targetProfileId && item.dayType === dayType) || createDefaultLegacyData().routines[0]
 }
 
-export function getSession(data, dateKey = localDateKey()) {
-  return data.sessions[`${data.activeProfileId}:${dateKey}`] || null
+export function getSession(data, dateKey = localDateKey(), profileId = data.activeProfileId) {
+  const view = toLegacyView(data, profileId)
+  return view.sessions[`${profileId || view.activeProfileId}:${dateKey}`] || null
 }
 
 export function getStarBalance(data, profileId = data.activeProfileId) {
-  return data.starLedger.reduce((sum, entry) => {
-    const belongsToChild = entry.profileId === profileId || (!entry.profileId && data.profiles.length === 1)
+  const view = toLegacyView(data, profileId)
+  const targetProfileId = profileId || view.activeProfileId
+  return view.starLedger.reduce((sum, entry) => {
+    const belongsToChild = entry.profileId === targetProfileId || (!entry.profileId && view.profiles.length === 1)
     return belongsToChild ? sum + Number(entry.delta || 0) : sum
   }, 0)
 }
 
 export function getRewardMoments(data, profileId = data.activeProfileId) {
-  return (data.rewardMoments || [])
-    .filter((moment) => moment.profileId === profileId && !moment.revertedAt)
+  const view = toLegacyView(data, profileId)
+  const targetProfileId = profileId || view.activeProfileId
+  return (view.rewardMoments || [])
+    .filter((moment) => moment.profileId === targetProfileId && !moment.revertedAt)
     .sort((a, b) => Number(b.occurredAt || b.createdAt || 0) - Number(a.occurredAt || a.createdAt || 0))
 }
 
@@ -255,7 +273,7 @@ function updateTaskState(state, action, taskStatus) {
   }
 }
 
-export function bedtimeReducer(state, action) {
+function legacyBedtimeReducer(state, action) {
   switch (action.type) {
     case 'SETUP_COMPLETE': {
       const profile = {
@@ -558,21 +576,32 @@ export function bedtimeReducer(state, action) {
   }
 }
 
+export function bedtimeReducer(state, action) {
+  const profileId = action?.profileId || action?.target?.profileId || state?.activeProfileId || state?.profiles?.[0]?.id
+  const legacy = toLegacyView(state, profileId)
+  const next = legacyBedtimeReducer(legacy, { ...action, profileId })
+  if (next === legacy) return state
+  if (!isV7State(state)) return next
+  return toLegacyView(mergeLegacyView(state, next), next.activeProfileId || profileId)
+}
+
 export function getLastSevenDays(data, now = new Date()) {
+  const view = toLegacyView(data, data.activeProfileId)
   const today = localDateKey(now)
   return Array.from({ length: 7 }, (_, index) => {
     const dateKey = addDays(today, index - 6)
     const date = new Date(`${dateKey}T12:00:00`)
-    const session = getSession(data, dateKey)
-    const schedule = getSchedule(data, dayTypeFor(date), dateKey)
+    const session = getSession(view, dateKey)
+    const schedule = getSchedule(view, dayTypeFor(date), dateKey)
     return { dateKey, date, session, schedule }
   })
 }
 
 export function getSessionHistory(data, { days = null, now = new Date() } = {}) {
+  const view = toLegacyView(data, data.activeProfileId)
   const threshold = Number.isFinite(days) ? addDays(localDateKey(now), -(Math.max(1, days) - 1)) : null
-  return Object.values(data.sessions || {})
-    .filter((session) => session?.profileId === data.activeProfileId && (!threshold || session.dateKey >= threshold))
+  return Object.values(view.sessions || {})
+    .filter((session) => session?.profileId === view.activeProfileId && (!threshold || session.dateKey >= threshold))
     .sort((left, right) => String(right.dateKey || right.id).localeCompare(String(left.dateKey || left.id)))
 }
 

@@ -5,7 +5,7 @@ import { STORAGE_KEY, hashPin, loadAppData, mergeLegacyIntoV5, migrateV5, saveAp
 describe('local data repository', () => {
   beforeEach(() => window.localStorage.clear())
 
-  it('saves and restores v6 multi-child reward data', () => {
+  it('saves and restores v7 multi-child reward data', () => {
     const data = createDefaultData()
     data.profiles[0].name = '安安'
     saveAppData(data)
@@ -24,7 +24,7 @@ describe('local data repository', () => {
     window.localStorage.setItem('bedtime:main:v4', JSON.stringify(v4))
     const result = loadAppData()
     expect(result.migrated).toBe(true)
-    expect(result.data.version).toBe(6)
+    expect(result.data.version).toBe(7)
     expect(getComputedBalance(result.data.starLedger)).toBe(18)
     expect(result.data.rewardMoments).toHaveLength(1)
     expect(result.data.routines[0].steps[0].icon).toBe('brush')
@@ -61,7 +61,7 @@ describe('local data repository', () => {
     window.localStorage.setItem('bedtime:main:v3', JSON.stringify(v3))
     const result = loadAppData()
     expect(result.migrated).toBe(true)
-    expect(result.data.version).toBe(6)
+    expect(result.data.version).toBe(7)
     expect(result.data.starLedger[0].profileId).toBe('child-1')
     expect(result.data.accessibilityByProfile['child-1'].reduceMotion).toBe(true)
   })

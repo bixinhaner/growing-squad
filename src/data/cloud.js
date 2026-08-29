@@ -82,6 +82,18 @@ export function importCloudState(state, operationId = crypto.randomUUID()) {
   return request(appPath('api/cloud/import'), { token: getParentToken(), method: 'POST', body: { state, operationId } })
 }
 
+export function fetchCloudDevices() {
+  return request(appPath('api/cloud/devices'), { token: getParentToken() })
+}
+
+export function updateCloudDevice(deviceId, payload) {
+  return request(appPath(`api/cloud/devices/${deviceId}`), { token: getParentToken(), method: 'PATCH', body: payload })
+}
+
+export function revokeCloudDevice(deviceId) {
+  return request(appPath(`api/cloud/devices/${deviceId}`), { token: getParentToken(), method: 'DELETE' })
+}
+
 export function getPushKey() {
   return request(appPath('api/cloud/push/key'), { token: getParentToken() || getDeviceToken() })
 }

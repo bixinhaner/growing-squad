@@ -1,19 +1,22 @@
 import { z } from 'zod'
-import { DATA_VERSION, DEFAULT_ACCESSIBILITY, createDefaultData, minutesToTime } from '../domain/model.js'
+import { DATA_VERSION, DEFAULT_ACCESSIBILITY, createDefaultData, createDefaultLegacyData, minutesToTime } from '../domain/model.js'
+import { mergeLegacyView, migrateV6ToV7, normalizeV7, toLegacyView } from '../domain/v7.js'
 import { normalizeAssetId } from '../domain/assets.js'
 
-export const STORAGE_KEY = 'bedtime:main:v6'
+export const STORAGE_KEY = 'growing-squad:main:v7'
+const V6_KEY = 'bedtime:main:v6'
 const V5_KEY = 'bedtime:main:v5'
 const V4_KEY = 'bedtime:main:v4'
 const V3_KEY = 'bedtime:main:v3'
 const LEGACY_KEY = 'bedtime:main:v2'
-const BACKUP_PREFIX = 'bedtime:backup:v6:'
+const BACKUP_PREFIX = 'growing-squad:backup:v7:'
+const V6_BACKUP_PREFIX = 'bedtime:backup:v6:'
 const V5_BACKUP_PREFIX = 'bedtime:backup:v5:'
 const V4_BACKUP_PREFIX = 'bedtime:backup:v4:'
 const V3_BACKUP_PREFIX = 'bedtime:backup:v3:'
 
 const storedDataSchema = z.object({
-  version: z.literal(DATA_VERSION),
+  version: z.literal(6),
   setupComplete: z.boolean(),
   activeProfileId: z.string(),
   profiles: z.array(z.object({ id: z.string(), name: z.string() }).passthrough()),
@@ -34,7 +37,7 @@ const storedDataSchema = z.object({
 function normalizeV6(value) {
   const parsed = storedDataSchema.safeParse(value)
   if (!parsed.success) throw new Error('本地数据结构不完整')
-  const defaults = createDefaultData()
+  const defaults = createDefaultLegacyData()
   const activeProfileId = parsed.data.profiles.some((profile) => profile.id === parsed.data.activeProfileId)
     ? parsed.data.activeProfileId
     : parsed.data.profiles[0]?.id
@@ -46,7 +49,7 @@ function normalizeV6(value) {
     return [key, session]
   }))
   const migrationReport = parsed.data.meta?.timeMigrationReport || {
-    sourceVersion: value?.meta?.timeModelMigratedAt ? 5 : DATA_VERSION,
+    sourceVersion: value?.meta?.timeModelMigratedAt ? 5 : 6,
     sessionsReviewed: Object.keys(normalizedSessions).length,
     inBedBackfilled: Object.values(normalizedSessions).filter((session) => session?.timeSources?.inBedAt === 'v5-confirmed-at').length,
     targetBackfilled: Object.values(normalizedSessions).filter((session) => String(session?.timeSources?.targetRoutineCompleteAt || '').includes('backfill') || session?.timeSources?.targetRoutineCompleteAt === 'inferred-from-preserved-reward').length,
@@ -73,6 +76,23 @@ function normalizeV6(value) {
     ])),
     meta: { ...defaults.meta, ...parsed.data.meta, timeMigrationReport: migrationReport },
   }
+}
+
+function normalizeCurrentV7(value) {
+  const root = normalizeV7(value)
+  const view = toLegacyView(root, value.activeProfileId || root.profiles[0]?.id)
+  return mergeLegacyView(root, {
+    ...view,
+    routines: view.routines.map((routine) => ({
+      ...routine,
+      steps: routine.steps.map((step) => ({ ...step, icon: normalizeAssetId(step.icon, inferAssetFromText(step.title)) })),
+    })),
+    wishes: view.wishes.map((wish) => {
+      const assetId = normalizeAssetId(wish.assetId || wish.emoji, inferAssetFromText(wish.name))
+      return { ...wish, assetId: wish.id === 'picnic' && assetId === 'toys' ? 'park' : assetId }
+    }),
+    rewardMoments: view.rewardMoments.map((moment) => ({ ...moment, assetId: normalizeAssetId(moment.assetId, inferAssetFromText(moment.title)) })),
+  })
 }
 
 function scheduleForSession(value, session) {
@@ -113,7 +133,7 @@ export function migrateV5(value) {
   const sessionValues = Object.values(sessions)
   return normalizeV6({
     ...value,
-    version: DATA_VERSION,
+    version: 6,
     sessions,
     meta: {
       ...value.meta,
@@ -223,7 +243,7 @@ function migrateV3(value) {
 }
 
 export function migrateLegacyData(value) {
-  const next = createDefaultData()
+  const next = createDefaultLegacyData()
   const settings = value?.settings || {}
   const plannedTime = settings.plannedTime || '21:00'
   const prepareTime = minutesToTime(Number(plannedTime.slice(0, 2)) * 60 + Number(plannedTime.slice(3, 5)) - 30)
@@ -354,7 +374,9 @@ function targetHasActivity(data, profileId) {
 }
 
 export function mergeLegacyIntoV5(currentValue, legacyValue, options = {}) {
-  const current = currentValue?.version === 5 ? migrateV5(structuredClone(currentValue)) : normalizeV6(structuredClone(currentValue))
+  const currentWasV7 = currentValue?.version === DATA_VERSION
+  const currentInput = currentWasV7 ? { ...toLegacyView(currentValue, options.targetProfileId), version: 6 } : currentValue
+  const current = currentInput?.version === 5 ? migrateV5(structuredClone(currentInput)) : normalizeV6(structuredClone(currentInput))
   const targetProfileId = options.targetProfileId || current.activeProfileId
   if (!current.profiles.some((profile) => profile.id === targetProfileId)) throw new Error('找不到迁移目标孩子')
   if (!legacyValue || (legacyValue.version !== '2.0' && !legacyValue.settings)) throw new Error('旧版数据结构不完整')
@@ -485,8 +507,7 @@ export function mergeLegacyIntoV5(currentValue, legacyValue, options = {}) {
     },
     result: report,
   }
-  return {
-    data: normalizeV6({
+  const merged = normalizeV6({
       ...current,
       schedules,
       routines,
@@ -497,7 +518,9 @@ export function mergeLegacyIntoV5(currentValue, legacyValue, options = {}) {
       rewardRequests,
       legacy: { ...(current.legacy && typeof current.legacy === 'object' ? current.legacy : {}), migrations: [...previousMigrations, migration] },
       meta: { ...current.meta, updatedAt: importedAt },
-    }),
+    })
+  return {
+    data: currentWasV7 ? toLegacyView(mergeLegacyView(currentValue, merged), targetProfileId) : merged,
     report,
   }
 }
@@ -505,15 +528,23 @@ export function mergeLegacyIntoV5(currentValue, legacyValue, options = {}) {
 export function loadAppData() {
   try {
     const current = window.localStorage.getItem(STORAGE_KEY)
-    if (current) return { data: normalizeV6(JSON.parse(current)), migrated: false, issue: null }
+    if (current) {
+      const data = normalizeCurrentV7(JSON.parse(current))
+      return { data: toLegacyView(data, data.profiles[0]?.id), migrated: false, issue: null }
+    }
+    const v6 = window.localStorage.getItem(V6_KEY)
+    if (v6) {
+      const legacy = normalizeV6(JSON.parse(v6))
+      return { data: toLegacyView(migrateV6ToV7(legacy), legacy.activeProfileId), selectedProfileId: legacy.activeProfileId, migrated: true, issue: null }
+    }
     const v5 = window.localStorage.getItem(V5_KEY)
-    if (v5) return { data: migrateV5(JSON.parse(v5)), migrated: true, issue: null }
+    if (v5) { const legacy = migrateV5(JSON.parse(v5)); return { data: toLegacyView(migrateV6ToV7(legacy), legacy.activeProfileId), selectedProfileId: legacy.activeProfileId, migrated: true, issue: null } }
     const v4 = window.localStorage.getItem(V4_KEY)
-    if (v4) return { data: migrateV4(JSON.parse(v4)), migrated: true, issue: null }
+    if (v4) { const legacy = migrateV4(JSON.parse(v4)); return { data: toLegacyView(migrateV6ToV7(legacy), legacy.activeProfileId), selectedProfileId: legacy.activeProfileId, migrated: true, issue: null } }
     const v3 = window.localStorage.getItem(V3_KEY)
-    if (v3) return { data: migrateV3(JSON.parse(v3)), migrated: true, issue: null }
+    if (v3) { const legacy = migrateV3(JSON.parse(v3)); return { data: toLegacyView(migrateV6ToV7(legacy), legacy.activeProfileId), selectedProfileId: legacy.activeProfileId, migrated: true, issue: null } }
     const legacy = window.localStorage.getItem(LEGACY_KEY)
-    if (legacy) return { data: migrateLegacyData(JSON.parse(legacy)), migrated: true, issue: null }
+    if (legacy) { const migrated = migrateLegacyData(JSON.parse(legacy)); return { data: toLegacyView(migrateV6ToV7(migrated), migrated.activeProfileId), selectedProfileId: migrated.activeProfileId, migrated: true, issue: null } }
     return { data: createDefaultData(), migrated: false, issue: null }
   } catch (error) {
     return { data: createDefaultData(), migrated: false, issue: error instanceof Error ? error.message : '本地数据读取失败' }
@@ -521,7 +552,7 @@ export function loadAppData() {
 }
 
 export function saveAppData(data) {
-  const value = { ...data, meta: { ...data.meta, updatedAt: Date.now() } }
+  const value = normalizeV7({ ...data, meta: { ...data.meta, updatedAt: Date.now() } })
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
   return value
 }
@@ -539,7 +570,7 @@ function listBackupKeys() {
   const keys = []
   for (let index = 0; index < window.localStorage.length; index += 1) {
     const key = window.localStorage.key(index)
-    if (key?.startsWith(BACKUP_PREFIX) || key?.startsWith(V5_BACKUP_PREFIX) || key?.startsWith(V4_BACKUP_PREFIX) || key?.startsWith(V3_BACKUP_PREFIX)) keys.push(key)
+    if (key?.startsWith(BACKUP_PREFIX) || key?.startsWith(V6_BACKUP_PREFIX) || key?.startsWith(V5_BACKUP_PREFIX) || key?.startsWith(V4_BACKUP_PREFIX) || key?.startsWith(V3_BACKUP_PREFIX)) keys.push(key)
   }
   return keys.sort().reverse()
 }
@@ -552,10 +583,11 @@ export function restoreBackup(key) {
   const raw = window.localStorage.getItem(key)
   if (!raw) throw new Error('找不到这份备份')
   const value = JSON.parse(raw)
-  if (value?.version === DATA_VERSION) return normalizeV6(value)
-  if (value?.version === 5) return migrateV5(value)
-  if (value?.version === 4) return migrateV4(value)
-  if (value?.version === 3) return migrateV3(value)
+  if (value?.version === DATA_VERSION) return normalizeV7(value)
+  if (value?.version === 6) return migrateV6ToV7(normalizeV6(value))
+  if (value?.version === 5) return migrateV6ToV7(migrateV5(value))
+  if (value?.version === 4) return migrateV6ToV7(migrateV4(value))
+  if (value?.version === 3) return migrateV6ToV7(migrateV3(value))
   throw new Error('这份备份版本不受支持')
 }
 
@@ -572,21 +604,27 @@ export function exportData(data) {
 export async function importData(file) {
   const text = await file.text()
   const value = JSON.parse(text)
-  if (value?.version === DATA_VERSION) return normalizeV6(value)
-  if (value?.version === 5) return migrateV5(value)
-  if (value?.version === 4) return migrateV4(value)
-  if (value?.version === 3) return migrateV3(value)
+  if (value?.version === DATA_VERSION) return normalizeV7(value)
+  if (value?.version === 6) return migrateV6ToV7(normalizeV6(value))
+  if (value?.version === 5) return migrateV6ToV7(migrateV5(value))
+  if (value?.version === 4) return migrateV6ToV7(migrateV4(value))
+  if (value?.version === 3) return migrateV6ToV7(migrateV3(value))
   if (value?.version === '2.0' || value?.settings) throw new Error('旧版数据不能直接覆盖，请使用一次性迁移工具')
   throw new Error('这不是成长小队支持的备份文件')
 }
 
 export function deleteAllData() {
   window.localStorage.removeItem(STORAGE_KEY)
+  window.localStorage.removeItem(V6_KEY)
   window.localStorage.removeItem(V5_KEY)
   window.localStorage.removeItem(V4_KEY)
   window.localStorage.removeItem(V3_KEY)
   window.localStorage.removeItem(LEGACY_KEY)
   listBackupKeys().forEach((key) => window.localStorage.removeItem(key))
+}
+
+export function legacyDataView(data, profileId) {
+  return toLegacyView(data, profileId)
 }
 
 export async function hashPin(pin) {

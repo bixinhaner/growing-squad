@@ -19,6 +19,7 @@ const paths = {
   upload: '<path d="M12 17V5m0 0 5 5m-5-5-5 5M4 21h16"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3m3 0-1 15H7L6 7m4 4v7m4-7v7"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+  device: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M9 5h6M11 19h2"/>',
   sparkle: '<path d="m12 2 1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z"/>',
 }
 
