@@ -24,6 +24,7 @@ import { useDevice } from '../core/device/deviceContext.js'
 import { createOperationEnvelope, isChildOperation } from '../core/sync/operationSchemas.js'
 import { rootReducer } from '../modules/registry.js'
 import { clearIndexedPersistence, loadIndexedPersistence, saveSnapshotAndOutbox } from '../core/persistence/idb.js'
+import { syncPendingInventorMedia } from '../modules/inventor/inventorMedia.js'
 
 export function BedtimeProvider({ children }) {
   const { preferences, selectProfile, applyServerDevice } = useDevice()
@@ -38,6 +39,7 @@ export function BedtimeProvider({ children }) {
   const cloudRef = useRef(cloud)
   const outboxRef = useRef(loadOutbox())
   const syncingRef = useRef(false)
+  const mediaSyncingRef = useRef(false)
   const clientSequenceRef = useRef(Number(window.localStorage.getItem('growing-squad:client-sequence:v1') || 0))
   const selectedProfileId = preferences.boundProfileId
     || (domainState.profiles.some((profile) => profile.id === preferences.selectedProfileId) ? preferences.selectedProfileId : null)
@@ -232,6 +234,23 @@ export function BedtimeProvider({ children }) {
       setSaveMessage('已保存在这台设备，联网后会自动同步。')
     }
   }, [domainState.profiles, flushCloud, preferences.boundProfileId, selectProfile, selectedProfileId])
+
+  useEffect(() => {
+    if (cloud.mode !== 'connected' || mediaSyncingRef.current) return
+    const hasPendingMedia = Object.values(domainState.modules?.inventor?.artifacts || {}).some((item) => item.status !== 'synced')
+    if (!hasPendingMedia) return
+    let active = true
+    mediaSyncingRef.current = true
+    syncPendingInventorMedia((draft) => {
+      if (!active) return
+      dispatch({ type: 'MARK_INVENTOR_ARTIFACT_SYNCED', profileId: draft.profileId, projectId: draft.projectId, artifactId: draft.id })
+    }).catch((error) => {
+      if (!active) return
+      setSaveStatus('retrying')
+      setSaveMessage(error instanceof Error ? `${error.message} 资料仍保存在这台设备。` : '资料仍保存在这台设备，联网后会继续同步。')
+    }).finally(() => { mediaSyncingRef.current = false })
+    return () => { active = false }
+  }, [cloud.mode, dispatch, domainState.modules?.inventor?.artifacts])
 
   useEffect(() => {
     if (firstRender.current) {

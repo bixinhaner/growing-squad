@@ -1,4 +1,4 @@
-const CACHE_NAME = 'growing-squad-v21'
+const CACHE_NAME = 'growing-squad-v22'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]
@@ -22,6 +22,11 @@ const RESPONSIBILITY_ASSETS = [
   'place-settings', 'fold-napkins', 'pack-backpack', 'tidy-toys', 'laundry-basket', 'water-plant',
   'set-cups', 'match-socks', 'wipe-table', 'feed-pet', 'shelve-books', 'bring-tissues',
   'place-settings-carry', 'place-settings-position', 'place-settings-check',
+]
+const INVENTOR_ASSETS = [
+  'workshop-hero', 'hair-robot-problem', 'hair-robot-sketch', 'hair-robot-building-v1',
+  'hair-robot-prototype-v1', 'hair-robot-testing', 'hair-robot-clue', 'hair-robot-prototype-v2',
+  'hair-robot-showcase', 'knowledge-wraparound', 'knowledge-adjustable-band', 'knowledge-water-path',
 ]
 const PRODUCT_ASSETS = [
   ...[
@@ -57,6 +62,7 @@ const PRODUCT_ASSETS = [
   ...MOVEMENT_ASSETS.map((id) => appPath(`assets/movement/${id}.webp`)),
   ...READING_ASSETS.map((id) => appPath(`assets/reading/${id}.webp`)),
   ...RESPONSIBILITY_ASSETS.map((id) => appPath(`assets/responsibility/${id}.webp`)),
+  ...INVENTOR_ASSETS.map((id) => appPath(`assets/inventor/${id}.webp`)),
   appPath('assets/movement/energy-plaza-hero.webp'),
   appPath('assets/movement/balloon-active-hero.webp'),
   appPath('assets/reading/story-treehouse-hero.webp'),

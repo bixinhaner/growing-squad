@@ -18,8 +18,9 @@ export function ChildShell() {
   const platformView = ['/today', '/world', '/me'].includes(location.pathname)
   const readingView = location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse'
   const responsibilityView = location.pathname.startsWith('/responsibility') || location.pathname === '/family-cottage'
-  const moduleNavView = readingView || responsibilityView
-  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes' || location.pathname.startsWith('/movement') || location.pathname === '/energy-plaza' || location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse' || responsibilityView
+  const inventorView = location.pathname.startsWith('/inventor')
+  const moduleNavView = readingView || responsibilityView || inventorView
+  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes' || location.pathname.startsWith('/movement') || location.pathname === '/energy-plaza' || location.pathname.startsWith('/reading') || location.pathname === '/story-treehouse' || responsibilityView || inventorView
   const showChildTabs = location.pathname === '/garden' || location.pathname === '/wishes'
   const viewName = (location.pathname.replace(/^\//, '').replaceAll('/', '-') || 'today')
   const dateKey = localDateKey()

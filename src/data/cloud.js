@@ -74,6 +74,40 @@ export function sendCloudAction(operationId, action, token = getParentToken() ||
   return request(appPath('api/cloud/actions'), { token, method: 'POST', body: { operationId, action } })
 }
 
+export async function uploadCloudMedia(draft, token = getParentToken() || getDeviceToken()) {
+  const response = await fetch(appPath(`api/cloud/media/${encodeURIComponent(draft.id)}`), {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': draft.blob.type || draft.mediaType || 'application/octet-stream',
+      'X-Profile-Id': draft.profileId,
+      'X-Project-Id': draft.projectId,
+      'X-Media-Kind': draft.kind,
+      'X-File-Name': encodeURIComponent(draft.fileName || `${draft.id}.bin`),
+    },
+    body: draft.blob,
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const error = new Error(payload.error || '资料暂时没有同步')
+    error.status = response.status
+    throw error
+  }
+  return payload
+}
+
+export async function fetchCloudMedia(id, token = getParentToken() || getDeviceToken()) {
+  const response = await fetch(appPath(`api/cloud/media/${encodeURIComponent(id)}`), { headers: { Authorization: `Bearer ${token}` } })
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}))
+    const error = new Error(payload.error || '暂时打不开这份资料')
+    error.status = response.status
+    throw error
+  }
+  return response.blob()
+}
+
 export function unlockCloudParent(pin) {
   return request(appPath('api/cloud/parent/unlock'), { token: getDeviceToken(), method: 'POST', body: { pin } })
 }

@@ -60,6 +60,44 @@ export async function saveSnapshotAndOutbox(snapshot, outbox) {
   db.close()
 }
 
+export async function putMediaDraft(draft) {
+  const db = await openDatabase()
+  if (!db) return
+  const transaction = db.transaction('mediaDrafts', 'readwrite')
+  transaction.objectStore('mediaDrafts').put(draft)
+  await transactionDone(transaction)
+  db.close()
+}
+
+export async function getMediaDraft(id) {
+  const db = await openDatabase()
+  if (!db) return null
+  const transaction = db.transaction('mediaDrafts', 'readonly')
+  const value = await requestValue(transaction.objectStore('mediaDrafts').get(id))
+  await transactionDone(transaction)
+  db.close()
+  return value || null
+}
+
+export async function listMediaDrafts() {
+  const db = await openDatabase()
+  if (!db) return []
+  const transaction = db.transaction('mediaDrafts', 'readonly')
+  const values = await requestValue(transaction.objectStore('mediaDrafts').getAll())
+  await transactionDone(transaction)
+  db.close()
+  return values || []
+}
+
+export async function deleteMediaDraft(id) {
+  const db = await openDatabase()
+  if (!db) return
+  const transaction = db.transaction('mediaDrafts', 'readwrite')
+  transaction.objectStore('mediaDrafts').delete(id)
+  await transactionDone(transaction)
+  db.close()
+}
+
 export async function clearIndexedPersistence() {
   if (typeof indexedDB === 'undefined') return
   await new Promise((resolve, reject) => {
@@ -69,4 +107,3 @@ export async function clearIndexedPersistence() {
     request.onblocked = () => resolve()
   })
 }
-

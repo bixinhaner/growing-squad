@@ -21,6 +21,9 @@ const paths = {
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
   device: '<rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M9 5h6M11 19h2"/>',
   sparkle: '<path d="m12 2 1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m3 17 5-5 4 4 3-3 6 6"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>',
 }
 
 export function Icon({ name, size = 22, className = '' }) {

@@ -78,4 +78,46 @@ describe('growing squad cloud identity isolation', () => {
     expect(sessions['child-2:2026-08-29'].stepStatus).toMatchObject({ brush: 'todo', wash: 'done' })
     expect(result.body.device).toMatchObject({ mode: 'dedicated', boundProfileId: 'child-1' })
   })
+
+  it('stores protected inventor media and returns it only to an authenticated device', async () => {
+    temporaryDirectory = await mkdtemp(join(tmpdir(), 'growing-squad-media-'))
+    const seed = createDefaultData()
+    seed.setupComplete = true
+    const seedPath = join(temporaryDirectory, 'seed.json')
+    await writeFile(seedPath, JSON.stringify(seed))
+    const port = 18896
+    childProcess = spawn(process.execPath, ['server/server.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, BEDTIME_PORT: String(port), BEDTIME_DATA_DIR: temporaryDirectory, BEDTIME_SEED_FILE: seedPath, BEDTIME_PAIR_CODE: 'MEDIA-CODE' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    await waitForServer(childProcess)
+    const base = `http://127.0.0.1:${port}`
+    const pair = await jsonRequest(`${base}/api/cloud/pair`, { body: { code: 'MEDIA-CODE', deviceName: '小语 iPad', mode: 'dedicated', profileId: 'child-1' } })
+    const mediaUrl = `${base}/api/cloud/media/artifact_photo_001`
+    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4])
+    const uploaded = await fetch(mediaUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${pair.body.token}`,
+        'Content-Type': 'image/png',
+        'X-Profile-Id': 'child-1',
+        'X-Project-Id': 'project_hair_robot',
+        'X-Media-Kind': 'photo',
+        'X-File-Name': encodeURIComponent('第一版.png'),
+      },
+      body: bytes,
+    })
+    expect(uploaded.status).toBe(201)
+    expect(await uploaded.json()).toMatchObject({ asset: { id: 'artifact_photo_001', status: 'synced', byteSize: bytes.length } })
+
+    const anonymous = await fetch(mediaUrl)
+    expect(anonymous.status).toBe(401)
+    const downloaded = await fetch(mediaUrl, { headers: { Authorization: `Bearer ${pair.body.token}` } })
+    expect(downloaded.status).toBe(200)
+    expect(downloaded.headers.get('content-type')).toContain('image/png')
+    expect(new Uint8Array(await downloaded.arrayBuffer())).toEqual(bytes)
+    const health = await jsonRequest(`${base}/api/cloud/health`)
+    expect(health.body).toMatchObject({ mediaAvailable: true, mediaLimitBytes: 12 * 1024 * 1024 })
+  })
 })

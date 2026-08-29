@@ -1,0 +1,32 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { appPath } from '../data/paths.js'
+import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
+import { Icon } from '../ui/Icons.jsx'
+import { INVENTOR_STAGES, KNOWLEDGE_CARDS, inventorImage, inventorStage, knowledgeImage } from '../modules/inventor/inventorCatalog.js'
+import { activeInventorProject, inventorProjects, projectArtifacts, stageIndex } from '../modules/inventor/inventorModel.js'
+import { exportInventorProject } from '../modules/inventor/inventorMedia.js'
+
+export function InventorParentPage() {
+  const { state } = useBedtimeState()
+  const { dispatch } = useBedtimeActions()
+  const navigate = useNavigate()
+  const [note, setNote] = useState('')
+  const [message, setMessage] = useState('')
+  const project = activeInventorProject(state)
+  const projects = inventorProjects(state)
+  const artifacts = project ? projectArtifacts(state, project.id) : []
+  if (!project) return <section className="inventor-parent inventor-parent--empty"><header><div><span className="page-title__eyebrow">长期项目</span><h1>发明家工坊</h1><p>从孩子发现的真实麻烦开始，不提前塞进一套课程。</p></div><button className="button button--primary" type="button" onClick={() => navigate('/inventor/new')}><Icon name="sparkle" />陪孩子收下一个想法</button></header><div className="inventor-parent-empty"><img src={appPath('assets/inventor/workshop-hero.webp')} alt="发明工坊工作台" /><span><h2>还没有正在进行的发明</h2><p>孩子可以从“洗头时水会进眼睛”这样的生活小麻烦开始。</p></span></div></section>
+  const currentIndex = stageIndex(project.status)
+  const addKnowledge = (cardId) => {
+    dispatch({ type: 'ADD_INVENTOR_KNOWLEDGE', profileId: state.activeProfileId, projectId: project.id, cardId })
+    setMessage('这张小线索已经放进孩子的下一步。')
+  }
+  const addNote = () => {
+    if (!note.trim()) return
+    dispatch({ type: 'ADD_INVENTOR_PARENT_NOTE', profileId: state.activeProfileId, projectId: project.id, noteId: `note_${crypto.randomUUID()}`, text: note.trim() })
+    setNote('')
+    setMessage('家长原话已经记进项目。')
+  }
+  return <section className="inventor-parent"><header><div><span className="page-title__eyebrow">长期项目</span><h1>发明家工坊</h1><p>保留孩子怎么想、怎么试、后来怎么改。</p></div><button className="button button--primary" type="button" onClick={async () => { await exportInventorProject(project, artifacts); setMessage('项目资料已经整理成压缩包。') }}><Icon name="download" />导出项目</button></header><div className="inventor-parent__insights"><article><img src={inventorImage(inventorStage(project.status).image)} alt="" /><span><small>当前项目</small><h2>{project.title}</h2><p>{inventorStage(project.status).short}</p></span></article><article><Icon name="search" /><span><small>孩子当前的问题</small><h2>{project.nextQuestion || project.problem}</h2></span></article><article><Icon name="bell" /><span><small>给家长的支持提醒</small><h2>{project.status === 'testing' ? '先问孩子看见了什么' : project.status === 'learning' ? '知识卡只放刚好用得上的' : '先听孩子说，再一起找材料'}</h2></span></article></div><div className="inventor-parent__grid"><section className="inventor-parent-timeline"><header><div><h2>项目过程</h2><p>每一步都保留孩子当时的想法。</p></div><span>{projects.length} 个项目</span></header><div className="inventor-parent-stage-line">{INVENTOR_STAGES.map((stage, index) => <span className={index === currentIndex ? 'is-current' : index < currentIndex ? 'is-past' : ''} key={stage.id}><b>{index + 1}</b><small>{stage.short}</small></span>)}</div><div className="inventor-parent-events"><article><time>开始</time><img src={inventorImage('problem')} alt="" /><span><strong>发现问题</strong><small>{project.problem}</small></span></article>{project.versions[0]?.testFindingTitle ? <article className="is-evidence"><time>测试</time><img src={inventorImage('testing')} alt="" /><span><strong>测试发现</strong><small>{project.versions[0].testFindingTitle} · 这是线索，不是失败</small></span></article> : null}{project.versions[1] ? <article><time>后来</time><img src={inventorImage('prototype-v2')} alt="" /><span><strong>准备第二版</strong><small>{project.versions[1].idea}</small></span></article> : null}</div>{artifacts.length ? <div className="inventor-parent-media">{artifacts.map((artifact) => <span key={artifact.id}><Icon name={artifact.kind === 'audio' ? 'bell' : artifact.kind === 'video' ? 'play' : 'image'} /><b>{artifact.fileName}</b><small>{artifact.status === 'synced' ? '已同步' : '等网络恢复'}</small></span>)}</div> : <p className="inventor-parent-no-media">照片、语音和短视频是可选资料；没有上传也能完整推进项目。</p>}</section><section className="inventor-parent-knowledge"><header><h2>按需要加入知识卡</h2><p>只给当前问题刚好用得上的一个线索。</p></header>{KNOWLEDGE_CARDS.map((card) => <article key={card.id} className={project.knowledgeCardIds?.includes(card.id) ? 'is-added' : ''}><img src={knowledgeImage(card.image)} alt="" /><span><strong>{card.title}</strong><small>{card.copy}</small></span><button type="button" disabled={project.knowledgeCardIds?.includes(card.id)} onClick={() => addKnowledge(card.id)}>{project.knowledgeCardIds?.includes(card.id) ? '已经加入' : '放进孩子的下一步'}</button></article>)}<div className="inventor-parent-note"><label>请家长帮孩子记下原话<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="只记录孩子说过的话，不替孩子写标准答案" /></label><button type="button" onClick={addNote}>记进项目</button></div></section><aside className="inventor-parent-sync"><span>资料同步</span><img src={appPath('assets/inventor/workshop-hero.webp')} alt="" /><div><strong>照片</strong><small>{artifacts.filter((item) => item.kind === 'photo').length} 份 · {artifacts.some((item) => item.kind === 'photo' && item.status !== 'synced') ? '等网络恢复' : '已同步'}</small></div><div><strong>语音</strong><small>{artifacts.filter((item) => item.kind === 'audio').length} 份 · {artifacts.some((item) => item.kind === 'audio' && item.status !== 'synced') ? '等网络恢复' : '已同步'}</small></div><div><strong>30秒视频</strong><small>{artifacts.filter((item) => item.kind === 'video').length} 份 · {artifacts.some((item) => item.kind === 'video' && item.status !== 'synced') ? '等网络恢复' : '已同步'}</small></div><footer><Icon name="shield" />本地先保存，联网后自动恢复同步。</footer></aside></div><div className="inventor-parent-showcase"><img src={inventorImage('showcase')} alt="" /><span><small>家庭发布会</small><strong>{project.status === 'showcase' ? '现在可以一起听孩子讲发明故事' : '等第二版做好，再邀请家人听完整过程'}</strong></span><button type="button" onClick={() => navigate(`/inventor/showcase/${project.id}`)} disabled={project.status !== 'showcase'}>{project.status === 'showcase' ? '打开发布会' : '还在准备'}</button></div>{message ? <div className="parent-toast" role="status">{message}</div> : null}</section>
+}

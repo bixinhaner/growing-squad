@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
-import { mkdirSync, readFileSync, readdirSync, renameSync, unlinkSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { dirname, join, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -21,9 +21,12 @@ const vapidPublicKey = String(process.env.BEDTIME_VAPID_PUBLIC_KEY || '')
 const vapidPrivateKey = String(process.env.BEDTIME_VAPID_PRIVATE_KEY || '')
 const vapidSubject = String(process.env.BEDTIME_VAPID_SUBJECT || 'mailto:family@example.invalid')
 const maxBodyBytes = 2 * 1024 * 1024
+const maxMediaBytes = 12 * 1024 * 1024
+const mediaDir = join(dataDir, 'media')
 
 mkdirSync(dataDir, { recursive: true })
 mkdirSync(join(dataDir, 'backups'), { recursive: true })
+mkdirSync(mediaDir, { recursive: true })
 
 const db = new DatabaseSync(dbPath)
 db.exec(`
@@ -74,6 +77,20 @@ db.exec(`
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS media_assets (
+    id TEXT PRIMARY KEY,
+    family_id TEXT NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+    profile_id TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    media_type TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    storage_name TEXT NOT NULL,
+    byte_size INTEGER NOT NULL,
+    sha256 TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS schema_migrations (
     id TEXT PRIMARY KEY,
     applied_at INTEGER NOT NULL
@@ -81,6 +98,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_token ON parent_sessions(token_hash);
   CREATE INDEX IF NOT EXISTS idx_devices_token ON devices(token_hash);
   CREATE INDEX IF NOT EXISTS idx_operations_family ON operations(family_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_media_assets_family_project ON media_assets(family_id, project_id, created_at);
 `)
 
 function ensureColumn(table, name, definition) {
@@ -194,6 +212,18 @@ async function readJson(request) {
   catch { throw Object.assign(new Error('请求格式不正确'), { status: 400 }) }
 }
 
+async function readBinary(request, limit = maxMediaBytes) {
+  let size = 0
+  const chunks = []
+  for await (const chunk of request) {
+    size += chunk.length
+    if (size > limit) throw Object.assign(new Error('单个资料不能超过 12MB'), { status: 413 })
+    chunks.push(chunk)
+  }
+  if (!chunks.length) throw Object.assign(new Error('资料内容为空'), { status: 400 })
+  return Buffer.concat(chunks)
+}
+
 function bearerToken(request) {
   const value = String(request.headers.authorization || '')
   return value.startsWith('Bearer ') ? value.slice(7) : ''
@@ -285,7 +315,7 @@ function createParentSession(identity) {
 async function handleApi(request, response) {
   const url = new URL(request.url, 'http://localhost')
   if (request.method === 'GET' && ['/api/cloud/health', '/api/v2/health'].includes(url.pathname)) {
-    return json(response, 200, { ok: true, service: 'growing-squad', apiVersion: 2, dataVersion: 7, storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), mediaAvailable: false, time: now() })
+    return json(response, 200, { ok: true, service: 'growing-squad', apiVersion: 2, dataVersion: 7, storage: 'sqlite', pushAvailable: Boolean(vapidPublicKey && vapidPrivateKey), mediaAvailable: true, mediaLimitBytes: maxMediaBytes, time: now() })
   }
 
   if (request.method === 'POST' && url.pathname === '/api/cloud/pair') {
@@ -310,6 +340,46 @@ async function handleApi(request, response) {
 
   const identity = authenticate(request)
   if (!identity) return json(response, 401, { error: '设备连接已失效，请重新连接家庭。' })
+
+  const mediaMatch = url.pathname.match(/^\/api\/cloud\/media\/([A-Za-z0-9_-]{8,160})$/)
+  if (mediaMatch && request.method === 'PUT') {
+    const id = mediaMatch[1]
+    const profileId = String(request.headers['x-profile-id'] || '')
+    const projectId = String(request.headers['x-project-id'] || '')
+    const kind = String(request.headers['x-media-kind'] || '')
+    const mediaType = String(request.headers['content-type'] || '').split(';')[0].toLowerCase()
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'audio/mpeg', 'audio/mp4', 'audio/webm', 'audio/wav', 'video/mp4', 'video/webm', 'video/quicktime'])
+    if (!allowedTypes.has(mediaType)) return json(response, 415, { error: '只支持照片、语音和短视频。' })
+    if (!['photo', 'audio', 'video', 'drawing'].includes(kind)) return json(response, 400, { error: '资料类型不正确。' })
+    if (!/^[A-Za-z0-9:_-]{6,160}$/.test(profileId) || !/^[A-Za-z0-9:_-]{6,160}$/.test(projectId)) return json(response, 400, { error: '资料归属不正确。' })
+    const state = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
+    if (!state.profiles.some((profile) => profile.id === profileId)) return json(response, 404, { error: '找不到目标孩子。' })
+    if (identity.role !== 'parent' && identity.mode === 'dedicated' && identity.boundProfileId !== profileId) return json(response, 403, { error: '这台设备不能保存其他孩子的资料。' })
+    const blob = await readBinary(request)
+    const extension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/webm': 'webm', 'audio/wav': 'wav', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' })[mediaType]
+    const storageName = `${identity.familyId}-${id}.${extension}`
+    const finalPath = join(mediaDir, storageName)
+    const tempPath = `${finalPath}.upload`
+    writeFileSync(tempPath, blob, { mode: 0o600 })
+    renameSync(tempPath, finalPath)
+    const timestamp = now()
+    const fileName = decodeURIComponent(String(request.headers['x-file-name'] || `${id}.${extension}`)).slice(0, 160)
+    db.prepare(`INSERT INTO media_assets (id, family_id, profile_id, project_id, kind, media_type, file_name, storage_name, byte_size, sha256, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET kind=excluded.kind, media_type=excluded.media_type, file_name=excluded.file_name, storage_name=excluded.storage_name, byte_size=excluded.byte_size, sha256=excluded.sha256, updated_at=excluded.updated_at`)
+      .run(id, identity.familyId, profileId, projectId, kind, mediaType, fileName, storageName, blob.length, createHash('sha256').update(blob).digest('hex'), timestamp, timestamp)
+    return json(response, 201, { asset: { id, profileId, projectId, kind, mediaType, fileName, byteSize: blob.length, status: 'synced', updatedAt: timestamp } })
+  }
+
+  if (mediaMatch && request.method === 'GET') {
+    const asset = db.prepare('SELECT media_type AS mediaType, file_name AS fileName, storage_name AS storageName FROM media_assets WHERE id = ? AND family_id = ?').get(mediaMatch[1], identity.familyId)
+    if (!asset) return json(response, 404, { error: '找不到这份资料。' })
+    const path = join(mediaDir, asset.storageName)
+    const size = statSync(path).size
+    response.writeHead(200, { 'Content-Type': asset.mediaType, 'Content-Length': size, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(asset.fileName)}`, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' })
+    response.end(readFileSync(path))
+    return
+  }
 
   if (request.method === 'GET' && url.pathname === '/api/cloud/state') {
     return json(response, 200, { ...familyPayload(identity.familyId, identity.deviceId), role: identity.role })

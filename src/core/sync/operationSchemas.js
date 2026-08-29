@@ -70,6 +70,16 @@ const DEFINITIONS = {
   REQUEST_RESPONSIBILITY_HELP: ['responsibility', 'responsibility.help.requested', 'responsibility-session'],
   COMPLETE_RESPONSIBILITY_ROLE: ['responsibility', 'responsibility.role.completed', 'responsibility-session'],
   ADD_RESPONSIBILITY_REFLECTION: ['responsibility', 'responsibility.reflection.added', 'responsibility-session'],
+  CREATE_INVENTOR_PROJECT: ['inventor', 'inventor.project.created', 'inventor-project'],
+  UPDATE_INVENTOR_STAGE: ['inventor', 'inventor.project.stage-updated', 'inventor-project'],
+  ADD_INVENTOR_ARTIFACT: ['inventor', 'inventor.artifact.added', 'inventor-artifact'],
+  MARK_INVENTOR_ARTIFACT_SYNCED: ['inventor', 'inventor.artifact.synced', 'inventor-artifact'],
+  RECORD_INVENTOR_TEST: ['inventor', 'inventor.test.recorded', 'inventor-project'],
+  ADD_INVENTOR_KNOWLEDGE: ['inventor', 'inventor.knowledge.added', 'inventor-project'],
+  CREATE_INVENTOR_ITERATION: ['inventor', 'inventor.iteration.created', 'inventor-project'],
+  SELECT_INVENTOR_SHOWCASE_METHOD: ['inventor', 'inventor.showcase.method-selected', 'inventor-project'],
+  ADD_INVENTOR_PARENT_NOTE: ['inventor', 'inventor.parent-note.added', 'inventor-project'],
+  ARCHIVE_INVENTOR_PROJECT: ['inventor', 'inventor.project.archived', 'inventor-project'],
 }
 
 export function operationId() {
@@ -80,7 +90,7 @@ export function createOperationEnvelope(action, profileId, clientSequence, id = 
   const [moduleId, type, entityType] = DEFINITIONS[action.type] || ['core', `core.legacy.${String(action.type || 'unknown').toLowerCase()}`, 'family']
   const payload = Object.fromEntries(Object.entries(action).filter(([key]) => !['type', 'profileId', 'expectedVersion'].includes(key)))
   const dateKey = action.dateKey || payload.dateKey
-  const entityId = action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
+  const entityId = action.artifactId || action.projectId || action.stepId || action.sessionId || action.requestId || action.momentId || action.payload?.id || (dateKey && profileId ? `${profileId}:${dateKey}` : null)
   return operationEnvelopeSchema.parse({
     id,
     schemaVersion: 1,
@@ -112,5 +122,7 @@ export function isChildOperation(operation) {
     'reading.session.completed', 'reading.difficulty.recorded', 'reading.reflection.added',
     'responsibility.session.started', 'responsibility.help.requested',
     'responsibility.role.completed', 'responsibility.reflection.added', 'responsibility.role-change.requested',
+    'inventor.project.created', 'inventor.project.stage-updated', 'inventor.artifact.added', 'inventor.artifact.synced',
+    'inventor.test.recorded', 'inventor.iteration.created', 'inventor.showcase.method-selected', 'inventor.project.archived',
   ]).has(operation.type)
 }

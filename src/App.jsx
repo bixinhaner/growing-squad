@@ -47,6 +47,11 @@ const ResponsibilityParentPage = lazyNamed(() => import('./pages/ResponsibilityP
 const AccessibilityPage = lazyNamed(() => import('./pages/AccessibilityPage.jsx'), 'AccessibilityPage')
 const DevicesPage = lazyNamed(() => import('./pages/DevicesPage.jsx'), 'DevicesPage')
 const DataPage = lazyNamed(() => import('./pages/DataPage.jsx'), 'DataPage')
+const InventorWorkshopPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorWorkshopPage')
+const InventorNewPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorNewPage')
+const InventorProjectPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorProjectPage')
+const InventorShowcasePage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorShowcasePage')
+const InventorParentPage = lazyNamed(() => import('./pages/InventorParentPage.jsx'), 'InventorParentPage')
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
@@ -114,6 +119,10 @@ function AppRoutes() {
           <Route path="/family-cottage" element={<FamilyCottagePage />} />
           <Route path="/responsibility/role/:activityId/:sessionId" element={<ResponsibilityRolePage />} />
           <Route path="/responsibility/play/:activityId/:sessionId" element={<ResponsibilityPlayPage />} />
+          <Route path="/inventor" element={<InventorWorkshopPage />} />
+          <Route path="/inventor/new" element={<InventorNewPage />} />
+          <Route path="/inventor/project/:projectId" element={<InventorProjectPage />} />
+          <Route path="/inventor/showcase/:projectId" element={<InventorShowcasePage />} />
         </Route>
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
@@ -127,6 +136,7 @@ function AppRoutes() {
             <Route path="movement" element={<MovementParentPage />} />
             <Route path="reading" element={<ReadingParentPage />} />
             <Route path="responsibility" element={<ResponsibilityParentPage />} />
+            <Route path="inventor" element={<InventorParentPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />

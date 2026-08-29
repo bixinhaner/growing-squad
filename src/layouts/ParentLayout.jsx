@@ -13,6 +13,7 @@ const navItems = [
   { to: '/parent/movement', label: '运动小队', icon: 'sparkle' },
   { to: '/parent/reading', label: '阅读桥梁', icon: 'book' },
   { to: '/parent/responsibility', label: '家庭责任', icon: 'home' },
+  { to: '/parent/inventor', label: '发明家工坊', icon: 'sparkle' },
   { to: '/parent/schedule', label: '作息与提醒', icon: 'clock' },
   { to: '/parent/routine', label: '睡前流程', icon: 'book' },
   { to: '/parent/rewards', label: '星光与奖励', icon: 'star' },

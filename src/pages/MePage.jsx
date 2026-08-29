@@ -9,7 +9,7 @@ const pockets = [
   { title: '我的愿望', assetId: 'star', fallback: 'surprise', route: '/wishes' },
   { title: '喜欢的活动', assetId: 'bicycle' },
   { title: '读过的故事', assetId: 'story' },
-  { title: '我的小发明', assetId: 'craft' },
+  { title: '我的小发明', assetId: 'craft', route: '/inventor' },
   { title: '成长纪念', assetId: 'courage', route: '/garden' },
 ]
 
