@@ -28,7 +28,7 @@ export function getScaffoldSuggestion(states) {
   return {
     capabilityId: packBag.id,
     nextLevel,
-    title: '最近 7 次整理书包，有 5 次是她自己开始的。',
-    body: `下周是否试试“${SCAFFOLD_LEVELS[nextLevel].label}”？`,
+    title: `整理书包现在使用“${SCAFFOLD_LEVELS[Number(packBag.level || 0)].label}”。`,
+    body: `如果孩子最近做起来比较轻松，下周可以试试“${SCAFFOLD_LEVELS[nextLevel].label}”。觉得吃力时随时调回来。`,
   }
 }
