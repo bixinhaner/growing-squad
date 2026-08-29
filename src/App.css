@@ -491,8 +491,14 @@ summary { cursor: pointer; font-weight: 750; }
 @media (max-width: 600px) {
   [class*="child-view-inventor"] .child-main { height:calc(100dvh - 70px - var(--safe-top)); padding:34px 7px 7px; }
   .child-app:has(.inventor-workshop)>.save-indicator, .child-app:has(.inventor-discover)>.save-indicator, .child-app:has(.inventor-project)>.save-indicator, .child-app:has(.inventor-showcase)>.save-indicator { top:74px; right:8px; bottom:auto; min-height:27px; padding:0 7px; font-size:8px; }
-  .inventor-workshop { display:block; }
-  .inventor-workshop__hero { display:none; }
+  .inventor-workshop { display:grid; grid-template-columns:1fr; grid-template-rows:31% minmax(0,1fr); gap:6px; }
+  .inventor-workshop__hero { display:block; border-radius:18px; }
+  .inventor-workshop__hero>img { object-position:center 52%; }
+  .inventor-workshop__hero::after { inset:30% 0 0; }
+  .inventor-workshop__hero>div { left:14px; right:12px; bottom:10px; }
+  .inventor-workshop__hero .eyebrow { font-size:7px; }
+  .inventor-workshop__hero h1 { margin:2px 0 0; font-size:25px; }
+  .inventor-workshop__hero p { display:none; }
   .inventor-workshop__desk { height:100%; padding:9px; border-radius:20px; }
   .inventor-workshop__desk h2, .inventor-empty h2 { font-size:25px; }
   .inventor-workshop__desk>header>button { min-height:30px; padding:0 8px; font-size:8px; }

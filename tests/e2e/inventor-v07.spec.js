@@ -112,6 +112,10 @@ test('child keeps a complete invention story with offline evidence, a timely kno
 test('phone testing view keeps every decision and primary action on one screen', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await setupFamily(page)
+  await page.goto('/bedtime/inventor')
+  await expect(page.locator('.inventor-workshop__hero')).toBeVisible()
+  await expectOneScreen(page)
+  await page.screenshot({ path: 'artifacts/visual-qa/109-inventor-workshop-mobile.png', fullPage: true })
   await createProjectThroughTesting(page)
   for (const label of ['前面挡住了', '两边还会漏', '戴起来有点松', '把两边围起来', '把测试发现收好']) await expect(page.getByRole('button', { name: label })).toBeVisible()
   await expect(page.getByText('这不是失败，是第一版告诉我们的新线索')).toBeVisible()

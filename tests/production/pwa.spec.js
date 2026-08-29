@@ -34,6 +34,10 @@ test('production app shell and primary illustration work offline', async ({ cont
     '/bedtime/assets/themes/moon-room-world-v1.webp',
     '/bedtime/assets/themes/forest-world-v1.webp',
     '/bedtime/assets/themes/space-world-v1.webp',
+    '/bedtime/assets/inventor/workshop-hero.webp',
+    '/bedtime/assets/inventor/hair-robot-testing.webp',
+    '/bedtime/assets/inventor/hair-robot-prototype-v2.webp',
+    '/bedtime/assets/inventor/knowledge-wraparound.webp',
   ].map(async (url) => ({ url, ok: (await fetch(url)).ok }))))
   expect(productAssets.every((asset) => asset.ok)).toBe(true)
 })
