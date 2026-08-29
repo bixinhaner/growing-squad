@@ -1,4 +1,4 @@
-const CACHE_NAME = 'growing-squad-v16'
+const CACHE_NAME = 'growing-squad-v17'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]

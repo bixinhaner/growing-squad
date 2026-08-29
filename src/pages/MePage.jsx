@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AssetArt } from '../ui/AssetArt.jsx'
 import { getActiveProfile } from '../domain/model.js'
@@ -15,6 +16,7 @@ const pockets = [
 export function MePage() {
   const { state } = useBedtimeState()
   const navigate = useNavigate()
+  const [message, setMessage] = useState('')
   const profile = getActiveProfile(state)
   const latest = state.rewardMoments.filter((moment) => moment.profileId === profile.id).at(-1)
   return (
@@ -23,12 +25,13 @@ export function MePage() {
       <header><h1 id="me-title">{profile.name}的成长背包</h1><p>每一件小小的宝贝，都是成长的礼物</p></header>
       <div className="me-pockets">
         {pockets.map((pocket) => (
-          <button key={pocket.title} type="button" onClick={() => pocket.route && navigate(pocket.route)}>
+          <button key={pocket.title} type="button" onClick={() => pocket.route ? navigate(pocket.route) : setMessage(`${pocket.title}会在新的成长活动后装进更多宝贝。`)}>
             <span>{pocket.title}</span><AssetArt id={pocket.fallback || pocket.assetId} decorative />
           </button>
         ))}
       </div>
       <article className="me-memory"><AssetArt id={latest?.assetId || 'backpack'} decorative /><div><span>最近的成长记忆</span><strong>{latest?.title || '我自己想起来收书包了'}</strong><small>成长不会因为休息而消失</small></div></article>
+      {message ? <div className="me-message" role="status">{message}</div> : null}
     </section>
   )
 }

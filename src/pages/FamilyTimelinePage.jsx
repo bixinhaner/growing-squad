@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { defaultRoutinesFor, deriveTodayCandidate, getCoreRoutines, inspectRoutineLoad, ROUTINE_PERIODS } from '../core/today/todayEngine.js'
 import { getActiveProfile } from '../domain/model.js'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
@@ -11,6 +12,7 @@ const periodLabels = { morning: '早晨', 'after-school': '放学后', evening: 
 export function FamilyTimelinePage() {
   const { state } = useBedtimeState()
   const { dispatch } = useBedtimeActions()
+  const navigate = useNavigate()
   const profile = getActiveProfile(state)
   const initialRoutines = useMemo(() => getCoreRoutines(state, profile.id), [profile.id, state])
   const [routines, setRoutines] = useState(() => structuredClone(initialRoutines))
@@ -52,7 +54,7 @@ export function FamilyTimelinePage() {
           })}
           <article className="timeline-lane timeline-lane--family"><div className="timeline-lane__label"><strong>全家一起</strong><small>不强制打卡</small></div><div className="timeline-items"><div className="timeline-item timeline-item--family"><AssetArt id="story" decorative /><strong>家庭阅读</strong><small>一起分享故事</small></div><div className="timeline-item timeline-item--free"><AssetArt id="heart" decorative /><strong>自由相处</strong><small>无需记录</small></div></div></article>
         </div>
-        <aside className="child-preview"><img className="timeline-family-art" src={appPath('assets/platform/family-timeline-decoration.webp')} alt="" /><span className="eyebrow">孩子此刻看到的</span><div className="child-preview__card"><span>{preview.context}</span><strong>{preview.title}</strong>{preview.options[0] ? <><AssetArt id={preview.options[0].assetId} decorative /><small>{preview.options[0].title}</small></> : <AssetArt id="park" decorative />}</div><p>预览会随时间和孩子的选择自动更新。</p><button type="button" className="button button--secondary">预览孩子视图</button></aside>
+        <aside className="child-preview"><img className="timeline-family-art" src={appPath('assets/platform/family-timeline-decoration.webp')} alt="" /><span className="eyebrow">孩子此刻看到的</span><div className="child-preview__card"><span>{preview.context}</span><strong>{preview.title}</strong>{preview.options[0] ? <><AssetArt id={preview.options[0].assetId} decorative /><small>{preview.options[0].title}</small></> : <AssetArt id="park" decorative />}</div><p>预览会随时间和孩子的选择自动更新。</p><button type="button" className="button button--secondary" onClick={() => navigate('/today')}>预览孩子视图</button></aside>
       </div>
     </section>
   )
