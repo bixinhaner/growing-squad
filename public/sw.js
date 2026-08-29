@@ -1,4 +1,4 @@
-const CACHE_NAME = 'growing-squad-v15'
+const CACHE_NAME = 'growing-squad-v16'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg')]
@@ -32,6 +32,11 @@ const PRODUCT_ASSETS = [
     'garden-outcomes/starfirefly-strip.webp',
     'app-icon-192.png',
     'app-icon-maskable.png',
+    'platform/today-companion-scene.webp',
+    'platform/squad-world-map.webp',
+    'platform/growth-backpack-room.webp',
+    'platform/family-timeline-decoration.webp',
+    'platform/support-pack-bag.webp',
   ].map((path) => appPath(`assets/${path}`)),
   ...OBJECT_ASSETS.map((id) => appPath(`assets/objects/${id}.webp`)),
 ]

@@ -374,7 +374,7 @@ test('up to 16 routine steps stay visible on one screen and children stay isolat
     const childPageViewport = await page.evaluate(() => ({ viewport: window.innerHeight, document: document.documentElement.scrollHeight }))
     expect(childPageViewport.document).toBeLessThanOrEqual(childPageViewport.viewport)
   }
-  await page.goto('/bedtime/')
+  await page.goto('/bedtime/tonight')
   await expect(page.locator('.task-card')).toHaveCount(16)
 
   await page.setViewportSize({ width: 1440, height: 900 })

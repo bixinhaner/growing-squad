@@ -39,6 +39,13 @@ const DEFINITIONS = {
   UPDATE_WISHES: ['rewards', 'rewards.catalog.updated', 'wish-catalog'],
   UPDATE_ACCESSIBILITY: ['core', 'core.accessibility.updated', 'profile'],
   SETUP_COMPLETE: ['core', 'core.setup.completed', 'family'],
+  UPDATE_CORE_ROUTINES: ['core', 'core.routines.updated', 'routine'],
+  TODAY_CHOOSE_ITEM: ['core', 'core.today.item-selected', 'today-decision'],
+  TODAY_COMPLETE_ITEM: ['core', 'core.today.completed', 'today-decision'],
+  TODAY_CHOOSE_SUPPORT: ['core', 'core.today.support-chosen', 'today-decision'],
+  TODAY_SKIP: ['core', 'core.today.skipped', 'today-decision'],
+  TODAY_LATER: ['core', 'core.today.later', 'today-decision'],
+  UPDATE_SCAFFOLD: ['core', 'core.scaffold.updated', 'scaffold-state'],
 }
 
 export function operationId() {
@@ -73,6 +80,7 @@ export function isChildOperation(operation) {
   return new Set([
     'bedtime.step.completed', 'bedtime.step.reset', 'bedtime.step.skipped',
     'bedtime.in-bed.confirmed', 'rewards.wish.requested',
+    'core.today.item-selected', 'core.today.completed', 'core.today.support-chosen',
+    'core.today.skipped', 'core.today.later',
   ]).has(operation.type)
 }
-

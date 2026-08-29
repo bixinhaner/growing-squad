@@ -1,6 +1,7 @@
 export const DATA_VERSION = 7
 
 const EMPTY_MODULES = {
+  core: { version: 1, routines: [], activitySessions: {}, todayDecisions: {} },
   movement: { version: 1, templates: [], sessions: {} },
   reading: { version: 1, books: [], sessions: {} },
   responsibility: { version: 1, routines: [], sessions: {} },

@@ -19,6 +19,11 @@ import { TonightPage } from './pages/TonightPage.jsx'
 import { WateringPage } from './pages/WateringPage.jsx'
 import { WelcomePage } from './pages/WelcomePage.jsx'
 import { WishesPage } from './pages/WishesPage.jsx'
+import { TodayPage } from './pages/TodayPage.jsx'
+import { WorldPage } from './pages/WorldPage.jsx'
+import { MePage } from './pages/MePage.jsx'
+import { FamilyTimelinePage } from './pages/FamilyTimelinePage.jsx'
+import { SupportPage } from './pages/SupportPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -30,7 +35,7 @@ import './app.css'
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
-  return <Navigate to={state.setupComplete ? '/tonight' : '/welcome'} replace />
+  return <Navigate to={state.setupComplete ? '/today' : '/welcome'} replace />
 }
 
 function RequireSetup() {
@@ -76,6 +81,9 @@ function AppRoutes() {
       <Route path="/setup" element={<SetupPage />} />
       <Route element={<RequireSetup />}>
         <Route element={<ChildShell />}>
+          <Route path="/today" element={<TodayPage />} />
+          <Route path="/world" element={<WorldPage />} />
+          <Route path="/me" element={<MePage />} />
           <Route path="/tonight" element={<TonightPage />} />
           <Route path="/garden" element={<GardenPage />} />
           <Route path="/wishes" element={<WishesPage />} />
@@ -87,6 +95,8 @@ function AppRoutes() {
           <Route path="/parent" element={<ParentLayout />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ParentOverviewPage />} />
+            <Route path="timeline" element={<FamilyTimelinePage />} />
+            <Route path="support" element={<SupportPage />} />
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />

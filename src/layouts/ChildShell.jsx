@@ -5,6 +5,7 @@ import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { Brand, SaveIndicator, StarBalance } from '../ui/Shared.jsx'
 import { CompanionArt } from '../ui/AssetArt.jsx'
 import { RewardChest } from '../ui/RewardChest.jsx'
+import { Icon } from '../ui/Icons.jsx'
 
 export function ChildShell() {
   const { state } = useBedtimeState()
@@ -14,8 +15,9 @@ export function ChildShell() {
   const location = useLocation()
   const navigate = useNavigate()
   const [chestOpen, setChestOpen] = useState(false)
-  const daytime = location.pathname === '/garden' || location.pathname === '/wishes'
-  const viewName = location.pathname === '/garden' ? 'garden' : location.pathname === '/wishes' ? 'wishes' : 'tonight'
+  const platformView = ['/today', '/world', '/me'].includes(location.pathname)
+  const daytime = platformView || location.pathname === '/garden' || location.pathname === '/wishes'
+  const viewName = location.pathname.replace('/', '') || 'today'
   const dateKey = localDateKey()
   const dayType = dayTypeFor()
   const schedule = getSchedule(state, dayType, dateKey)
@@ -35,21 +37,26 @@ export function ChildShell() {
       <header className="child-header">
         <Brand />
         {daytime ? (
-          <nav className="child-tabs" aria-label="儿童导航">
+          !platformView ? <nav className="child-tabs" aria-label="儿童导航">
+            <NavLink to="/today">返回今天</NavLink>
             <NavLink to="/tonight">{returningToActiveRoutine ? `返回今晚 · ${remaining}` : '今晚'}</NavLink>
             <NavLink to="/garden">星星花园</NavLink>
-            <NavLink to="/wishes">愿望单</NavLink>
-          </nav>
+          </nav> : <span />
         ) : null}
         <div className="child-header__actions">
           <CompanionArt id={character.id} label={`陪伴角色：${character.name}`} className="child-character" />
-          <span className="child-greeting">晚安，{profile.name}</span>
+          <span className="child-greeting">{platformView ? `你好，${profile.name}` : `晚安，${profile.name}`}</span>
           <StarBalance onClick={() => setChestOpen(true)} />
           <button className="parent-link" type="button" onClick={() => navigate('/parent')}>家长区</button>
         </div>
       </header>
       <SaveIndicator />
       <main className="child-main"><Outlet /></main>
+      {platformView ? <nav className="child-primary-nav" aria-label="儿童主导航">
+        <NavLink to="/today"><Icon name="home" /><span>今天</span></NavLink>
+        <NavLink to="/world"><Icon name="sparkle" /><span>小队世界</span></NavLink>
+        <NavLink to="/me"><Icon name="user" /><span>我的</span></NavLink>
+      </nav> : null}
       {chestOpen ? <RewardChest onClose={() => setChestOpen(false)} /> : null}
     </div>
   )
