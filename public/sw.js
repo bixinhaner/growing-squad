@@ -1,9 +1,9 @@
-const CACHE_NAME = 'growing-squad-v24'
+const CACHE_NAME = 'growing-squad-v25'
 const APP_BASE = new URL('./', self.location.href).pathname
 const appPath = (path = '') => `${APP_BASE}${String(path).replace(/^\/+/, '')}`
 const APP_SHELL = [APP_BASE, appPath('manifest.webmanifest'), appPath('moon-icon.svg'), appPath('terminal-simulator.html')]
 const OBJECT_ASSETS = [
-  'brush', 'wash', 'pajamas', 'story', 'toys', 'toilet', 'backpack', 'heart',
+  'brush', 'wash', 'eye-drops', 'nasal-rinse', 'pajamas', 'story', 'toys', 'toilet', 'backpack', 'heart',
   'lamp', 'pillow', 'lotion', 'vitamin', 'craft', 'game', 'pancake', 'park',
   'icecream', 'pizza', 'movie', 'marshmallow', 'coin', 'bicycle', 'courage', 'outing',
   'toy-train', 'music-box', 'dinosaur', 'sleepover', 'blocks', 'zoo', 'cooking', 'surprise',

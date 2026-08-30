@@ -1,5 +1,5 @@
 export const OBJECT_ASSETS = [
-  'brush', 'wash', 'pajamas', 'story',
+  'brush', 'wash', 'eye-drops', 'nasal-rinse', 'pajamas', 'story',
   'toys', 'toilet', 'backpack', 'heart',
   'lamp', 'pillow', 'lotion', 'vitamin',
   'craft', 'game', 'pancake', 'park',
@@ -11,6 +11,7 @@ export const OBJECT_ASSETS = [
 
 export const OBJECT_ASSET_OPTIONS = [
   { id: 'brush', label: '刷牙杯' }, { id: 'wash', label: '水滴' },
+  { id: 'eye-drops', label: '眼药水' }, { id: 'nasal-rinse', label: '洗鼻器' },
   { id: 'pajamas', label: '睡衣' }, { id: 'story', label: '故事书' },
   { id: 'toys', label: '玩具篮' }, { id: 'toilet', label: '小马桶' },
   { id: 'backpack', label: '书包' }, { id: 'heart', label: '暖心' },

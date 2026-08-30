@@ -1,4 +1,4 @@
-import { DATA_VERSION, isV7State, mergeLegacyView, migrateV6ToV7, toLegacyView } from './v7.js'
+import { DATA_VERSION, REQUIRED_BEDTIME_STEPS, isV7State, mergeLegacyView, migrateV6ToV7, toLegacyView } from './v7.js'
 
 export { DATA_VERSION }
 export const ON_TIME_WINDOW_MINUTES = 15
@@ -28,6 +28,7 @@ export const DEFAULT_WISHES = [
 export const DEFAULT_STEPS = [
   { id: 'brush', title: '刷牙', icon: 'brush', duration: 3, enabled: true },
   { id: 'wash', title: '洗脸', icon: 'wash', duration: 2, enabled: true },
+  ...structuredClone(REQUIRED_BEDTIME_STEPS),
   { id: 'pajamas', title: '换睡衣', icon: 'pajamas', duration: 3, enabled: true },
   { id: 'story', title: '读故事', icon: 'story', duration: 10, enabled: true },
   { id: 'tidy', title: '收玩具', icon: 'toys', duration: 5, enabled: false },

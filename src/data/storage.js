@@ -153,6 +153,8 @@ export function migrateV5(value) {
 }
 
 function inferAssetFromText(text = '') {
+  if (/滴眼|眼药/.test(text)) return 'eye-drops'
+  if (/洗鼻|清洗鼻|鼻腔/.test(text)) return 'nasal-rinse'
   if (/刷牙|牙/.test(text)) return 'brush'
   if (/洗|水|喝/.test(text)) return 'wash'
   if (/衣/.test(text)) return 'pajamas'

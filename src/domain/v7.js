@@ -1,5 +1,18 @@
 export const DATA_VERSION = 7
 
+export const REQUIRED_BEDTIME_STEPS = [
+  { id: 'eye-drops', title: '滴眼药水', icon: 'eye-drops', duration: 2, enabled: true },
+  { id: 'nasal-rinse', title: '清洗鼻子', icon: 'nasal-rinse', duration: 3, enabled: true },
+]
+
+export function ensureRequiredBedtimeSteps(routines = []) {
+  return routines.map((routine) => {
+    const steps = Array.isArray(routine.steps) ? routine.steps : []
+    const missing = REQUIRED_BEDTIME_STEPS.filter((required) => !steps.some((step) => step.id === required.id))
+    return missing.length ? { ...routine, steps: [...steps, ...structuredClone(missing)] } : routine
+  })
+}
+
 const EMPTY_MODULES = {
   core: { version: 1, routines: [], activitySessions: {}, todayDecisions: {} },
   movement: { version: 1, sessions: {}, preferencesByProfile: {} },
@@ -78,7 +91,7 @@ export function normalizeV7(value) {
   const bedtime = {
     version: 1,
     schedules: value.schedules || value.modules?.bedtime?.schedules || [],
-    routines: value.routines || value.modules?.bedtime?.routines || [],
+    routines: ensureRequiredBedtimeSteps(value.routines || value.modules?.bedtime?.routines || []),
     sessions: value.sessions || value.modules?.bedtime?.sessions || {},
   }
   const rewards = {
@@ -94,9 +107,9 @@ export function normalizeV7(value) {
     ...root,
     family: { id: 'family-main', name: '成长小队家庭', timezone: 'Asia/Shanghai', locale: 'zh-CN', createdAt: now, updatedAt: now, ...(value.family || {}) },
     modules: {
-      bedtime,
       ...structuredClone(EMPTY_MODULES),
       ...(value.modules || {}),
+      bedtime,
     },
     scaffold: { states: {}, ...(value.scaffold || {}) },
     growth: { world: {}, collections: [], ...growth },

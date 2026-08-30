@@ -9,6 +9,14 @@ function completeRoutine(state, dateKey, timestamp) {
 }
 
 describe('bedtime domain model', () => {
+  it('includes the required eye-drop and nasal-rinse tasks in both default routines', () => {
+    const state = createDefaultData()
+    for (const routine of state.routines) {
+      expect(routine.steps.find((step) => step.id === 'eye-drops')).toMatchObject({ title: '滴眼药水', icon: 'eye-drops', enabled: true })
+      expect(routine.steps.find((step) => step.id === 'nasal-rinse')).toMatchObject({ title: '清洗鼻子', icon: 'nasal-rinse', enabled: true })
+    }
+  })
+
   it('awards any partial early minute and settles exactly once', () => {
     let state = createDefaultData()
     const timestamp = new Date('2026-08-21T20:42:25').getTime()

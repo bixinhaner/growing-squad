@@ -1,50 +1,86 @@
-# 家庭同步站 Design QA
+# Growing Squad interaction redesign v1 — design QA
 
-- Source visual truth: `public/assets/sync/family-sync-station-reference.png`
-- Browser implementation: `artifacts/design-qa-sync-station-v2.png`
-- Same-input comparison: `artifacts/design-qa-sync-station-comparison.png`
-- Source pixels: 1550 × 1014
-- Implementation pixels: 1280 × 1056
-- Browser CSS viewport: 1280 px wide, device scale factor 1
-- State: one real `bedtime.schedule.updated` conflict created by two authenticated devices; local value 21:30, family latest value 21:50
-- Density normalization: both images were normalized to 600 px width in the browser comparison board; comparison evidence was captured at 1280 × 720
+## Source visual truth
 
-## Full-view comparison
+- ImageGen screen set: `design/imagegen/interaction-redesign-v1/`
+- Child Today: `child-today-selected.png` (853 × 1844 px)
+- Child World: `child-world.png` (853 × 1844 px)
+- Child Garden: `child-garden.png` (853 × 1844 px)
+- Child Backpack: `child-backpack.png` (853 × 1844 px)
+- Child Tonight: `child-tonight-tablet.png` (1480 × 1063 px)
+- Parent Today desktop: `parent-today-desktop.png` (1487 × 1058 px)
+- Parent Today mobile: `parent-today-mobile.png` (852 × 1847 px)
+- The remaining parent screens and child completion/help states in this folder are also the source of truth for their corresponding routes and layers.
 
-The implementation keeps the selected ImageGen hierarchy: story illustration on the left, calm conflict explanation and two-version comparison on the right, recommended latest-version action, progressive technical details, and a reassuring delivered-record footer. The production parent shell remains visible intentionally, so the content region is narrower than the standalone mockup.
+## Rendered implementation evidence
 
-## Focused comparison
+- `artifacts/design-qa-redesign/child-today-mobile.png` (390 × 844 px)
+- `artifacts/design-qa-redesign/child-world-mobile.png` (390 × 844 px)
+- `artifacts/design-qa-redesign/child-garden-mobile.png` (390 × 844 px)
+- `artifacts/design-qa-redesign/child-backpack-mobile.png` (390 × 844 px)
+- `artifacts/design-qa-redesign/child-tonight-tablet-final.png` (1194 × 834 px)
+- `artifacts/design-qa-redesign/parent-today-desktop-final-v2.png` (1440 × 1024 px)
+- `artifacts/design-qa-redesign/parent-today-mobile-final.png` (390 × 844 px)
 
-The conflict card was inspected at full browser resolution because its values, labels, recommended action, button hierarchy, icon treatment, radii and technical disclosure are the fidelity-critical region. No separate crop was needed after the full-resolution implementation capture confirmed legible text and touch targets.
+## Viewports and normalization
+
+- Mobile implementation viewport: 390 × 844 CSS px, deviceScaleFactor 1.
+- Child mobile source: 853 × 1844 px, approximately a 426.5 × 922 CSS-px canvas at @2x. It was normalized by comparing equivalent full-screen regions and proportions rather than raw pixels.
+- Parent mobile source: 852 × 1847 px, approximately a 426 × 923.5 CSS-px canvas at @2x. It was normalized the same way.
+- Child Tonight implementation viewport: 1194 × 834 CSS px at 1x. Source aspect is 1480 × 1063; both were compared as unframed full-app tablet views.
+- Parent desktop implementation viewport: 1440 × 1024 CSS px at 1x. Source is 1487 × 1058; layout regions were compared after proportional normalization.
+- Browser chrome and surrounding canvas were excluded from the captures.
+
+## Compared states
+
+- Child Today: next-action selected state, persistent three-item child navigation.
+- Child World/Garden/Backpack: default interactive state with the same active child and persisted progress.
+- Child Tonight: 16-item maximum state, 15 complete and one pending; clock, digital time, task controls, adjustment entry and bottom navigation visible simultaneously.
+- Parent Today: active child selected, current schedule card, three action rows, save state and weekly rhythm.
+- Parent mobile: same data and IA with the five parent destinations fixed at the bottom.
+
+## Full-view comparison evidence
+
+- Child Today, Child Tonight and Parent Today were each compared by putting the ImageGen source and rendered implementation into the same comparison input.
+- The final Child Tonight comparison confirms the intended split layout, integrated analog/digital time card, visible companion scene, four-column task grid and persistent three-item navigation.
+- The final Parent Today comparison confirms the approved light desktop sidebar, top profile/save controls, schedule hero, three action rows, sync feedback and weekly rhythm.
+- Mobile captures confirm no horizontal overflow and that the child and parent primary navigation remains visible at 390 × 844.
+
+## Focused comparison evidence
+
+- Child Tonight task region: all 16 task cards were measured visible at 1194 × 834; no vertical scrolling is required.
+- Child Tonight completion control: after completing all 16 tasks the finish action became available; reverting one task disabled settlement again and did not add starlight.
+- Parent navigation: all five labels remain visible at 390 × 844, with `scrollWidth === innerWidth === 390`.
+- Typography, control radii, cream/navy/gold/green tokens, generated asset crops, small labels and button affordances were readable in the full-size focused captures, so no additional crop files were required.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: hierarchy, Chinese weight and wrapping are consistent with the current Growing Squad parent shell; no truncation or unreadable small labels.
-- Spacing and layout rhythm: the illustration/card split, internal gaps, radii and footer rhythm match the source. The persistent sidebar is an intentional application constraint.
-- Colors and tokens: ivory paper, navy ink, muted sage and moon-gold accents match the target; conflict handling avoids danger-red treatment.
-- Image quality: the page uses the dedicated ImageGen moonlight-post-office hero at an uncropped, sharp 4:5 presentation. No emoji, placeholder art or CSS-drawn illustration is used.
-- Copy and content: the implementation uses live device values and therefore shows 21:50 rather than the mockup's sample 21:45. The recovery explanation and three decisions match the selected target.
-
-## Comparison history
-
-1. Initial browser pass: latest family value incorrectly displayed the local 21:30 because the active schedule helper intentionally hid a future pending schedule. Severity P1 because choosing the recommended option could be misleading.
-2. Fix: read the server-returned pending schedule for conflict comparison while retaining the normal schedule helper as fallback.
-3. Post-fix evidence: `artifacts/design-qa-sync-station-v2.png` shows local 21:30 and family latest 21:50, with the recommended action using the same truthful value.
-
-## Primary interactions tested
-
-- Created a real conflicting schedule update from two authenticated devices.
-- Verified the sidebar conflict badge appears automatically.
-- Opened the sync station from the badge.
-- Verified latest/local choices, defer action and technical disclosure are available.
-- Verified no visible runtime error or broken asset occurred during the flow.
+- Fonts and typography: hierarchy, weights, wrapping and compact UI labels match the source intent. The implementation uses an available rounded/display fallback rather than rasterizing the ImageGen lettering; this is an expected P3 difference.
+- Spacing and layout rhythm: major regions, card density, navigation persistence, radii and elevation match after the desktop parent-shell correction. No controls are cropped or hidden at the tested breakpoints.
+- Colors and visual tokens: warm cream surfaces, navy primary actions, gold highlights, green completion states and lavender rhythm states are consistently mapped.
+- Image quality and asset fidelity: visible scenes and non-standard illustrations use ImageGen raster assets. No emoji or placeholder boxes are used for the primary art. Standard interface actions use the existing icon library.
+- Copy and content: app-specific labels follow the approved simplified child/parent IA. Dynamic task counts, times and names intentionally come from persisted data, so they do not reproduce the mock's literal sample values.
 
 ## Findings
 
-No actionable P0, P1 or P2 visual differences remain. The existing parent sidebar makes the implementation denser than the standalone ImageGen mockup, but preserves navigation context and does not reduce usability.
+- No actionable P0, P1 or P2 differences remain.
+- P3: exact glyph shapes differ from the ImageGen-rendered lettering because the mock lettering is not a distributable font. Current typography preserves hierarchy and readability without converting text into inaccessible images.
+- P3: dynamic test data contains 16 tasks while the source tablet mock shows 12. This is intentional and validates the user-requested 16-task maximum and one-screen requirement.
 
-## Follow-up polish
+## Comparison history
 
-- P3: when the server later exposes the originating device name, replace “家庭最新版本” with the actual device label.
+1. Initial Parent Today comparison — P1: the implementation retained a dark legacy sidebar and simplified the content structure. Fix: rebuilt the page as schedule hero + three action rows + sync note + weekly rhythm, then changed the desktop shell to the approved light sidebar and moved return/save controls to the top bar. Post-fix evidence: `artifacts/design-qa-redesign/parent-today-desktop-final-v2.png` compared against `parent-today-desktop.png`.
+2. Initial Child Tonight comparison — P1: the companion was not visibly present in the left scene. Fix: replaced the scene with the ImageGen bedtime companion asset and adjusted its crop. Post-fix evidence: `artifacts/design-qa-redesign/child-tonight-tablet-final.png` compared against `child-tonight-tablet.png`.
+3. Responsive pass — P2: parent mobile needed all destinations visible without horizontal overflow. Fix: converted the desktop sidebar to a five-item fixed bottom bar under 900 px. Post-fix evidence: `artifacts/design-qa-redesign/parent-today-mobile-final.png` at 390 × 844.
+
+## Interaction and technical acceptance
+
+- Primary child and parent routes, navigation, task toggle/revert, parent unlock, routine editing and manual reward event paths are wired to real application state.
+- Browser checks: 390 × 844 mobile, 1194 × 834 tablet and 1440 × 1024 desktop.
+- Console error check: no errors in the final browser pass.
+- ESLint passed.
+- Production build passed (196 modules).
+- Unit tests passed: 16 files, 87 tests.
+- Redesign end-to-end test passed: 1/1.
 
 final result: passed

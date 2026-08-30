@@ -7,22 +7,11 @@ import { Icon } from '../ui/Icons.jsx'
 import { CharacterPose } from '../ui/ThemeArt.jsx'
 
 const navItems = [
-  { to: '/parent/overview', label: '家庭概览', icon: 'home' },
-  { to: '/parent/timeline', label: '今日与时间线', icon: 'clock' },
-  { to: '/parent/report', label: '小队周报', icon: 'book' },
-  { to: '/parent/assistant', label: '小队助手', icon: 'sparkle' },
-  { to: '/parent/support', label: '孩子与支持', icon: 'heart' },
-  { to: '/parent/movement', label: '运动小队', icon: 'sparkle' },
-  { to: '/parent/reading', label: '阅读桥梁', icon: 'book' },
-  { to: '/parent/responsibility', label: '家庭责任', icon: 'home' },
-  { to: '/parent/inventor', label: '发明家工坊', icon: 'sparkle' },
-  { to: '/parent/schedule', label: '作息与提醒', icon: 'clock' },
-  { to: '/parent/routine', label: '睡前流程', icon: 'book' },
-  { to: '/parent/rewards', label: '星光与奖励', icon: 'star' },
-  { to: '/parent/profile', label: '孩子资料', icon: 'user' },
-  { to: '/parent/accessibility', label: '无障碍', icon: 'accessibility' },
-  { to: '/parent/devices', label: '家庭设备', icon: 'device' },
-  { to: '/parent/data', label: '家庭守护', icon: 'shield' },
+  { to: '/parent/overview', label: '今天', icon: 'home' },
+  { to: '/parent/report', label: '成长', icon: 'book' },
+  { to: '/parent/schedule', label: '计划', icon: 'clock' },
+  { to: '/parent/rewards', label: '奖励', icon: 'star' },
+  { to: '/parent/profile', label: '设置', icon: 'menu' },
 ]
 
 export function ParentLayout() {
@@ -39,29 +28,29 @@ export function ParentLayout() {
   }
 
   return (
-    <div className="parent-app">
-      <aside className="parent-sidebar">
-        <div><Brand compact /><span className="parent-sidebar__caption">家长区</span></div>
+    <div className="parent-app gs-parent-app">
+      <aside className="parent-sidebar gs-parent-sidebar">
+        <div className="gs-parent-brand"><Brand compact /><span>家长区</span></div>
         <nav aria-label="家长导航">
-          {syncConflicts.length ? <NavLink className="parent-sync-alert" to="/parent/sync" title="家庭同步站"><Icon name="bell" /><span>同步确认</span><b>{syncConflicts.length}</b></NavLink> : null}
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} title={item.label}>
               <Icon name={item.icon} /><span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
-        <button type="button" className="return-child" aria-label="返回孩子模式" title="返回孩子模式" onClick={returnToChild}><Icon name="moon" /> <span>返回孩子模式</span></button>
-        <CharacterPose character={profile.character} pose="waiting" label={`${profile.name}的陪伴角色`} className="sidebar-mascot" />
+        {syncConflicts.length ? <NavLink className="gs-sync-alert" to="/parent/sync"><Icon name="bell" />同步待确认 <b>{syncConflicts.length}</b></NavLink> : null}
+        <button type="button" className="gs-return-child" onClick={returnToChild}><Icon name="moon" /> 返回孩子模式</button>
+        <CharacterPose character={profile.character} pose="waiting" label={`${profile.name}的陪伴角色`} className="gs-sidebar-mascot" />
       </aside>
-      <section className="parent-workspace">
-        <header className="parent-topbar">
+      <section className="parent-workspace gs-parent-workspace">
+        <header className="parent-topbar gs-parent-topbar">
           <label className="profile-chip"><img src={appPath('assets/app-icon.png')} alt="" /><span><small>当前孩子</small><select aria-label="当前孩子" value={state.activeProfileId} onChange={switchProfile}>{state.profiles.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.ageBand}</option>)}</select></span></label>
-          <div className="parent-topbar__actions">
+          <div className="gs-parent-topbar__actions">
             <button type="button" className="topbar-return" onClick={returnToChild}><Icon name="moon" />孩子模式</button>
             <SaveIndicator />
           </div>
         </header>
-        <main className="parent-content"><Outlet key={state.activeProfileId} /></main>
+        <main className="parent-content gs-parent-content"><Outlet key={state.activeProfileId} /></main>
       </section>
     </div>
   )
