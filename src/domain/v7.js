@@ -3,6 +3,7 @@ export const DATA_VERSION = 7
 export const REQUIRED_BEDTIME_STEPS = [
   { id: 'eye-drops', title: '滴眼药水', icon: 'eye-drops', duration: 2, enabled: true },
   { id: 'nasal-rinse', title: '清洗鼻子', icon: 'nasal-rinse', duration: 3, enabled: true },
+  { id: 'foot-bath', title: '泡脚', icon: 'foot-bath', duration: 10, enabled: true },
 ]
 
 export function ensureRequiredBedtimeSteps(routines = []) {
