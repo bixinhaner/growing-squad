@@ -56,6 +56,10 @@ export function activityMomentsFor(state, profileId) {
   for (const d of todayDecisionsFor(state, profileId)) {
     if (d.completedAt) add({ id: `core:${d.id}`, sourceModule: 'core', title: d.itemTitle ? `完成了${d.itemTitle}` : '完成了一件日常小事', at: d.completedAt, route: '/today', assetId: 'courage' })
   }
+  for (const m of (state.growth?.moments || state.rewardMoments || [])) {
+    if (m.type === 'manual' && m.profileId === profileId && !m.revertedAt && m.status !== 'reverted') add({ id: `reward:${m.id}`, sourceModule: 'encouragement', title: m.title,
+      at: m.occurredAt || m.createdAt, route: '/me', assetId: m.assetId || 'heart', note: m.note || '', noteSource: 'parent' })
+  }
   return [...new Map(moments.map((m) => [m.id, m])).values()].sort((a, b) => b.at - a.at || a.id.localeCompare(b.id))
 }
 

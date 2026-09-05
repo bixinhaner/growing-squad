@@ -1,0 +1,24 @@
+/* The legacy module layouts predate the fixed header; contain the shell in one place. */
+.gs-child-app .gs-child-header { display:flex; height:calc(68px + env(safe-area-inset-top)); padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left)); gap:12px; }
+.gs-child-app .gs-child-header__actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.gs-child-app .gs-parent-entry { display:grid; width:44px; height:44px; flex-shrink:0; background:#fffdf7; color:#314f45; }
+.gs-child-app .gs-child-header .child-character { display:inline-block; width:42px; height:42px; flex-shrink:0; background-color:#f2f4e9; background-size:400% 100%; background-position:var(--companion-x) center; }
+.gs-child-app .gs-child-main { width:100%; height:auto; min-height:100dvh; max-height:none; overflow:visible; padding:calc(68px + env(safe-area-inset-top)) 0 calc(100px + env(safe-area-inset-bottom)); }
+.gs-child-app .gs-child-main:not(:has(+.gs-child-nav)) { padding-bottom:24px; }
+.gs-child-app .gs-child-main>:is(.movement-choice,.movement-ready,.movement-play,.movement-feedback,.reading-shelf,.reading-mode,.reading-play,.reading-reflection,.family-cottage,.responsibility-role,.responsibility-play,.responsibility-complete,.inventor-workshop,.inventor-discover,.inventor-project,.inventor-showcase,.companion-question) { height:auto; min-height:calc(100dvh - 92px); max-height:none; }
+.gs-child-app .gs-child-main>:not(.calm-page,.gs-tonight-page) { margin:16px; width:calc(100% - 32px); }
+.gs-child-app .gs-child-header .brand { white-space:nowrap; }
+.calm-help-request { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:18px 0; border-bottom:1px solid #e1e6dc; }
+.calm-help-request span { display:grid; gap:8px; }.calm-help-request small{color:#586b70;font-size:13px}
+.calm-capability { display:flex; gap:16px; align-items:center; }.calm-capability>.asset-art{width:60px;height:60px;flex-shrink:0}
+.calm-support-group { margin-top:26px; }.calm-support-group>.calm-parent-card{margin-bottom:16px}.calm-capability h3{margin:0;font-size:20px}
+.calm-observations { margin-top:18px; }.calm-observations summary{min-height:44px;padding:10px;cursor:pointer}.calm-observations .calm-field{font-size:14px}
+.gs-child-app .reading-mode-grid { grid-template-rows:none; grid-auto-rows:minmax(94px,auto); }
+.gs-child-app .reading-mode-grid>button { min-height:94px; }
+.gs-child-app .reading-reflection .reading-return,.gs-child-app .reading-mode>aside button { color:#3a594b; min-height:44px; }
+.gs-child-app .reading-reflection-options button { min-height:44px; }
+@media(max-width:650px) { .gs-child-app .gs-child-header .brand{font-size:19px;gap:8px} .gs-child-app .gs-child-header .brand__moon{width:28px;height:28px} .gs-child-app .gs-child-header .child-character{width:36px;height:36px} .gs-child-app .gs-child-header__actions{gap:8px} .gs-child-app .gs-child-main>:not(.calm-page,.gs-tonight-page){margin:12px;width:calc(100% - 24px)} .gs-child-app .reading-mode-grid{grid-template-columns:1fr}.gs-child-app .reading-mode-grid>button{grid-template-columns:56px 1fr;padding:12px;gap:14px;min-height:84px}.gs-child-app .reading-mode-grid img{width:56px;height:66px;object-fit:cover}.gs-child-app .reading-mode-grid strong{font-size:18px}.gs-child-app .reading-mode-grid small{font-size:13px}.gs-child-app .reading-reflection>article{padding:20px 14px}.gs-child-app .reading-difficulty small{font-size:12px}.gs-child-app .reading-reflection-options button{font-size:15px}.gs-child-app .reading-prompt{font-size:15px}.gs-child-app .gs-tonight-page{min-height:calc(100dvh - 164px)} }
+
+/* AssetArt is a span-based sprite, not an img element. */
+.calm-choices .asset-art{width:56px;height:56px;flex-shrink:0}.calm-resume .asset-art{width:60px;height:60px}.calm-done>.asset-art{width:100px;height:100px}.calm-section-head>.asset-art{width:110px;height:110px}.calm-area-grid .asset-art{width:64px;height:64px}.calm-empty>.asset-art{width:120px;height:120px}.calm-memory-list .asset-art{width:60px;height:60px}.calm-timeline .asset-art{width:52px;height:52px}.calm-parent-plan>.asset-art{width:76px;height:76px}.gs-routine-list>.calm-editor-row>.asset-art{width:50px;height:50px;flex-shrink:0}
+@media(max-width:650px){.calm-choices .asset-art{width:46px;height:46px}.calm-section-head>.asset-art{display:none}.calm-timeline .asset-art{width:36px;height:36px}.calm-parent-plan>.asset-art{width:46px;height:46px}}

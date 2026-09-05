@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import './pages/comfort.css'
+import './pages/comfort-polish.css'
 import { appPath } from './data/paths.js'
 
 createRoot(document.getElementById('root')).render(

@@ -1,7 +1,6 @@
 name: Review workspace
 on:
-  push:
-    branches: [feat/trustworthy-growth-comfort]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -20,7 +19,7 @@ jobs:
       - name: Assemble isolated review workspace
         shell: bash
         run: |
-          # Explicit source paths only: never include Git credentials, environments or family databases.
+          # Explicit source paths only; no credentials, environments or family databases.
           tar -czf /tmp/review-workspace.tar.gz src public tests scripts node_modules server/*.mjs server/*.test.js package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md
       - uses: actions/upload-artifact@v4
         with:

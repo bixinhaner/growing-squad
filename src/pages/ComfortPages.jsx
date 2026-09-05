@@ -59,7 +59,7 @@ function TodayContent() {
   const question = childAssistantPrompt(state, profile.id)
   const [helpOpen, setHelpOpen] = useState(false)
   const [message, setMessage] = useState('')
-  const send = (type, extra = {}) => dispatch({ type, profileId: profile.id, dateKey: localDateKey(new Date(now)), routineId: candidate.routineId, timestamp: Date.now(), ...extra })
+  const send = (type, extra = {}) => dispatch({ type, profileId: profile.id, dateKey: localDateKey(new Date(now)), routineId: candidate.routineId, ...extra })
   const choose = (option) => {
     setMessage('')
     if (option.action === 'complete') { send('TODAY_COMPLETE_ITEM'); return }
