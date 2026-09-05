@@ -112,7 +112,7 @@ test('two timeline items added in one clock tick stay individually editable', as
   const lane = page.locator('.timeline-lane--after-school')
   await lane.getByRole('button', { name: '添加活动' }).click()
   await lane.getByRole('button', { name: '添加活动' }).click()
-  const names = lane.getByRole('textbox')
+  const names = lane.getByRole('textbox', { name: '放学后活动名称', exact: true })
   await expect(names).toHaveCount(5)
   await names.nth(3).fill('拼图时间')
   await names.nth(4).fill('画月球车')
