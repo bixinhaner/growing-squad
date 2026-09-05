@@ -51,10 +51,10 @@ export function ProfilePage() {
 
   return (
     <section>
-      <div className="profile-heading"><PageTitle title="孩子资料" subtitle="每个孩子都有独立的作息、流程、星星和睡前记录。" /><button className="button button--secondary" type="button" onClick={() => setAddOpen(true)}>＋ 新增孩子</button></div>
+      <div className="profile-heading"><PageTitle title="孩子资料" subtitle="每个孩子都有独立的作息、流程、星星和睡前记录。" /><button className="button button--secondary" type="button" aria-label="新增孩子" onClick={() => setAddOpen(true)}>＋ 新增孩子</button></div>
       <div className="child-roster" aria-label="家庭孩子档案">
         {state.profiles.map((item) => <button type="button" key={item.id} className={item.id === state.activeProfileId ? 'is-active' : ''} onClick={() => dispatch({ type: 'SWITCH_PROFILE', profileId: item.id })}><CompanionArt id={item.character} decorative /><strong>{item.name}</strong><small>{item.id === state.activeProfileId ? '当前孩子' : '切换'}</small></button>)}
-        <button type="button" className="child-roster__add" onClick={() => setAddOpen(true)}><span>＋</span><strong>新增孩子</strong><small>独立保存</small></button>
+        <button type="button" className="child-roster__add" aria-label="新增孩子" onClick={() => setAddOpen(true)}><span>＋</span><strong>新增孩子</strong><small>独立保存</small></button>
       </div>
       <div className="profile-layout">
         <article className="profile-settings">

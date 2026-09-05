@@ -22,7 +22,7 @@ describe('parent-controlled assistant', () => {
     expect(suggestions.length).toBeGreaterThanOrEqual(2)
     expect(suggestions.length).toBeLessThanOrEqual(3)
     state = assistantReducer(state, op('assistant.suggestions.created', { suggestions }))
-    expect(Object.values(state.modules.assistant.suggestions).every((item) => item.status === 'draft')).toBe(true)
+    expect(Object.values(state.modules.assistant.suggestions).every((item) => item.status === 'suggested' && !item.approvedAt)).toBe(true)
     const item = suggestions[0]
     state = assistantReducer(state, op('assistant.suggestion.edited', { suggestionId: item.id, title: '下周先少帮一步', body: '只试一周，随时可以调回来。' }, 200))
     state = assistantReducer(state, op('assistant.suggestion.approved', { suggestionId: item.id }, 300))
@@ -42,8 +42,23 @@ describe('parent-controlled assistant', () => {
     let state = createDefaultData()
     state = rootReducer(state, createOperationEnvelope({ type: 'UPDATE_ASSISTANT_SETTINGS', settings: { enabled: true, childOneQuestion: true } }, 'child-1', 1))
     expect(childAssistantPrompt(state, 'child-1').choices).toHaveLength(3)
-    state = assistantReducer(state, op('assistant.reflection.recorded', { reflectionId: 'reflection-1', promptId: 'week:1', choiceId: 'tried' }, 200))
-    expect(state.modules.assistant.reflections['reflection-1'].choiceId).toBe('tried')
+    state = assistantReducer(state, op('assistant.reflection.recorded', { reflectionId: 'reflection-1', promptId: 'week:1', answerId: 'tried', answer: '我愿意试一试' }, 200))
+    expect(state.modules.assistant.reflections['reflection-1'].answerId).toBe('tried')
     expect(buildWeeklyReport(state, 'child-1').total).toBe(0)
+  })
+})
+
+describe('assistant ownership boundaries', () => {
+  it('does not approve another child’s suggestion or delete it with the current child’s records', () => {
+    let state = createDefaultData()
+    const suggestions = [{ id: 'mine', title: '一起读', body: '先选择' }]
+    state = assistantReducer(state, op('assistant.suggestions.created', { suggestions }))
+    const other = { ...op('assistant.suggestions.created', { suggestions: [{ id: 'sister', title: '玩一会儿' }] }), target: { profileId: 'sister' } }
+    state = assistantReducer(state, other)
+    state = assistantReducer(state, op('assistant.suggestion.approved', { suggestionId: 'sister' }))
+    expect(state.modules.assistant.suggestions.sister.status).toBe('suggested')
+    state = assistantReducer(state, op('assistant.derived.deleted', {}))
+    expect(state.modules.assistant.suggestions.mine).toBeUndefined()
+    expect(state.modules.assistant.suggestions.sister.status).toBe('suggested')
   })
 })

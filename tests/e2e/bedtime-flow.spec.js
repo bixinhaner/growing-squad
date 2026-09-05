@@ -9,7 +9,7 @@ async function reward(page,title,points=10) {
   await dialog.getByLabel('奖励原因').fill(title)
   await dialog.getByLabel('自定义星光数量').fill(String(points))
   await dialog.getByRole('button',{name:'保存到奖励宝箱'}).click()
-  await expect(page.locator('.reward-moment-list')).toContainText(title)
+  await expect(page.locator('.reward-history-list')).toContainText(title)
 }
 
 test('family setup, reversible tasks, settlement and refresh preserve a real bedtime',async({page}) => {

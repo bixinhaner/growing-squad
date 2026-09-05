@@ -12,6 +12,8 @@ export async function setupFamily(page,{name='小语',at='2026-09-06T20:45:00+08
   await page.getByLabel('家长区 PIN').fill('2468')
   await page.getByRole('button',{name:/保存并看看今晚/}).click()
   await expect(page).toHaveURL(/\/tonight$/)
+  // The lazy route can change the URL before its controls have mounted.
+  await expect(page.locator('.gs-task-grid>button').first()).toBeVisible()
   await expect.poll(async() => (await persistedState(page)).setupComplete).toBe(true)
 }
 export async function persistedState(page) { return page.evaluate(() => JSON.parse(localStorage.getItem('growing-squad:main:v7') || '{}')) }

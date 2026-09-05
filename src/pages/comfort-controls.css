@@ -1,0 +1,44 @@
+/* Final interaction layer: keep targets usable instead of shrinking content to fit. */
+.gs-child-app .gs-child-main :is(
+  .movement-choice, .movement-ready, .movement-play, .movement-feedback,
+  .reading-shelf, .reading-mode, .reading-play, .reading-reflection,
+  .inventor-workshop, .inventor-discover, .inventor-project, .inventor-showcase,
+  .responsibility-role, .responsibility-active, .responsibility-complete
+) button,
+.companion-question button {
+  min-height: 48px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+.gs-child-app .gs-child-main :is(.movement-choice, .movement-ready, .movement-play, .movement-feedback) {
+  height: auto;
+  min-height: calc(100dvh - 164px);
+  max-height: none;
+  overflow: visible;
+}
+.gs-child-app .movement-choice__actions { flex-wrap: wrap; }
+.gs-child-app .movement-choice__content { overflow: visible; }
+.companion-question { height: auto; min-height: 100dvh; max-height: none; overflow: visible; }
+.companion-question__skip { margin-top: 14px; }
+.reading-book-dialog.modal { width: min(720px, calc(100vw - 24px)); padding: 0; max-height: 90dvh; overflow: auto; }
+.reading-book-dialog .modal__close { z-index: 2; min-width: 44px; min-height: 44px; }
+.reading-book-dialog .reading-book-modal { width: 100%; max-height: none; box-shadow: none; }
+.reading-book-dialog .reading-book-modal>header { padding-right: 44px; }
+.reading-book-dialog :is(input, button) { min-height: 44px; }
+.reading-book-dialog label, .reading-book-dialog legend { font-size: 15px; }
+.reading-parent .reading-history { min-width: 0; }
+.reading-parent .reading-history>article { grid-template-columns: 44px minmax(0, 1fr); align-items: start; padding: 16px 0; }
+.reading-parent .reading-history>article>em { grid-column: 2; font-size: 13px; }
+.reading-parent .reading-history strong { font-size: 16px; line-height: 1.6; }
+.reading-parent .reading-history small { font-size: 13px; line-height: 1.7; }
+.reading-parent .reading-history blockquote { margin: 12px 0 0; padding: 12px 14px; background: #f0f4eb; border-left: 3px solid #7b9d85; border-radius: 0 12px 12px 0; font-size: 15px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gs-child-app button:focus-visible, .companion-question button:focus-visible, .reading-book-dialog :focus-visible { outline: 3px solid #285f53; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .gs-child-app .movement-choice__actions { display: flex; gap: 8px; }
+  .gs-child-app .movement-choice__actions button { flex: 1 1 120px; font-size: 14px; }
+  .gs-child-app .inventor-project>article { padding-bottom: 24px; }
+  .gs-child-app .reading-reflection-options button { font-size: 14px; }
+  .gs-child-app .reading-mode-grid small { font-size: 12px; }
+  .reading-book-dialog .reading-book-modal { padding: 20px 16px; }
+  .reading-book-dialog h2 { font-size: 23px; }
+}

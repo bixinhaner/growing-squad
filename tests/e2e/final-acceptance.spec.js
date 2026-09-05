@@ -1,0 +1,90 @@
+import { expect, test } from '@playwright/test'
+import { setupFamily, unlockParent, addBook, persistedState, expectComfortable, expectImagesLoaded } from './helpers.js'
+
+test('two books created under one clock remain distinct and the editor restores keyboard focus', async ({ page }) => {
+  await setupFamily(page)
+  await unlockParent(page, '/parent/reading')
+  const opener = page.getByRole('button', { name: '添加家里的书' })
+  await opener.click()
+  await expect(page.getByRole('dialog', { name: '添加孩子手边的书' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(opener).toBeFocused()
+  // setupFamily freezes Date.now: IDs must not depend on a clock tick.
+  await addBook(page, '姐姐的机器人故事')
+  await addBook(page, '妹妹的月亮故事', '追星星')
+  const books = (await persistedState(page)).modules.reading.books
+  expect(books).toHaveLength(2)
+  expect(new Set(books.map((book) => book.id)).size).toBe(2)
+  await page.reload()
+  for (const digit of ['2', '4', '6', '8']) await page.getByRole('button', { name: digit, exact: true }).click()
+  await expect(page.getByText('姐姐的机器人故事', { exact: true })).toBeVisible()
+  await expect(page.getByText('妹妹的月亮故事', { exact: true })).toBeVisible()
+})
+
+test('a real parent can acknowledge help and record observed together-reading without inferring independence', async ({ page }) => {
+  await setupFamily(page)
+  await unlockParent(page, '/parent/reading')
+  await addBook(page)
+  await page.goto('/bedtime/reading')
+  await page.getByRole('button', { name: /刺猬的勇敢小灯笼的封面/ }).click()
+  await page.getByRole('button', { name: '带我开始' }).click()
+  await page.getByRole('button', { name: '我需要帮助' }).click()
+  await expect(page.getByText('已记录你需要帮助，请叫家长来陪一下。')).toBeVisible()
+  const session = Object.values((await persistedState(page)).modules.reading.sessions)[0]
+  await unlockParent(page, '/parent/support')
+  await expect(page.getByRole('heading', { name: '1 个需要回应的请求' })).toBeVisible()
+  await page.getByRole('button', { name: '已经陪过孩子' }).click()
+  await expect(page.getByRole('heading', { name: '暂时没有求助' })).toBeVisible()
+  await expect.poll(async () => Boolean((await persistedState(page)).modules.reading.sessions[session.id].helpResolvedAt)).toBe(true)
+  await page.goto(`/bedtime/reading/play/${session.id}`)
+  await page.getByRole('button', { name: '读完啦' }).click()
+  await page.getByRole('button', { name: '以后再说' }).click()
+  await expect(page).toHaveURL(/story-treehouse/)
+  await unlockParent(page, '/parent/support')
+  const capability = page.locator('.calm-parent-card').filter({ has: page.getByRole('heading', { name: '参与一次阅读', exact: true }) })
+  await capability.locator('summary').click()
+  await capability.getByRole('combobox').selectOption('together')
+  await expect.poll(async () => (await persistedState(page)).modules.reading.sessions[session.id].supportEvidence?.[`${session.profileId}:reading.finish`]?.mode).toBe('together')
+  await expect(capability).toContainText('1 次有明确观察')
+  await expect(page.getByRole('button', { name: '试一周', exact: true })).toHaveCount(0)
+  await expectComfortable(page)
+  await page.screenshot({ path: 'artifacts/visual-qa/final-parent-observations.png', fullPage: true })
+})
+
+for (const size of [{ name: 'phone', width: 390, height: 844 }, { name: 'tablet', width: 1194, height: 834 }, { name: 'desktop', width: 1440, height: 900 }]) {
+  test(`main destinations remain readable and navigable on ${size.name}`, async ({ page }) => {
+    const errors = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await setupFamily(page, { at: '2026-09-06T07:20:00+08:00' })
+    for (const route of ['today', 'world', 'me']) {
+      await page.goto(`/bedtime/${route}`)
+      await expect(page.locator('.calm-page h1')).toBeVisible()
+      await expect(page.getByRole('navigation', { name: '儿童主导航' }).getByRole('link')).toHaveCount(3)
+      await expectComfortable(page)
+      await expectImagesLoaded(page)
+      await page.screenshot({ path: `artifacts/visual-qa/final-${route}-${size.name}.png`, fullPage: true })
+    }
+    await unlockParent(page, '/parent/report')
+    await expect(page.getByRole('heading', { name: '看见真实的小变化' })).toBeVisible()
+    await expectComfortable(page)
+    await page.screenshot({ path: `artifacts/visual-qa/final-growth-${size.name}.png`, fullPage: true })
+    expect(errors).toEqual([])
+  })
+}
+
+test('narrow screen and larger text keep choices reachable without horizontal scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 })
+  await setupFamily(page, { at: '2026-09-06T07:20:00+08:00' })
+  await unlockParent(page, '/parent/accessibility')
+  for (const name of ['大号文字', '减少动态']) await page.getByRole('switch', { name, exact: true }).click()
+  await expect(page.locator('html')).toHaveClass(/large-text/)
+  await page.goto('/bedtime/today')
+  await expect(page.locator('.calm-choices>button')).toHaveCount(2)
+  await expectComfortable(page, [page.locator('.calm-choices>button').first(), page.getByRole('button', { name: '需要帮助', exact: true })])
+  await page.screenshot({ path: 'artifacts/visual-qa/final-today-narrow-large-text.png', fullPage: true })
+  await page.getByRole('link', { name: '小队世界' }).click()
+  await expect(page.locator('.calm-area-grid>button')).toHaveCount(5)
+  await expectComfortable(page, [page.locator('.calm-area-grid>button').last()])
+})
