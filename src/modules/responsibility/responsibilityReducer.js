@@ -7,13 +7,11 @@ function ensureResponsibility(state) {
   next.growth.world ||= {}
   return next
 }
-
 export function responsibilityReducer(state, operation) {
   const next = ensureResponsibility(state)
   const responsibility = next.modules.responsibility
   const payload = operation.payload
   const profileId = operation.target.profileId
-
   if (operation.type === 'responsibility.routine.upserted') {
     const routine = { ...payload.routine, updatedAt: operation.occurredAt }
     const index = responsibility.routines.findIndex((item) => item.id === routine.id)
@@ -35,20 +33,24 @@ export function responsibilityReducer(state, operation) {
     if (operation.type === 'responsibility.session.started') {
       responsibility.sessions[sessionId] = { ...previous, participants: payload.participants || previous.participants, startedAt: previous.startedAt || operation.occurredAt, status: previous.status || 'active' }
     } else if (operation.type === 'responsibility.help.requested') {
-      const already = previous.helpRequests?.some((item) => item.profileId === profileId)
+      const already = previous.helpRequests?.some((item) => item.profileId === profileId && !item.resolvedAt)
       responsibility.sessions[sessionId] = { ...previous, helpRequests: already ? previous.helpRequests : [...(previous.helpRequests || []), { profileId, requestedAt: operation.occurredAt }] }
     } else if (operation.type === 'responsibility.role.completed') {
       const participantId = payload.participantId || `profile:${profileId}`
+      if (!previous.participants.some((item) => item.kind === 'child' && item.id === participantId && (item.profileId === profileId || item.id === `profile:${profileId}`))) return state
+      if ((previous.completedRoleIds || []).includes(participantId)) return state
       const completedRoleIds = [...new Set([...(previous.completedRoleIds || []), participantId])]
       const childParticipantIds = previous.participants.filter((item) => item.kind === 'child').map((item) => item.id)
       const groupComplete = childParticipantIds.length > 0 && childParticipantIds.every((id) => completedRoleIds.includes(id))
-      responsibility.sessions[sessionId] = { ...previous, completedRoleIds, status: groupComplete ? 'complete' : 'partial', ...(groupComplete ? { completedAt: operation.occurredAt } : {}) }
+      responsibility.sessions[sessionId] = { ...previous, completedRoleIds,
+        roleCompletedAt: { ...(previous.roleCompletedAt || {}), [participantId]: operation.occurredAt },
+        status: groupComplete ? 'complete' : 'partial', ...(groupComplete ? { completedAt: previous.completedAt || operation.occurredAt } : {}) }
       if (groupComplete && !previous.completedAt) {
-        const moment = { id: `family:${sessionId}`, type: 'responsibility.shared-completed', sourceModule: 'responsibility', sessionId, activityId: previous.activityId, participants: previous.participants, createdAt: operation.occurredAt }
-        next.growth.moments.push(moment)
+        next.growth.moments.push({ id: `family:${sessionId}`, type: 'responsibility.shared-completed', sourceModule: 'responsibility', sessionId, activityId: previous.activityId, participants: previous.participants, createdAt: operation.occurredAt })
         for (const participant of previous.participants.filter((item) => item.kind === 'child')) {
-          const world = next.growth.world[participant.profileId] || {}
-          next.growth.world[participant.profileId] = { ...world, familyObjects: [...(world.familyObjects || []), { id: `family-object:${sessionId}`, itemId: 'three-leaf-vase', createdAt: operation.occurredAt }] }
+          const childId = participant.profileId || participant.id.replace(/^profile:/, '')
+          const world = next.growth.world[childId] || {}
+          next.growth.world[childId] = { ...world, familyObjects: [...(world.familyObjects || []), { id: `family-object:${sessionId}`, itemId: 'three-leaf-vase', createdAt: operation.occurredAt }] }
         }
       }
     } else if (operation.type === 'responsibility.reflection.added') {

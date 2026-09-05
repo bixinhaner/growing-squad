@@ -35,16 +35,28 @@ jobs:
       - name: Browser regression suite
         if: success() || failure()
         run: npm run test:e2e
-      - name: Offline production checks
-        if: success() || failure()
-        run: npm run test:pwa
-      - name: Retain test evidence
+      - name: Retain browser evidence before PWA
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-evidence
           path: |
-            test-results/
-            playwright-report/
-          if-no-files-found: ignore
-          retention-days: 7
+            test-results/e2e/
+            test-results/e2e-summary.json
+            playwright-report/e2e/
+            artifacts/visual-qa/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Offline production checks
+        if: success() || failure()
+        run: npm run test:pwa
+      - name: Retain offline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-evidence
+          path: |
+            test-results/pwa/
+            test-results/pwa-summary.json
+          if-no-files-found: warn
+          retention-days: 14

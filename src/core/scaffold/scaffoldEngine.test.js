@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultData } from '../../domain/model.js'
 import { getScaffoldStates, getScaffoldSuggestion } from './scaffoldEngine.js'
-
+function observations(state, { confirmed = true, helped = 0 } = {}) {
+  const profileId = state.profiles[0].id
+  for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`${profileId}:2026-08-${20 + index}`] = {
+    id: `${profileId}:2026-08-${20 + index}`, profileId, routineCompletedAt: 1000 + index,
+    helpRequestedAt: index < helped ? 900 + index : null, stepStatus: { backpack: 'done' },
+    ...(confirmed ? { supportEvidence: { 'bedtime.pack-bag': { source: 'parent', mode: 'independent' } } } : {}),
+  }
+  return getScaffoldStates(state, profileId)
+}
 describe('scaffold engine', () => {
   it('keeps support levels per capability instead of per child age', () => {
     const state = createDefaultData()
@@ -11,21 +19,20 @@ describe('scaffold engine', () => {
     expect(values.find((item) => item.key === 'bedtime.wash').level).toBe(4)
     expect(values.find((item) => item.key === 'reading.start').level).toBe(1)
   })
-
-  it('only proposes a change and never mutates the current level', () => {
-    const state = createDefaultData()
-    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`child-1:2026-08-${20 + index}`] = { id: `child-1:2026-08-${20 + index}`, profileId: 'child-1', routineCompletedAt: 1000 + index, stepStatus: { backpack: 'done' } }
-    const values = getScaffoldStates(state, state.profiles[0].id)
+  it('only proposes a reversible change from explicit observations', () => {
+    const values = observations(createDefaultData())
     const current = values.find((item) => item.key === 'bedtime.pack-bag').level
     const suggestion = getScaffoldSuggestion(values)
     expect(suggestion.nextLevel).toBe(current + 1)
     expect(values.find((item) => item.key === 'bedtime.pack-bag').level).toBe(current)
-    expect(suggestion.evidence).toMatchObject({ count: 4, independentCount: 4 })
+    expect(suggestion.evidence).toMatchObject({ count: 4, confirmedCount: 4, independentCount: 4 })
   })
-
+  it('does not infer independence from missing help clicks', () => {
+    const values = observations(createDefaultData(), { confirmed: false })
+    expect(getScaffoldSuggestion(values)).toBeNull()
+    expect(values.find((item) => item.key === 'bedtime.pack-bag').evidence.unknownCount).toBe(4)
+  })
   it('does not suggest less support when recent evidence includes frequent help', () => {
-    const state = createDefaultData()
-    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`child-1:2026-08-${20 + index}`] = { id: `child-1:2026-08-${20 + index}`, profileId: 'child-1', routineCompletedAt: 1000 + index, helpRequestedAt: index < 2 ? 900 + index : null, stepStatus: { backpack: 'done' } }
-    expect(getScaffoldSuggestion(getScaffoldStates(state, 'child-1'))).toBeNull()
+    expect(getScaffoldSuggestion(observations(createDefaultData(), { helped: 2 }))).toBeNull()
   })
 })
