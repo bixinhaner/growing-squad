@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultData } from '../../domain/model.js'
-import { getScaffoldStates, getScaffoldSuggestion } from './scaffoldEngine.js'
+import { getScaffoldStates, getScaffoldSuggestion, scaffoldEvidence } from './scaffoldEngine.js'
 function observations(state, { confirmed = true, helped = 0 } = {}) {
   const profileId = state.profiles[0].id
   for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`${profileId}:2026-08-${20 + index}`] = {
@@ -35,4 +35,12 @@ describe('scaffold engine', () => {
   it('does not suggest less support when recent evidence includes frequent help', () => {
     expect(getScaffoldSuggestion(observations(createDefaultData(), { helped: 2 }))).toBeNull()
   })
+})
+
+
+it('counts a parent-observed concrete help even when the child did not press help', () => {
+  const state = createDefaultData(), id = state.profiles[0].id
+  state.modules.reading.sessions.r = { id: 'r', profileId: id, startedAt: 1, completedAt: 2,
+    supportEvidence: { [`${id}:reading.finish`]: { source: 'parent', mode: 'helped' } } }
+  expect(scaffoldEvidence(state, id, 'reading.finish')).toMatchObject({ count: 1, confirmedCount: 1, helpCount: 1, independentCount: 0 })
 })

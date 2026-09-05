@@ -35,9 +35,9 @@ export function scaffoldEvidence(state, profileId, capabilityKey) {
   const records = sessions.sort((a, b) => Number(b.completedAt || b.routineCompletedAt || b.startedAt) - Number(a.completedAt || a.routineCompletedAt || a.startedAt)).slice(0, 8).map((s) => {
     const at = s.completedAt || s.routineCompletedAt || s.startedAt
     const completed = moduleId === 'bedtime' ? s.stepStatus[stepId] === 'done' : Boolean(s.completedAt)
-    const helped = Boolean(s.helpRequestedAt || (s.helpRequests || []).some((r) => r.profileId === profileId))
     const observation = s.supportEvidence?.[`${profileId}:${capabilityKey}`] || (s.profileId === profileId ? s.supportEvidence?.[capabilityKey] : null)
     const confirmed = observation?.source === 'parent' && ['independent', 'together', 'helped'].includes(observation.mode)
+    const helped = Boolean((confirmed && observation.mode === 'helped') || s.helpRequestedAt || (s.helpRequests || []).some((r) => r.profileId === profileId))
     return { at, sessionId: s.id, completed, helped, confirmed, independent: Boolean(completed && confirmed && observation.mode === 'independent' && !helped) }
   })
   const count = records.length, confirmedCount = records.filter((r) => r.confirmed).length

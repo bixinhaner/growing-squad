@@ -84,6 +84,7 @@ export function WateringPage() {
       <div className="watering-ritual__progress" aria-hidden="true"><i></i></div>
 
       <p className="sr-live" aria-live="polite">{activePhase.text}</p>
+      <button className="watering-ritual__skip" type="button" onClick={() => navigate('/goodnight', { replace: true })}>浇好啦，去睡觉</button>
     </main>
   )
 }

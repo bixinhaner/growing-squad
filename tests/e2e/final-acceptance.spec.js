@@ -57,7 +57,7 @@ for (const size of [{ name: 'phone', width: 390, height: 844 }, { name: 'tablet'
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.setViewportSize({ width: size.width, height: size.height })
-    await setupFamily(page, { at: '2026-09-06T07:20:00+08:00' })
+    await setupFamily(page, { at: '2026-09-06T16:20:00+08:00' })
     for (const route of ['today', 'world', 'me']) {
       await page.goto(`/bedtime/${route}`)
       await expect(page.locator('.calm-page h1')).toBeVisible()
@@ -76,7 +76,7 @@ for (const size of [{ name: 'phone', width: 390, height: 844 }, { name: 'tablet'
 
 test('narrow screen and larger text keep choices reachable without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 })
-  await setupFamily(page, { at: '2026-09-06T07:20:00+08:00' })
+  await setupFamily(page, { at: '2026-09-06T16:20:00+08:00' })
   await unlockParent(page, '/parent/accessibility')
   for (const name of ['大号文字', '减少动态']) await page.getByRole('switch', { name, exact: true }).click()
   await expect(page.locator('html')).toHaveClass(/large-text/)
@@ -87,4 +87,39 @@ test('narrow screen and larger text keep choices reachable without horizontal sc
   await page.getByRole('link', { name: '小队世界' }).click()
   await expect(page.locator('.calm-area-grid>button')).toHaveCount(5)
   await expectComfortable(page, [page.locator('.calm-area-grid>button').last()])
+})
+
+test('repeated movement sessions under a fixed clock each preserve their own feedback', async ({ page }) => {
+  await setupFamily(page)
+  for (const feedback of ['还想玩', '有点难']) {
+    await page.goto('/bedtime/movement')
+    await page.locator('.movement-picks>button').first().click()
+    await page.getByRole('button', { name: '我准备好啦' }).click()
+    await page.getByRole('button', { name: '我回来啦' }).click()
+    await page.getByRole('button', { name: new RegExp(feedback) }).click()
+    await expect(page).toHaveURL(/energy-plaza/)
+  }
+  await page.reload()
+  const sessions = Object.values((await persistedState(page)).modules.movement.sessions)
+  expect(sessions).toHaveLength(2)
+  expect(new Set(sessions.map((s) => s.id)).size).toBe(2)
+  expect(sessions.map((s) => s.feedback).sort()).toEqual(['again', 'hard'])
+})
+
+test('two timeline items added in one clock tick stay individually editable', async ({ page }) => {
+  await setupFamily(page)
+  await unlockParent(page, '/parent/timeline')
+  const lane = page.locator('.timeline-lane--after-school')
+  await lane.getByRole('button', { name: '添加活动' }).click()
+  await lane.getByRole('button', { name: '添加活动' }).click()
+  const names = lane.getByRole('textbox')
+  await expect(names).toHaveCount(5)
+  await names.nth(3).fill('拼图时间')
+  await names.nth(4).fill('画月球车')
+  await expect(names.nth(3)).toHaveValue('拼图时间')
+  await page.getByRole('button', { name: '保存时间线' }).click()
+  await expect.poll(async () => (await persistedState(page)).modules.core.routines.find((r) => r.period === 'after-school')?.items.length).toBe(5)
+  const items = (await persistedState(page)).modules.core.routines.find((r) => r.period === 'after-school').items
+  expect(new Set(items.map((item) => item.id)).size).toBe(5)
+  expect(items.slice(-2).map((item) => item.title)).toEqual(['拼图时间', '画月球车'])
 })

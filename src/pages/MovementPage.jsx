@@ -10,7 +10,7 @@ import { Icon } from '../ui/Icons.jsx'
 const participantCopy = { solo: '自己玩', parent: '和家长', sibling: '和兄弟姐妹' }
 
 function createMovementSessionId(profileId) {
-  return `movement-${profileId}-${localDateKey()}-${Date.now()}`
+  return `movement-${profileId}-${localDateKey()}-${crypto.randomUUID()}`
 }
 
 export function MovementChoicePage() {

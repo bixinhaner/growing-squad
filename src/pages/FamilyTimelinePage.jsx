@@ -24,7 +24,7 @@ export function FamilyTimelinePage() {
   const updateRoutine = (id, patch) => setRoutines((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item))
   const addItem = (routineId) => setRoutines((items) => items.map((item) => item.id === routineId ? {
     ...item,
-    items: [...item.items, { id: `item-${Date.now()}`, title: '新的成长活动', assetId: 'heart', estimatedMinutes: 10, required: false }],
+    items: [...item.items, { id: `item-${crypto.randomUUID()}`, title: '新的成长活动', assetId: 'heart', estimatedMinutes: 10, required: false }],
   } : item))
   const save = () => {
     dispatch({ type: 'UPDATE_CORE_ROUTINES', profileId: profile.id, routines })

@@ -26,7 +26,7 @@ export function ResponsibilityParentPage() {
   const save = (event) => {
     event.preventDefault()
     const activity = responsibilityActivity(draft.activityId)
-    dispatch({ type: 'UPSERT_RESPONSIBILITY_ROUTINE', profileId, routine: { id: `responsibility-routine-${Date.now()}`, activityId: activity.id, title: activity.title, timeLabel: draft.timeLabel, rotation: draft.rotation, rotationOffset: 0, active: true } })
+    dispatch({ type: 'UPSERT_RESPONSIBILITY_ROUTINE', profileId, routine: { id: `responsibility-routine-${crypto.randomUUID()}`, activityId: activity.id, title: activity.title, timeLabel: draft.timeLabel, rotation: draft.rotation, rotationOffset: 0, active: true } })
     setAdding(false)
   }
   const rotate = () => module.routines.some((item) => item.id === primary.id)

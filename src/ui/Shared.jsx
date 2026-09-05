@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getStarBalance } from '../domain/model.js'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { Icon } from './Icons.jsx'
 
 function useDialogFocus(onClose) {
   const dialogRef = useRef(null)
+  // Capture before a descendant autoFocus runs during the DOM commit.
+  const [previousFocus] = useState(() => typeof document === 'undefined' ? null : document.activeElement)
   const closeHandlerRef = useRef(onClose)
 
   useEffect(() => {
@@ -12,7 +14,6 @@ function useDialogFocus(onClose) {
   }, [onClose])
 
   useEffect(() => {
-    const previousFocus = document.activeElement
     const dialog = dialogRef.current
     const focusableSelector = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
     dialog?.querySelector(focusableSelector)?.focus()
@@ -32,9 +33,9 @@ function useDialogFocus(onClose) {
     window.addEventListener('keydown', handleKey)
     return () => {
       window.removeEventListener('keydown', handleKey)
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus({ preventScroll: true })
     }
-  }, [])
+  }, [previousFocus])
 
   return dialogRef
 }
