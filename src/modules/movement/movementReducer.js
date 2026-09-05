@@ -13,14 +13,16 @@ export function movementReducer(state, operation) {
   const profileId = operation.target.profileId
   const payload = operation.payload
   const sessionId = payload.sessionId
-  const previous = movement.sessions[sessionId] || { id: sessionId, profileId, activityId: payload.activityId, initiatedBy: payload.initiatedBy || 'child' }
+  const previous = movement.sessions[sessionId] || { id: sessionId, profileId, activityId: payload.activityId, initiatedBy: payload.initiatedBy || 'unknown' }
+
+  if (previous.profileId !== profileId) return state
 
   if (operation.type === 'movement.activity.selected') {
-    movement.sessions[sessionId] = { ...previous, selectedAt: operation.occurredAt, status: 'selected' }
+    movement.sessions[sessionId] = { ...previous, selectedAt: previous.selectedAt || operation.occurredAt, status: 'selected', supportMode: payload.supportMode || previous.supportMode || 'unknown' }
   } else if (operation.type === 'movement.activity.started') {
     movement.sessions[sessionId] = { ...previous, startedAt: operation.occurredAt, status: 'active', supportMode: payload.supportMode || previous.supportMode || 'self' }
   } else if (operation.type === 'movement.help.requested') {
-    movement.sessions[sessionId] = { ...previous, helpRequestedAt: operation.occurredAt, supportMode: 'help' }
+    movement.sessions[sessionId] = { ...previous, helpRequestedAt: operation.occurredAt, helpResolvedAt: null, supportMode: 'help' }
   } else if (operation.type === 'movement.activity.completed') {
     if (!previous.completedAt) {
       movement.sessions[sessionId] = { ...previous, completedAt: operation.occurredAt, status: 'feedback' }

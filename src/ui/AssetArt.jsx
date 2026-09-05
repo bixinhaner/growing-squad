@@ -22,7 +22,7 @@ export function CompanionArt({ id = 'bear', label, className = '', decorative = 
   return (
     <span
       className={`companion-art ${className}`}
-      style={{ '--companion-x': `${(index / 3) * 100}%` }}
+      style={{ '--companion-x': `${(index / 3) * 100}%`, backgroundImage: `url('${appPath('assets/companion-atlas-v1.webp')}')` }}
       role={decorative ? undefined : 'img'}
       aria-label={decorative ? undefined : label || CHARACTER_ASSET_LABELS[normalized]}
       aria-hidden={decorative ? 'true' : undefined}

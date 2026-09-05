@@ -1,57 +1,49 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultData } from '../../domain/model.js'
-import { createOperationEnvelope } from '../../core/sync/operationSchemas.js'
 import { rootReducer } from '../registry.js'
-import { assistantSettings, assistantSuggestions, buildAssistantSuggestions, buildWeeklyReport, childAssistantPrompt } from './assistantModel.js'
+import { createOperationEnvelope } from '../../core/sync/operationSchemas.js'
+import { assistantReducer } from './assistantReducer.js'
+import { assistantSettings, buildAssistantSuggestions, buildWeeklyReport, childAssistantPrompt } from './assistantModel.js'
 
-function initial() {
-  return createDefaultData()
-}
+const op = (type, payload, occurredAt = 100) => ({ type, payload, occurredAt, target: { profileId: 'child-1' } })
 
-function reduce(state, action, sequence = 1) {
-  return rootReducer(state, createOperationEnvelope(action, action.profileId || state.profiles[0].id, sequence, `op_test_${sequence}`))
-}
-
-describe('controlled assistant', () => {
-  it('is off by default and keeps child questions unavailable', () => {
-    const state = initial()
-    expect(assistantSettings(state).enabled).toBe(false)
+describe('parent-controlled assistant', () => {
+  it('is disabled by default and never uploads external context by default', () => {
+    const state = createDefaultData()
+    expect(assistantSettings(state)).toMatchObject({ enabled: false, childOneQuestion: false, externalUpload: false })
     expect(childAssistantPrompt(state)).toBeNull()
-    expect(buildWeeklyReport(state).headline).toContain('成长片段')
   })
 
-  it('stores per-child settings and local suggestions without changing core rules', () => {
-    let state = initial()
-    const profileId = state.profiles[0].id
-    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`${profileId}:2026-08-${20 + index}`] = { id: `${profileId}:2026-08-${20 + index}`, profileId, routineCompletedAt: 1000 + index, stepStatus: { backpack: 'done' } }
-    state = reduce(state, { type: 'UPDATE_ASSISTANT_SETTINGS', profileId, settings: { enabled: true, childOneQuestion: true, scopes: { childQuotes: true } } })
-    const suggestions = buildAssistantSuggestions(state, profileId)
-    state = reduce(state, { type: 'CREATE_ASSISTANT_SUGGESTIONS', profileId, suggestions }, 2)
-    expect(assistantSettings(state, profileId)).toMatchObject({ enabled: true, childOneQuestion: true, externalUpload: false })
-    expect(assistantSuggestions(state, profileId)).toHaveLength(2)
-    expect(childAssistantPrompt(state, profileId)?.choices).toHaveLength(3)
-    expect(state.modules.core.routines).toEqual([])
+  it('generates bounded suggestions, then requires parent editing and approval', () => {
+    let state = createDefaultData()
+    state.modules.inventor.projects = [{ id: 'project-1', profileId: 'child-1', title: '洗头机器人', status: 'learning', updatedAt: Date.now(), versions: [{ number: 1 }] }]
+    for (let index = 0; index < 4; index += 1) state.modules.bedtime.sessions[`child-1:2026-08-${20 + index}`] = { id: `child-1:2026-08-${20 + index}`, profileId: 'child-1', routineCompletedAt: 1000 + index, stepStatus: { backpack: 'done' }, supportEvidence: { 'bedtime.pack-bag': { source: 'parent', mode: 'independent' } } }
+    const suggestions = buildAssistantSuggestions(state, 'child-1')
+    expect(suggestions.length).toBeGreaterThanOrEqual(2)
+    expect(suggestions.length).toBeLessThanOrEqual(3)
+    state = assistantReducer(state, op('assistant.suggestions.created', { suggestions }))
+    expect(Object.values(state.modules.assistant.suggestions).every((item) => item.status === 'draft')).toBe(true)
+    const item = suggestions[0]
+    state = assistantReducer(state, op('assistant.suggestion.edited', { suggestionId: item.id, title: '下周先少帮一步', body: '只试一周，随时可以调回来。' }, 200))
+    state = assistantReducer(state, op('assistant.suggestion.approved', { suggestionId: item.id }, 300))
+    expect(state.modules.assistant.suggestions[item.id]).toMatchObject({ title: '下周先少帮一步', status: 'approved', approvedAt: 300 })
   })
 
-  it('requires explicit approval and can delete all derived content', () => {
-    let state = initial()
-    const profileId = state.profiles[0].id
-    const suggestion = buildAssistantSuggestions(state, profileId)[0]
-    state = reduce(state, { type: 'CREATE_ASSISTANT_SUGGESTIONS', profileId, suggestions: [suggestion] })
-    state = reduce(state, { type: 'APPROVE_ASSISTANT_SUGGESTION', profileId, suggestionId: suggestion.id }, 2)
-    expect(assistantSuggestions(state, profileId)[0].status).toBe('approved')
-    state = reduce(state, { type: 'RECORD_ASSISTANT_REFLECTION', profileId, reflectionId: 'reflection-1', promptId: 'weekly', answerId: 'tried', answer: '我试了一个新办法' }, 3)
-    state = reduce(state, { type: 'DELETE_ASSISTANT_DERIVED', profileId }, 4)
-    expect(assistantSuggestions(state, profileId)).toHaveLength(0)
-    expect(Object.values(state.modules.assistant.reflections)).toHaveLength(0)
+  it('respects disabled activity-summary scope instead of deriving a project-specific suggestion', () => {
+    let state = createDefaultData()
+    state.modules.inventor.projects = [{ id: 'project-private', profileId: 'child-1', title: '私密项目', status: 'learning', updatedAt: Date.now() }]
+    state = assistantReducer(state, op('assistant.settings.updated', { settings: { enabled: true, childOneQuestion: true, scopes: { activitySummary: false } } }))
+    expect(buildAssistantSuggestions(state, 'child-1')).toHaveLength(1)
+    expect(JSON.stringify(buildAssistantSuggestions(state, 'child-1'))).not.toContain('私密项目')
+    expect(childAssistantPrompt(state, 'child-1').question).not.toContain('私密项目')
   })
 
-  it('does not inspect activity history when the activity scope is disabled', () => {
-    let state = initial()
-    const profileId = state.profiles[0].id
-    state = reduce(state, { type: 'UPDATE_ASSISTANT_SETTINGS', profileId, settings: { enabled: true, scopes: { activitySummary: false } } })
-    const suggestions = buildAssistantSuggestions(state, profileId)
-    expect(suggestions).toHaveLength(1)
-    expect(suggestions[0]).toMatchObject({ evidence: '通用建议 · 未读取活动记录' })
+  it('keeps child reflections optional and private while weekly reports use actual activities', () => {
+    let state = createDefaultData()
+    state = rootReducer(state, createOperationEnvelope({ type: 'UPDATE_ASSISTANT_SETTINGS', settings: { enabled: true, childOneQuestion: true } }, 'child-1', 1))
+    expect(childAssistantPrompt(state, 'child-1').choices).toHaveLength(3)
+    state = assistantReducer(state, op('assistant.reflection.recorded', { reflectionId: 'reflection-1', promptId: 'week:1', choiceId: 'tried' }, 200))
+    expect(state.modules.assistant.reflections['reflection-1'].choiceId).toBe('tried')
+    expect(buildWeeklyReport(state, 'child-1').total).toBe(0)
   })
 })

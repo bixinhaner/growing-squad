@@ -1,0 +1,62 @@
+name: Growing Squad quality
+on:
+  pull_request:
+  push:
+    branches: [main, feat/trustworthy-growth-comfort]
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build on case-sensitive Linux
+        if: success() || failure()
+        run: npm run build
+      - name: Unit and integration tests
+        if: success() || failure()
+        run: npm test
+      - name: Install browser
+        if: success() || failure()
+        run: npx playwright install --with-deps chromium
+      - name: Browser regression suite
+        if: success() || failure()
+        run: npm run test:e2e
+      - name: Retain browser evidence before PWA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: |
+            test-results/e2e/
+            test-results/e2e-summary.json
+            playwright-report/e2e/
+            artifacts/visual-qa/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Offline production checks
+        if: success() || failure()
+        run: npm run test:pwa
+      - name: Retain offline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-evidence
+          path: |
+            test-results/pwa/
+            test-results/pwa-summary.json
+          if-no-files-found: warn
+          retention-days: 14
