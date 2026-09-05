@@ -18,7 +18,7 @@ jobs:
         shell: bash
         run: |
           # Tracked application sources only: no credentials, databases or installed dependencies.
-          git archive --format=tar.gz --output=/tmp/review-sources.tar.gz HEAD src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js'
+          git ls-files -z -- src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js' | tar --null -T - -czf /tmp/review-sources.tar.gz
           git ls-files -s > /tmp/source-index.txt
           git rev-parse HEAD > /tmp/source-commit.txt
       - uses: actions/upload-artifact@v4
