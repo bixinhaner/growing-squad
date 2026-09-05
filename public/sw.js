@@ -53,6 +53,13 @@ self.addEventListener('fetch', (event) => {
       const cache = await caches.open(CACHE_NAME)
       const cached = await cache.match(request)
       if (cached) return cached
+      // Precache requests can omit Origin while module/style requests include it.
+      // Public, same-origin build assets are identical across those Vary variants;
+      // preserve normal matching for all other resources and never ignore queries.
+      if (url.pathname.startsWith(appPath('assets/')) && /\.(js|css|png|webp|svg|ico)$/i.test(url.pathname)) {
+        const staticAsset = await cache.match(request, { ignoreVary: true })
+        if (staticAsset) return staticAsset
+      }
       if (request.mode === 'navigate') {
         const shell = await cache.match(APP_BASE)
         if (shell) return shell

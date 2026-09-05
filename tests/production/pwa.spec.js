@@ -20,8 +20,7 @@ test('production app shell and primary illustration work offline', async ({ cont
   await page.goto('/bedtime/tonight', { waitUntil: 'domcontentloaded' })
 
   await expect(page.getByRole('heading', { name: /一起把睡前.*变得轻松一点/ })).toBeVisible()
-  const imageLoaded = await page.getByRole('img', { name: '眠眠抱着月亮枕头' }).evaluate((image) => image.complete && image.naturalWidth > 0)
-  expect(imageLoaded).toBe(true)
+  await expect.poll(() => page.getByRole('img', { name: '眠眠抱着月亮枕头' }).evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true)
   const productAssets = await page.evaluate(async () => Promise.all([
     '/bedtime/assets/garden-world-landscape-v2.webp',
     '/bedtime/assets/garden-world-portrait-v2.webp',
