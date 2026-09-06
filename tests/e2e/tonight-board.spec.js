@@ -1,22 +1,29 @@
+import { Buffer } from 'node:buffer'
 import { expect, test } from '@playwright/test'
 import { setupFamily, unlockParent, persistedState, expectComfortable } from './helpers.js'
 
-// Layout-only fixture. Start with a real setup and preserve required built-in IDs.
-// These synthetic task names never access a production household.
+// Layout-only fixture: import synthetic names through the real parent backup flow.
+// V7 keeps selection in device preferences (not root.activeProfileId); bypassing
+// the provider with a localStorage write would be overwritten on pagehide.
 async function layoutTasks(page, count = 16) {
-  await page.evaluate((count) => {
-    const state = JSON.parse(localStorage.getItem('growing-squad:main:v7'))
-    const names = ['收拾明天的衣服', '整理书包', '收拾玩具', '上厕所', '喝水', '抹润肤霜', '和家人说晚安', '整理枕头', '准备睡觉']
-    const icons = ['pajamas', 'backpack', 'toys', 'toilet', 'wash', 'lotion', 'heart', 'pillow', 'lamp']
-    for (const routine of state.modules.bedtime.routines.filter((r) => r.profileId === state.activeProfileId)) {
-      const builtins = routine.steps.filter((step) => step.enabled).slice(0, 7)
-      routine.steps = [...builtins, ...Array.from({ length: Math.max(0, count - builtins.length) }, (_, i) => ({
-        id: `layout-${i}`, title: names[i] || `自定义准备事项${i + 1}`, icon: icons[i] || 'lamp', duration: 3, enabled: true,
-      }))]
-    }
-    localStorage.setItem('growing-squad:main:v7', JSON.stringify(state))
-  }, count)
-  await page.reload()
+  await unlockParent(page, '/parent/data')
+  const state = await persistedState(page)
+  expect(state.profiles).toHaveLength(1)
+  const profileId = state.profiles[0].id
+  const names = ['收拾明天的衣服', '整理书包', '收拾玩具', '上厕所', '喝水', '抹润肤霜', '和家人说晚安', '整理枕头', '准备睡觉']
+  const icons = ['pajamas', 'backpack', 'toys', 'toilet', 'wash', 'lotion', 'heart', 'pillow', 'lamp']
+  for (const routine of state.modules.bedtime.routines.filter((r) => r.profileId === profileId)) {
+    const builtins = routine.steps.filter((step) => step.enabled).slice(0, 7)
+    routine.steps = [...builtins, ...Array.from({ length: Math.max(0, count - builtins.length) }, (_, i) => ({
+      id: `layout-${i}`, title: names[i] || `自定义准备事项${i + 1}`, icon: icons[i] || 'lamp', duration: 3, enabled: true,
+    }))]
+  }
+  await page.locator('.guardian-tools > summary').click()
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'layout-fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(state)),
+  })
+  await expect.poll(async () => (await persistedState(page)).modules.bedtime.routines.filter((r) => r.profileId === profileId).every((r) => r.steps.length === count)).toBe(true)
+  await page.goto('/bedtime/tonight')
   await expect(page.locator('.gs-task-grid>button')).toHaveCount(count)
   await expect.poll(() => page.locator('#child-content').evaluate((e) => getComputedStyle(e).transform)).toBe('none')
 }
