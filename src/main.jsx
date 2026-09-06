@@ -6,6 +6,7 @@ import './pages/comfort.css'
 import './pages/comfort-polish.css'
 import './pages/comfort-controls.css'
 import './styles/evolution.css'
+import './styles/evolution-layout.css'
 import { appPath } from './data/paths.js'
 
 createRoot(document.getElementById('root')).render(

@@ -1,0 +1,35 @@
+/* V2 compatibility and accessibility guards for the older module layouts. */
+.gs-child-app, .gs-parent-app, .overlay {
+  --calm-ink: var(--v2-ink); --calm-muted: var(--v2-muted);
+  --calm-paper: var(--v2-paper); --calm-green: var(--v2-green); --calm-line: var(--v2-line);
+}
+.gs-child-app :is(h1,h2,h3), .gs-parent-app :is(h1,h2,h3), .overlay :is(h1,h2,h3) { font-family: var(--v2-type); }
+.calm-today-content { grid-template-columns: minmax(0,1fr); justify-content: stretch; align-content: center; }
+.calm-today-content > * { min-width: 0; width: 100%; }
+.v2-empty-art > .asset-art { width: 86px; height: 86px; }
+.v2-focus-task > .asset-art { width: 110px; height: 110px; }
+.calm-choices .asset-art { width: 64px; height: 64px; }
+/* A clipped skip link stays out of screenshots and pointer navigation. It is
+   still first in the keyboard order and becomes visible on keyboard focus. */
+.v2-skip-link:not(:focus-visible) { width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.v2-skip-link:focus-visible { transform: none; width: auto; height: auto; clip-path: none; }
+.overlay { font-family: var(--v2-type); }
+.overlay :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size: 16px; }
+@media(max-width:650px) {
+  .calm-choices .asset-art { width: 52px; height: 52px; }
+  /* Do not hide the only page heading on small screens. */
+  .gs-child-app .reading-shelf { display: flex; flex-direction: column; gap: 16px; }
+  .gs-child-app .reading-treehouse-hero { display: block; height: 164px; min-height: 164px; flex: none; border-radius: 24px; }
+  .gs-child-app .reading-treehouse-hero > img { height: 100%; width: 100%; object-fit: cover; object-position: center 52%; }
+  .gs-child-app .reading-treehouse-hero > div { inset: auto 20px 20px; }
+  .gs-child-app .reading-treehouse-hero h1 { margin: 4px 0; font: 750 27px/1.4 var(--v2-type); color: #fffdf5; }
+  .gs-child-app .reading-treehouse-hero p { margin: 0; font-size: 13px; color: #fffdf5; }
+  .gs-child-app .reading-shelf__content { padding: 20px 16px; flex: 1; }
+  .gs-child-app .reading-shelf__content > header { flex-wrap: wrap; gap: 12px; }
+  .gs-child-app .reading-books { flex: auto; overflow: visible; }
+  .gs-child-app .reading-reflection > aside { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 16px; height: auto; min-height: 84px; border-radius: 20px; background: #e9eedf; color: #315b49; }
+  .gs-child-app .reading-reflection > aside > img { display: block; width: 48px; height: 66px; object-fit: cover; border-radius: 8px; }
+  .gs-child-app .reading-reflection > aside > span { display: none; }
+  .gs-child-app .reading-reflection > aside > strong { display: block; font: 650 16px/1.6 var(--v2-type); }
+}
+@media(max-width:360px) { .calm-choices .asset-art { width: 42px; height: 42px; } }

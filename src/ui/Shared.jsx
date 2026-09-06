@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getStarBalance } from '../domain/model.js'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { Icon } from './Icons.jsx'
@@ -73,7 +74,7 @@ export function SaveIndicator() {
 
 export function Modal({ title, children, onClose, className = '' }) {
   const dialogRef = useDialogFocus(onClose)
-  return (
+  return createPortal(
     <div className="overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
       <section ref={dialogRef} className={`modal ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <button type="button" className="icon-button modal__close" onClick={onClose} aria-label="关闭">
@@ -81,19 +82,21 @@ export function Modal({ title, children, onClose, className = '' }) {
         </button>
         {children}
       </section>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
 export function Drawer({ title, children, onClose }) {
   const dialogRef = useDialogFocus(onClose)
-  return (
+  return createPortal(
     <div className="overlay overlay--soft" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
       <aside ref={dialogRef} className="drawer" role="dialog" aria-modal="true" aria-label={title}>
         <button type="button" className="icon-button drawer__close" onClick={onClose} aria-label="关闭"><Icon name="close" /></button>
         {children}
       </aside>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

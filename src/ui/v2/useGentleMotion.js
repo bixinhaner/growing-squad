@@ -22,6 +22,12 @@ export function useGentleMotion(identity) {
     import('../../vendor/motion-mini/index.js').then(({ animate }) => {
       if (cancelled || !element.isConnected) return
       animation = animate(element, { opacity: [0.88, 1], transform: ['translateY(6px)', 'translateY(0px)'] }, { duration: 0.2, ease: 'easeOut' })
+      animation.finished.then(() => {
+        if (cancelled) return
+        // A retained transform creates a containing block for fixed dialogs.
+        element.style.removeProperty('transform')
+        element.style.removeProperty('opacity')
+      }).catch(() => {})
     }).catch(() => { /* Motion is enhancement only; actions remain available offline. */ })
     return () => {
       cancelled = true
