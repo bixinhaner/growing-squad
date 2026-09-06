@@ -14,27 +14,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Prepare Motion dependency for V2 review
-        run: npm install --save-exact --ignore-scripts motion@12
-      - name: Assemble isolated review workspace
+      - name: Assemble tracked review sources
         shell: bash
         run: |
-          # Explicit application paths only. No .git, tokens, environments or family data.
-          git ls-files -z -- src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js' > /tmp/source-paths
-          printf 'node_modules\0' >> /tmp/source-paths
-          tar --null -T /tmp/source-paths -czf /tmp/review-v2.tar.gz
+          # Tracked application sources only: no credentials, databases or installed dependencies.
+          git ls-files -z -- src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js' | tar --null -T - -czf /tmp/review-sources.tar.gz
           git ls-files -s > /tmp/source-index.txt
           git rev-parse HEAD > /tmp/source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: review-v2-workspace
+          name: review-sources
           path: |
-            /tmp/review-v2.tar.gz
+            /tmp/review-sources.tar.gz
             /tmp/source-index.txt
             /tmp/source-commit.txt
           retention-days: 1

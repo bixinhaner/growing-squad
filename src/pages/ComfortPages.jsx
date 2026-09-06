@@ -10,6 +10,9 @@ import { AssetArt } from '../ui/AssetArt.jsx'
 import { Icon } from '../ui/Icons.jsx'
 import { Modal, SaveIndicator } from '../ui/Shared.jsx'
 import { ParentOverviewPage } from './ParentOverviewPage.jsx'
+import { FamilyPulse, ParentQuickActions, QuietEmpty, WorldLandscape } from '../ui/v2/Evolution.jsx'
+import { filterMemories, MEMORY_FILTERS } from '../ui/v2/evolutionModel.js'
+import { useGentleMotion } from '../ui/v2/useGentleMotion.js'
 
 const AREAS = [
   { id: 'bedtime', title: '月光花园', copy: '慢慢准备，安心晚安', route: '/garden', asset: 'pillow' },
@@ -36,7 +39,7 @@ function Action({ children, onClick, secondary = false, ...props }) {
   return <button type="button" className={`calm-action${secondary ? ' calm-action--secondary' : ''}`} onClick={onClick} {...props}>{children}</button>
 }
 function EmptyMemory() {
-  return <div className="calm-empty"><AssetArt id="courage" decorative /><h2>第一份记忆，还在路上</h2><p>等一件真实的小事发生，再把它轻轻收好。休息也没有关系。</p></div>
+  return <QuietEmpty title="第一份记忆，还在路上" body="等一件真实的小事发生，再把它轻轻收好。休息也没有关系。" />
 }
 function ResumeCard({ state, profileId }) {
   const navigate = useNavigate()
@@ -57,6 +60,9 @@ function TodayContent() {
   const profile = getActiveProfile(state)
   const candidate = useMemo(() => deriveTodayCandidate(state, profile.id, new Date(now)), [state, profile.id, now])
   const question = childAssistantPrompt(state, profile.id)
+  const stateName = candidate.paused ? 'paused' : candidate.completed ? 'completed' : candidate.free ? 'free' : candidate.inProgress ? 'active' : 'ready'
+  const cardRef = useGentleMotion(stateName)
+  const night = new Date(now).getHours() >= 19 || new Date(now).getHours() < 6
   const [helpOpen, setHelpOpen] = useState(false)
   const [message, setMessage] = useState('')
   const send = (type, extra = {}) => dispatch({ type, profileId: profile.id, dateKey: localDateKey(new Date(now)), routineId: candidate.routineId, ...extra })
@@ -69,9 +75,9 @@ function TodayContent() {
   const later = () => { send('TODAY_LATER', { laterMinutes: 20 }); setHelpOpen(false); setMessage('先休息吧，准备好后随时可以回来。') }
   const support = (mode) => { send('TODAY_CHOOSE_SUPPORT', { supportMode: mode }); setHelpOpen(false); setMessage('已记下你的需要，请叫家长来陪一下。') }
   return <section className="calm-page calm-today" aria-labelledby="calm-today-title">
-    <aside className="calm-hero"><img src={appPath('assets/platform/today-companion-scene.webp')} alt="眠眠在温暖的小天地里陪伴你" /><div><span className="calm-eyebrow">{candidate.context} · {profile.name}</span><h2>慢慢来，<br />一次只做一件。</h2><p>你的节奏，就很好。</p></div></aside>
+    <aside className="calm-hero"><img src={appPath(night ? 'assets/platform/today-companion-scene.webp' : 'assets/mascot-garden.webp')} alt={night ? '眠眠在温暖的小天地里陪伴你' : '眠眠在小花园里等你'} /><div><span className="calm-eyebrow">{candidate.context} · {profile.name}</span><h2>慢慢来，<br />一次只做一件。</h2><p>你的节奏，就很好。</p></div></aside>
     <div className="calm-today-content">
-      <article className="gs-next-card calm-card" data-state={candidate.paused ? 'paused' : candidate.completed ? 'completed' : candidate.free ? 'free' : candidate.inProgress ? 'active' : 'ready'}>
+      <article ref={cardRef} className="gs-next-card calm-card" data-state={stateName}>
         <span className="calm-eyebrow">{candidate.completed ? '这份努力，记下啦' : candidate.paused ? '休息一下' : candidate.inProgress ? '正在进行' : candidate.free ? '留一点空白' : '现在的小选择'}</span>
         <h1 id="calm-today-title">{candidate.title}</h1><p>{candidate.subtitle}</p>
         {candidate.paused ? <div className="calm-rest"><Icon name="clock" /><span>约 {timeLabel(candidate.laterUntil)} 后再看看，也可以现在开始。</span></div> : null}
@@ -94,7 +100,7 @@ export function ComfortWorldPage() {
   const navigate = useNavigate()
   const moments = activityMomentsFor(state, state.activeProfileId)
   return <section className="calm-page calm-world"><header className="calm-section-head"><div><span className="calm-eyebrow">小队世界</span><h1>今天，想去哪儿看看？</h1><p>没有通关顺序，也不用每个地方都去。</p></div><span className="calm-badge">{AREAS.filter((a) => moments.some((m) => m.sourceModule === a.id)).length} / 5 个地方留下了记忆</span></header>
-    <div className="calm-world-body"><img className="calm-map" src={appPath('assets/redesign-v1/child-world-map.png')} alt="花园、树屋与工坊组成的小队山谷" /><div className="calm-area-grid">{AREAS.map((area) => <button type="button" key={area.id} onClick={() => navigate(area.route)}><AssetArt id={area.asset} decorative /><span><strong>{area.title}</strong><small>{area.copy}</small></span><Icon name="chevron" /></button>)}</div></div>
+    <div className="calm-world-body"><WorldLandscape /><div className="calm-area-grid">{AREAS.map((area) => <button type="button" key={area.id} onClick={() => navigate(area.route)}><AssetArt id={area.asset} decorative /><span><strong>{area.title}</strong><small>{area.copy}</small></span><Icon name="chevron" /></button>)}</div></div>
   </section>
 }
 export function ComfortBackpackPage() {
@@ -103,10 +109,13 @@ export function ComfortBackpackPage() {
   const profile = getActiveProfile(state)
   const moments = activityMomentsFor(state, profile.id)
   const [limit, setLimit] = useState(12)
+  const [category, setCategory] = useState('all')
+  const filtered = filterMemories(moments, category)
   return <section className="calm-page calm-backpack"><header className="calm-section-head"><div><span className="calm-eyebrow">成长背包</span><h1>{profile.name}收集的每一份成长</h1><p>只收藏真实发生的事，不因为休息而清空。</p></div><AssetArt id="backpack" decorative /></header>
     <div className="calm-pocket-links">{[['我的愿望','/wishes'],['喜欢的活动','/movement'],['读过的故事','/reading'],['我的小发明','/inventor']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(route)}>{title}<Icon name="chevron" /></Action>)}</div>
-    {moments.length ? <div className="calm-memory-list">{moments.slice(0, limit).map((m) => <button type="button" key={m.id} onClick={() => navigate(m.route)}><AssetArt id={m.assetId} decorative /><span><time dateTime={new Date(m.at).toISOString()}>{dateLabel(m.at)}</time><strong>{m.title}</strong>{m.note ? <small>{m.noteSource === 'parent' ? '家长观察：' : m.noteSource === 'child' ? '孩子原话：' : '阅读笔记：'}{m.note}</small> : null}</span><Icon name="chevron" /></button>)}</div> : <EmptyMemory />}
-    {moments.length > limit ? <Action secondary onClick={() => setLimit((n) => n + 12)}>看看更早的记忆</Action> : null}
+    {moments.length ? <div className="v2-memory-filters" role="group" aria-label="背包里的记忆类型">{MEMORY_FILTERS.filter(([id]) => id === 'all' || moments.some((m) => m.sourceModule === id)).map(([id, title]) => <button type="button" key={id} aria-pressed={category === id} onClick={() => { setCategory(id); setLimit(12) }}>{title}</button>)}</div> : null}
+    {filtered.length ? <div className="calm-memory-list">{filtered.slice(0, limit).map((m) => <button type="button" key={m.id} onClick={() => navigate(m.route)}><AssetArt id={m.assetId} decorative /><span><time dateTime={new Date(m.at).toISOString()}>{dateLabel(m.at)}</time><strong>{m.title}</strong>{m.note ? <small>{m.noteSource === 'parent' ? '家长观察：' : m.noteSource === 'child' ? '孩子原话：' : '阅读笔记：'}{m.note}</small> : null}</span><Icon name="chevron" /></button>)}</div> : <EmptyMemory />}
+    {filtered.length > limit ? <Action secondary onClick={() => setLimit((n) => n + 12)}>看看更早的记忆</Action> : null}
   </section>
 }
 export function ComfortGardenPage() {
@@ -138,6 +147,7 @@ function GrowthContent() {
   </section>
 }
 export function ComfortParentTodayPage() {
+  const now = useNow()
   const [params] = useSearchParams()
   const { state } = useBedtimeState()
   const navigate = useNavigate()
@@ -148,6 +158,7 @@ export function ComfortParentTodayPage() {
   const missingSleep = getLastSevenDays(state).filter((d) => d.session?.inBedAt && !d.session.asleepAt && !d.session.sleepEntrySkippedAt).length
   if (params.get('view') === 'bedtime') return <section className="calm-management"><Action secondary onClick={() => navigate('/parent/overview')}>返回家长今天</Action><ParentOverviewPage key={profile.id} /></section>
   return <section className="calm-parent"><header className="calm-section-head"><div><span className="calm-eyebrow">家长的今天 · {profile.name}</span><h1>少一点催促，多一点陪伴</h1><p>只把需要处理的事放在前面，其他记录安静保存。</p></div><SaveIndicator /></header>
+    <FamilyPulse now={now} /><ParentQuickActions />
     <article className="calm-parent-plan"><AssetArt id="pillow" decorative /><div><span className="calm-eyebrow">今晚的节奏</span><h2>{schedule.prepareTime} 开始准备 · {schedule.bedTime} 计划完成</h2><p>可以临时调整，也可以从下一晚再改变。</p></div><Action secondary onClick={() => navigate('/parent/schedule')}>调整时间</Action></article>
     <div className="calm-parent-actions"><article><Icon name="heart" /><h2>{help.length ? `${help.length} 个需要陪伴的请求` : '暂时没有帮助请求'}</h2><p>{help[0]?.title || '不需要找出问题，也可以只是一起待一会儿。'}</p><Action secondary onClick={() => navigate(help[0]?.route || '/parent/support')}>看看陪伴方式</Action></article><article><Icon name="star" /><h2>{pending ? `${pending} 个愿望等你回应` : '愿望可以慢慢商量'}</h2><p>批准时才扣星光，回应前先听听孩子的想法。</p><Action secondary onClick={() => navigate('/parent/rewards')}>管理愿望</Action></article><article><Icon name="moon" /><h2>{missingSleep ? `${missingSleep} 晚可以补记入睡` : '晚间记录'}</h2><p>实际上床和入睡时间分开记录，不用拿完成任务代替睡着。</p><Action secondary onClick={() => navigate('/parent/overview?view=bedtime')}>查看与补记</Action></article></div>
     <nav className="calm-parent-links" aria-label="成长模块管理">{[['运动','movement'],['阅读','reading'],['家庭角色','responsibility'],['发明工坊','inventor'],['成长记录','report'],['成长助手','assistant'],['全天安排','timeline'],['陪伴与观察','support']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(`/parent/${route}`)}>{title}<Icon name="chevron" /></Action>)}</nav>
