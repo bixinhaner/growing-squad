@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { setupFamily, unlockParent, addBook, expectImagesLoaded } from './helpers.js'
 
 async function capture(page, name) {
+  await expect(page.locator('h1').first()).toBeVisible()
   await expectImagesLoaded(page)
   await expect.poll(() => page.locator('#child-content, #parent-content').evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).transform === 'none'))).toBe(true)
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))

@@ -73,3 +73,5 @@
   .schedule-advice>div { min-width: 0; flex: 1 1 180px; }
   .support-reassurance { flex-wrap: wrap; justify-content: start; line-height: 1.8; }
 }
+/* Keep explicit destination labels beside icons, including the mobile bar. */
+.gs-parent-app .gs-parent-sidebar nav a span { display: block; }

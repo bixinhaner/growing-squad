@@ -13,6 +13,7 @@ test('V2 deep parent pages keep mobile navigation, forms and fixed dialog positi
     const navigation = page.getByRole('navigation', { name: '家长导航' })
     await expect(navigation).toBeInViewport()
     await expect(navigation.getByRole('link')).toHaveCount(5)
+    await expect(navigation.getByText('今天', { exact: true })).toBeVisible()
     if (section === 'timeline') {
       await page.getByLabel('早晨活动名称').first().fill('检查水杯')
       await page.getByRole('button', { name: '保存时间线', exact: true }).click()
