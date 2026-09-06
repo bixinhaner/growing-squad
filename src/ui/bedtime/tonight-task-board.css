@@ -83,7 +83,7 @@
 .tonight-board .tonight-task > .tonight-task__title {
   display: block; min-width: 0; max-width: 100%; margin: 0;
   font: 650 18px/1.4 var(--v2-type);
-  white-space: normal; overflow-wrap: anywhere; word-break: normal;
+  white-space: normal; overflow-wrap: anywhere; word-break: normal; text-wrap: balance;
   /* No line-clamp, ellipsis or maximum height: the grid row can grow. */
 }
 .tonight-task__title > small { display: block; margin-top: 2px; font-size: 11px; line-height: 1.35; font-weight: 500; }
@@ -110,6 +110,7 @@
   background: linear-gradient(110deg, #edf0f9, #f5f0e8);
 }
 .tonight-board > .gs-tonight-finish .icon-svg { flex: 0 0 22px; }
+.tonight-board > .gs-tonight-finish > span { text-wrap: balance; }
 .tonight-board__empty { grid-column: 1/-1; align-self: center; text-align: center; color: var(--v2-muted); line-height: 1.8; }
 .tonight-board :is(.tonight-task,.tonight-board__grid):focus-visible { outline: 2px solid #997538; outline-offset: 2px; }
 @media (hover: hover) {
