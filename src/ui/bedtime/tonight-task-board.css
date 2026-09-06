@@ -1,0 +1,150 @@
+/* Scheme 3, overview only. Deliberately scoped to the RIGHT panel:
+   the scene, clock, page columns, top bar and navigation stay untouched. */
+.gs-tonight-tasks.tonight-board {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  gap: 10px;
+  overflow: hidden;
+}
+.tonight-board > .tonight-board__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid #e6e5ed;
+  border-radius: 18px;
+  background: linear-gradient(110deg, #eef0fa, #fbf8ef);
+}
+.tonight-board > .tonight-board__header h1 {
+  margin: 0;
+  color: #35496a;
+  font: 750 clamp(20px, 1.9vw, 27px)/1.35 var(--v2-type);
+  letter-spacing: -.03em;
+  overflow-wrap: anywhere;
+}
+.tonight-board .tonight-board__progress { display: grid; gap: 5px; min-width: 108px; color: #4b5d78; }
+.tonight-board__progress > span { font-size: 13px; line-height: 1.45; white-space: nowrap; }
+.tonight-board__progress strong { font-weight: 750; font-variant-numeric: tabular-nums; }
+.tonight-board__progress small { display: block; font-size: 11px; }
+.tonight-board__progress progress {
+  display: block; width: 100%; height: 5px; appearance: none;
+  border: 0; border-radius: 8px; overflow: hidden; background: #dce1ed; accent-color: #7886b0;
+}
+.tonight-board__progress progress::-webkit-progress-bar { background: #dce1ed; }
+.tonight-board__progress progress::-webkit-progress-value { background: #7886b0; border-radius: 8px; }
+.tonight-board__progress progress::-moz-progress-bar { background: #7886b0; border-radius: 8px; }
+.tonight-board > .tonight-board__header > button {
+  grid-column: auto; justify-self: end; min-height: 44px; padding: 8px 10px;
+  color: #495975; border: 1px solid #dce0e9; border-radius: 12px; background: #fffdfa;
+  font-size: 13px; white-space: nowrap;
+}
+.tonight-board > .tonight-board__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(min-content, 1fr);
+  align-content: stretch;
+  min-width: 0; min-height: 0; margin: 0; padding: 4px;
+  gap: 8px;
+  overflow: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c9cf transparent;
+  scrollbar-gutter: stable;
+  scroll-padding-block: 4px;
+}
+/* Keep room for the complete name rather than clipping to a fixed two-line box.
+   Imported names may be longer than the editor's 12-character limit. */
+.tonight-board .tonight-board__grid > .tonight-task {
+  position: relative; display: grid;
+  grid-template-columns: 18px 44px minmax(0, 1fr) 22px;
+  grid-column: auto; grid-row: auto;
+  align-items: center; align-content: center; justify-content: stretch;
+  min-width: 0; min-height: 78px;
+  padding: 10px; gap: 6px;
+  border: 1px solid #e5e1d6; border-radius: 17px;
+  background: linear-gradient(120deg, #fffefb, #fcfaf3);
+  color: #304b51; box-shadow: 0 2px 5px #5b514208;
+  text-align: left; scroll-margin-block: 4px;
+  transition: background-color 160ms, border-color 160ms, box-shadow 160ms;
+}
+.tonight-board .tonight-task > .tonight-task__number {
+  position: static; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; flex: none;
+  background: #f4e6bc; color: #846322; font: 750 11px/1 var(--v2-type);
+}
+.tonight-board .tonight-task > .asset-art {
+  display: block; width: 44px; height: 48px; min-height: 0; max-width: 100%;
+  margin: 0; padding: 0; flex: none;
+}
+.tonight-board .tonight-task > .tonight-task__title {
+  display: block; min-width: 0; max-width: 100%; margin: 0;
+  font: 650 18px/1.4 var(--v2-type);
+  white-space: normal; overflow-wrap: anywhere; word-break: normal;
+  /* No line-clamp, ellipsis or maximum height: the grid row can grow. */
+}
+.tonight-task__title > small { display: block; margin-top: 2px; font-size: 11px; line-height: 1.35; font-weight: 500; }
+.tonight-board .tonight-task__mark {
+  display: grid; place-items: center; width: 22px; height: 22px;
+  border: 1.5px solid #cbcabc; border-radius: 50%; background: #fffefa; color: #486b50;
+}
+.tonight-board .tonight-board__grid > .tonight-task.is-done { border-color: #98b293; background: #eef4e8; }
+.tonight-board .tonight-task.is-done > .tonight-task__number { background: #d9e8cf; color: #456849; }
+.tonight-board .tonight-task.is-done .tonight-task__mark { border-color: #698a61; background: #698a61; color: white; }
+.tonight-board .tonight-board__grid > .tonight-task.is-skipped { border-style: dashed; background: #f4f2ec; color: #6c736b; }
+.tonight-board .tonight-task.is-skipped .tonight-task__mark { border-style: dashed; background: transparent; color: #6c736b; }
+.tonight-board[data-density=compact] .tonight-task { min-height: 70px; padding-block: 8px; }
+.tonight-board[data-density=compact] .tonight-task__title { font-size: 17px; }
+.tonight-board[data-density=compact] > .tonight-board__grid { gap: 6px; }
+.tonight-board > .gs-tonight-finish {
+  min-height: 48px; margin: 0; padding: 10px 14px; border: 1px solid #707faa;
+  border-radius: 16px; color: #fffdf7;
+  background: linear-gradient(110deg, #63749e, #7b82b1); box-shadow: none;
+  font: 650 16px/1.4 var(--v2-type); text-align: center;
+}
+.tonight-board > .gs-tonight-finish:disabled {
+  opacity: 1; filter: none; border-color: #d9dce7; color: #53627b;
+  background: linear-gradient(110deg, #edf0f9, #f5f0e8);
+}
+.tonight-board > .gs-tonight-finish .icon-svg { flex: 0 0 22px; }
+.tonight-board__empty { grid-column: 1/-1; align-self: center; text-align: center; color: var(--v2-muted); line-height: 1.8; }
+.tonight-board :is(.tonight-task,.tonight-board__grid):focus-visible { outline: 2px solid #997538; outline-offset: 2px; }
+@media (hover: hover) {
+  .tonight-board .tonight-board__grid > .tonight-task:hover { border-color: #b6a36c; box-shadow: 0 3px 9px #80694016; }
+}
+.tonight-board .tonight-board__grid > .tonight-task:active { background: #f2ecd8; }
+@media (max-width: 1099px) {
+  .tonight-board > .tonight-board__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tonight-board > .tonight-board__header { grid-template-columns: minmax(0, 1fr) auto; gap: 7px 12px; }
+  .tonight-board > .tonight-board__header > button { grid-column: 2; grid-row: 1/3; }
+  .tonight-board .tonight-board__progress { grid-column: 1; }
+  .tonight-board__progress > span { white-space: normal; }
+  .tonight-board__progress small { display: inline; }
+}
+@media (max-width: 899px), (max-height: 719px) {
+  .gs-tonight-tasks.tonight-board { grid-template-rows: auto auto auto; overflow: visible; }
+  .tonight-board > .tonight-board__grid { grid-auto-rows: minmax(min-content, auto); overflow: visible; scrollbar-gutter: auto; }
+}
+@media (max-width: 520px) {
+  .gs-tonight-tasks.tonight-board { padding: 10px; gap: 10px; }
+  .tonight-board > .tonight-board__header { padding: 8px; gap: 6px 8px; }
+  .tonight-board > .tonight-board__header h1 { font-size: 19px; }
+  .tonight-board > .tonight-board__header > button { padding-inline: 8px; font-size: 12px; gap: 4px; }
+  .tonight-board > .tonight-board__grid { grid-template-columns: minmax(0, 1fr); }
+  .tonight-board .tonight-board__grid > .tonight-task { grid-template-columns: 22px 48px minmax(0, 1fr) 24px; gap: 8px; min-height: 76px; padding: 10px 12px; }
+  .tonight-board .tonight-task > .tonight-task__title { font-size: 18px; }
+}
+.large-text .tonight-board .tonight-task > .tonight-task__title { font-size: 21px; }
+.large-text .tonight-board > .tonight-board__header h1 { font-size: 24px; }
+.large-text .tonight-board > .tonight-board__header > button,
+.large-text .tonight-board .tonight-board__progress > span { font-size: 16px; }
+.large-text .tonight-board__progress small { font-size: 14px; }
+.high-contrast .tonight-board .tonight-task { color: #233d35; border-color: #6b7e60; }
+.high-contrast .tonight-board .tonight-task__number { color: #4c3b18; }
+@media (max-width: 520px) {
+  .large-text .tonight-board > .tonight-board__header { grid-template-columns: minmax(0, 1fr); }
+  .large-text .tonight-board > .tonight-board__header > button { grid-column: 1; grid-row: auto; justify-self: start; }
+}

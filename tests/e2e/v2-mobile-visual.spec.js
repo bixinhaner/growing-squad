@@ -9,7 +9,7 @@ async function capture(page, name) {
   await page.screenshot({ path: `artifacts/visual-qa/v2-final-${name}.png` })
 }
 
-test('V2 mobile focus keeps its primary action on screen and final views are captured at rest', async ({ page }) => {
+test('mobile overview keeps visible task controls and final views are captured at rest', async ({ page }) => {
   test.setTimeout(90000)
   await page.setViewportSize({ width: 390, height: 844 })
   await setupFamily(page, { at: '2026-09-06T16:20:00+08:00' })
@@ -26,11 +26,11 @@ test('V2 mobile focus keeps its primary action on screen and final views are cap
   await expect(page.locator('.v2-world-landscape')).toBeVisible()
   await capture(page, 'world-phone')
   await page.goto('/bedtime/tonight')
-  await page.getByRole('button', { name: '专注一件', exact: true }).click()
-  await capture(page, 'bedtime-focus-phone')
-  await expect(page.getByRole('button', { name: '这件做好了' })).toBeInViewport()
-  await expect(page.getByRole('button', { name: '回到总清单' })).toBeInViewport()
-  await expect(page.locator('.gs-tonight-scene')).toBeHidden()
+  await expect(page.locator('.gs-task-grid>button').first()).toBeVisible()
+  await capture(page, 'bedtime-overview-phone')
+  await expect(page.locator('.gs-task-grid>button').first()).toBeInViewport()
+  await expect(page.getByRole('button', { name: '调整今晚任务' })).toBeInViewport()
+  await expect(page.locator('.gs-tonight-scene')).toBeVisible()
   await unlockParent(page, '/parent/reading')
   await addBook(page)
   await page.goto('/bedtime/reading')

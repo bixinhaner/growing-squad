@@ -11,7 +11,7 @@ import { SchedulePage } from './SchedulePage.jsx'
 import { RewardsPage } from './RewardsPage.jsx'
 import { ProfilePage } from './ProfilePage.jsx'
 import './comfort.css'
-import { BedtimeFocus } from '../ui/v2/Evolution.jsx'
+import { TonightTaskBoard } from '../ui/bedtime/TonightTaskBoard.jsx'
 
 export {
   ComfortTodayPage as RedesignTodayPage, ComfortWorldPage as RedesignWorldPage,
@@ -48,7 +48,6 @@ export function RedesignTonightPage() {
   const navigate = useNavigate()
   const [now, setNow] = useState(() => Date.now())
   const [manageOpen, setManageOpen] = useState(false)
-  const [focusMode, setFocusMode] = useState(false)
   const dateKey = localDateKey(new Date(now))
   const schedule = getSchedule(state, dayTypeFor(new Date(now)), dateKey)
   const routine = getRoutine(state, dayTypeFor(new Date(now)))
@@ -62,13 +61,9 @@ export function RedesignTonightPage() {
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 15000); return () => window.clearInterval(timer) }, [])
   const toggle = (step) => dispatch({ type: statuses[step.id] === 'done' ? 'RESET_TASK' : 'COMPLETE_TASK', stepId: step.id })
   const finish = () => { if (remaining) return; dispatch({ type: 'CONFIRM_BED', timestamp: Date.now() }); navigate('/watering') }
-  return <section className={`gs-tonight-page${steps.length > 16 ? ' calm-tonight-overflow' : ''}`}>
+  return <section className="gs-tonight-page">
     <aside className="gs-tonight-scene"><img src={appPath('assets/mascot-night.webp')} alt="月光卧室里的眠眠熊" /><div className="gs-time-card"><Clock timestamp={now} /><time>{new Date(now).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', hour12:false })}</time><span>计划 {new Date(targetAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', hour12:false })} · {now < targetAt ? `还有 ${early} 分钟` : '慢慢完成也没关系'}</span></div></aside>
-    <article className="gs-tonight-tasks"><header><span><small>今晚任务</small><h1>今晚要做 {steps.length} 件事</h1></span><strong>{completeCount} / {steps.length} 已完成</strong><button type="button" onClick={() => setManageOpen(true)}><Icon name="menu" />调整今晚任务</button></header>
-      <div className="v2-bedtime-toolbar"><div className="v2-view-toggle" role="group" aria-label="睡前查看方式"><button type="button" aria-pressed={!focusMode} onClick={() => setFocusMode(false)}><Icon name="menu" size={18} />总清单</button><button type="button" aria-pressed={focusMode} onClick={() => setFocusMode(true)}><Icon name="moon" size={18} />专注一件</button></div><progress value={completeCount} max={Math.max(steps.length, 1)} aria-label="今晚已完成或跳过的准备" /></div>
-      {focusMode ? <BedtimeFocus steps={steps} statuses={statuses} onComplete={toggle} onOverview={() => setFocusMode(false)} /> : <div className="gs-task-grid" style={{ '--count':steps.length }}>{steps.map((step,index) => <button type="button" key={step.id} className={(statuses[step.id] || 'todo') !== 'todo' ? 'is-done' : ''} onClick={() => toggle(step)} aria-pressed={statuses[step.id] === 'done'} aria-label={`${step.title}${statuses[step.id] === 'done' ? '，已完成，再点可撤销' : statuses[step.id] === 'skipped' ? '，今晚已跳过' : ''}`}><b>{index+1}</b><AssetArt id={step.icon} decorative /><strong>{step.title}</strong>{(statuses[step.id] || 'todo') !== 'todo' ? <Icon name="check" /> : null}</button>)}</div>}
-      <button className="gs-felt-button gs-felt-button--primary gs-tonight-finish" type="button" disabled={remaining > 0} onClick={finish}>{remaining ? `再完成 ${remaining} 项，就去月光花园` : '完成今晚任务，去月光花园'}<Icon name="star" /></button>
-    </article>
+    <TonightTaskBoard steps={steps} statuses={statuses} onToggle={toggle} onManage={() => setManageOpen(true)} onFinish={finish} />
     {manageOpen ? <Modal title="调整今晚任务" onClose={() => setManageOpen(false)} className="gs-manage-tonight"><h2>今晚临时调整</h2><p>跳过只影响今晚，不修改以后每天的计划。</p>{steps.map((step) => <button key={step.id} type="button" onClick={() => dispatch({ type:statuses[step.id] === 'skipped' ? 'RESET_TASK' : 'SKIP_TASK', stepId:step.id })}><AssetArt id={step.icon} decorative /><span><strong>{step.title}</strong><small>{statuses[step.id] === 'skipped' ? '已跳过，点按恢复' : '今晚先跳过'}</small></span></button>)}</Modal> : null}
   </section>
 }

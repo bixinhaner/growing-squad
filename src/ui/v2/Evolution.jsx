@@ -4,26 +4,13 @@ import { appPath } from '../../data/paths.js'
 import { useBedtimeActions, useBedtimeState } from '../../store/useBedtime.js'
 import { AssetArt } from '../AssetArt.jsx'
 import { Icon } from '../Icons.jsx'
-import { useGentleMotion } from './useGentleMotion.js'
-import { familyPulse, nextBedtimeStep } from './evolutionModel.js'
+import { familyPulse } from './evolutionModel.js'
 
 export function JourneySteps({ current }) {
   return <ol className="v2-journey" aria-label="阅读旅程">{['挑一本', '陪着读', '留句话'].map((label, index) => <li key={label} aria-current={index === current ? 'step' : undefined} className={index < current ? 'is-past' : ''}><span aria-hidden="true">{index < current ? <Icon name="check" size={14} /> : `0${index + 1}`}</span>{label}</li>)}</ol>
 }
 export function QuietEmpty({ title = '留一点空白，等一件小事发生', body = '不用为了留下记录而完成任务。准备好了，再慢慢开始。', asset = 'courage' }) {
   return <div className="v2-empty"><div className="v2-empty-art"><AssetArt id={asset} decorative /></div><h2>{title}</h2><p>{body}</p></div>
-}
-export function BedtimeFocus({ steps, statuses, onComplete, onOverview }) {
-  const next = nextBedtimeStep(steps, statuses)
-  const ref = useGentleMotion(next?.id || 'finished')
-  return <section ref={ref} className="v2-focus-task" aria-label="专注一件睡前小事">
-    <span className="v2-eyebrow">{next ? '现在，只看这一件' : '准备好，和今天说晚安'}</span>
-    <AssetArt id={next?.icon || 'pillow'} decorative />
-    <h2>{next?.title || '今晚的事情都安顿好啦'}</h2>
-    <p>{next ? '做完再回来点一下。不着急，家长也可以陪你。' : '没有新的任务了。接下来安心休息。'}</p>
-    {next ? <button className="calm-action" type="button" onClick={() => onComplete(next)}><Icon name="check" />这件做好了</button> : null}
-    <button className="calm-text-action" type="button" onClick={onOverview}>回到总清单</button>
-  </section>
 }
 export function FamilyPulse({ now }) {
   const { state } = useBedtimeState()

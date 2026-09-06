@@ -1,26 +1,23 @@
 import { expect, test } from '@playwright/test'
 import { setupFamily, unlockParent, addBook, persistedState, expectComfortable, expectImagesLoaded, completeBedtime } from './helpers.js'
 
-test('V2 bedtime focus is optional, advances real tasks and preserves undo in overview', async ({ page }) => {
+test('bedtime overview has no mode switch and preserves completion and undo after refresh', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await setupFamily(page)
   const tasks = page.locator('.gs-task-grid>button')
-  const count = await tasks.count()
-  const first = await tasks.first().getAttribute('aria-label')
-  await page.getByRole('button', { name: '专注一件', exact: true }).click()
-  await expect(page.getByRole('region', { name: '专注一件睡前小事' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: first, exact: true })).toBeVisible()
-  await expectComfortable(page, [page.getByRole('button', { name: '这件做好了' })])
-  await page.screenshot({ path: 'artifacts/visual-qa/v2-bedtime-focus-phone.png', fullPage: true })
-  await page.getByRole('button', { name: '这件做好了' }).click()
-  await expect(page.getByRole('heading', { name: first, exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: '回到总清单' }).click()
-  await expect(tasks).toHaveCount(count)
+  const names = await tasks.evaluateAll((items) => items.map((item) => item.getAttribute('aria-label')))
+  await expect(page.getByRole('group', { name: '睡前查看方式' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '专注一件', exact: true })).toHaveCount(0)
+  await expectComfortable(page, [tasks.first(), tasks.last()])
+  await tasks.first().click()
+  await expect(tasks.first()).toHaveAttribute('aria-pressed', 'true')
+  await page.reload()
   await expect(tasks.first()).toHaveAttribute('aria-pressed', 'true')
   await tasks.first().click()
   await expect(tasks.first()).toHaveAttribute('aria-pressed', 'false')
   await page.reload()
   await expect(tasks.first()).toHaveAttribute('aria-pressed', 'false')
+  expect(await tasks.evaluateAll((items) => items.map((item) => item.getAttribute('aria-label')))).toEqual(names)
 })
 
 test('V2 bookshelf searches four real books while keeping filters and reading journey intact', async ({ page }) => {
