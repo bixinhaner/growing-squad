@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { setupFamily, unlockParent, expectComfortable } from './helpers.js'
+import { setupFamily, unlockParent, expectComfortable, persistedState } from './helpers.js'
 
 test('V2 deep parent pages keep mobile navigation, forms and fixed dialog positioning', async ({ page }) => {
   test.setTimeout(180000)
@@ -13,6 +13,11 @@ test('V2 deep parent pages keep mobile navigation, forms and fixed dialog positi
     const navigation = page.getByRole('navigation', { name: '家长导航' })
     await expect(navigation).toBeInViewport()
     await expect(navigation.getByRole('link')).toHaveCount(5)
+    if (section === 'timeline') {
+      await page.getByLabel('早晨活动名称').first().fill('检查水杯')
+      await page.getByRole('button', { name: '保存时间线', exact: true }).click()
+      await expect.poll(async () => (await persistedState(page)).modules.core.routines.some((routine) => routine.period === 'morning' && routine.items.some((item) => item.title === '检查水杯'))).toBe(true)
+    }
     if (section === 'reading') {
       await page.getByRole('button', { name: /添加家里的书/ }).click()
       const overlay = page.locator('body > .overlay')

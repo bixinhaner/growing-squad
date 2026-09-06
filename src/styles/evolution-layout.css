@@ -33,3 +33,43 @@
   .gs-child-app .reading-reflection > aside > strong { display: block; font: 650 16px/1.6 var(--v2-type); }
 }
 @media(max-width:360px) { .calm-choices .asset-art { width: 42px; height: 42px; } }
+@media(max-width:650px) {
+  /* In focus mode the task, not a large scene, takes the first screen. */
+  .gs-tonight-page:has(.v2-focus-task) .gs-tonight-scene { display: none; }
+  .gs-tonight-page:has(.v2-focus-task) .v2-focus-task { min-height: 310px; }
+}
+@media(max-width:650px) {
+  .gs-child-app .family-cottage { display: flex; flex-direction: column; gap: 16px; }
+  .gs-child-app .family-cottage__hero { display: block; height: 164px; min-height: 164px; flex: none; border-radius: 24px; }
+  .gs-child-app .family-cottage__hero > img { height: 100%; width: 100%; object-fit: cover; object-position: center 52%; }
+  .gs-child-app .family-cottage__hero > div { inset: auto 20px 20px; }
+  .gs-child-app .family-cottage__hero h1 { margin: 4px 0; font: 750 27px/1.4 var(--v2-type); color: #fffdf5; }
+  .gs-child-app .family-cottage__hero p { margin: 0; font-size: 13px; color: #fffdf5; }
+}
+/* The old timeline was a 760px minimum-width board. Keep that desktop
+   affordance inside its card; on mobile make every editable item a full row. */
+.gs-parent-content :is(.timeline-page,.support-page) { min-width: 0; width: 100%; }
+.gs-parent-content :is(.timeline-workspace,.timeline-board,.child-preview,.support-workspace) { min-width: 0; max-width: 100%; }
+@media(max-width:1100px) {
+  .gs-parent-content .timeline-workspace { grid-template-columns: minmax(0,1fr); }
+}
+@media(max-width:650px) {
+  .timeline-profile-tracks { grid-template-columns: minmax(0,1fr); }
+  .timeline-profile-tracks>button.is-active { border-color: #89a57d; background: #edf3e6; box-shadow: none; }
+  .gs-parent-content .timeline-board { padding: 18px; overflow: visible; }
+  .timeline-axis { display: none; }
+  .timeline-lane { min-width: 0; grid-template-columns: minmax(0,1fr); padding: 18px 0; gap: 14px; }
+  .timeline-lane__label { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+  .timeline-lane__label strong { font: 650 18px/1.5 var(--v2-type); }
+  .timeline-lane__label label { font-size: 12px; }
+  .timeline-lane__label input { min-width: 0; width: 140px; min-height: 44px; font-size: 16px; }
+  .timeline-items { display: grid; grid-template-columns: minmax(0,1fr); }
+  .timeline-item,.timeline-item--free { width: 100%; min-width: 0; padding: 14px; grid-template-columns: 44px minmax(0,1fr); border: 1px solid #dce2d8; border-radius: 16px; }
+  .timeline-item input { width: 100%; min-width: 0; min-height: 44px; padding: 6px 8px; }
+  .timeline-item small { font-size: 12px; line-height: 1.7; }
+  .timeline-add { min-height: 48px; padding: 12px; border-color: #94ac86; color: #315b49; }
+  .child-preview { overflow: hidden; }
+  .schedule-advice { flex-wrap: wrap; }
+  .schedule-advice>div { min-width: 0; flex: 1 1 180px; }
+  .support-reassurance { flex-wrap: wrap; justify-content: start; line-height: 1.8; }
+}
