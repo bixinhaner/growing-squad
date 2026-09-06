@@ -14,6 +14,19 @@ test('V2 deep parent pages keep mobile navigation, forms and fixed dialog positi
     await expect(navigation).toBeInViewport()
     await expect(navigation.getByRole('link')).toHaveCount(5)
     await expect(navigation.getByText('今天', { exact: true })).toBeVisible()
+    if (section === 'devices') {
+      const heading = page.getByText('还没有已连接设备', { exact: true })
+      const box = await heading.boundingBox()
+      expect(box.width).toBeGreaterThanOrEqual(200)
+      expect(box.height).toBeLessThanOrEqual(65)
+    }
+    if (section === 'profile') {
+      const note = page.locator('.sticky-save > span')
+      await expect(note).toBeVisible()
+      const box = await note.boundingBox()
+      expect(box.width).toBeGreaterThanOrEqual(200)
+      expect(box.height).toBeLessThanOrEqual(50)
+    }
     if (section === 'timeline') {
       await page.getByLabel('早晨活动名称').first().fill('检查水杯')
       await page.getByRole('button', { name: '保存时间线', exact: true }).click()
