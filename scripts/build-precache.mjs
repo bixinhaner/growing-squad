@@ -8,14 +8,15 @@ import { fileURLToPath } from 'node:url'
 export function writePrecacheManifest(directory) {
   const dist = resolve(directory)
   const assets = []
-  function walk(folder) {
+  function walk(folder, pattern = /\.(js|css|png|webp|svg|ico)$/i) {
     for (const entry of readdirSync(folder, { withFileTypes: true })) {
       const path = join(folder, entry.name)
-      if (entry.isDirectory()) walk(path)
-      else if (entry.isFile() && /\.(js|css|png|webp|svg|ico)$/i.test(entry.name)) assets.push(relative(dist, path).split(sep).join('/'))
+      if (entry.isDirectory()) walk(path, pattern)
+      else if (entry.isFile() && pattern.test(entry.name)) assets.push(relative(dist, path).split(sep).join('/'))
     }
   }
   walk(join(dist, 'assets'))
+  walk(join(dist, 'audio/bedtime-5min'), /\.m4a$/i)
   assets.sort()
   const template = readFileSync(join(dist, 'sw.js'), 'utf8')
   if (!template.includes('__BUILD_REVISION__')) throw new Error('Service worker build revision placeholder is missing; run vite build first.')
@@ -30,5 +31,5 @@ export function writePrecacheManifest(directory) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const manifest = writePrecacheManifest(resolve('dist'))
-  console.log(`Offline build ${manifest.revision}: ${manifest.assets.length} scripts, styles and visual assets`)
+  console.log(`Offline build ${manifest.revision}: ${manifest.assets.length} scripts, styles, images and bedtime audio`)
 }

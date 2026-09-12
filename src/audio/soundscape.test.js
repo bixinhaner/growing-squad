@@ -21,7 +21,7 @@ describe('soundscape action coverage', () => {
 describe('bedtime BGM rotation', () => {
   it('provides four locally hosted tracks', () => {
     expect(BEDTIME_TRACKS).toHaveLength(4)
-    expect(BEDTIME_TRACKS.every((track) => track.src.includes('audio/bgm/') && !track.src.startsWith('http'))).toBe(true)
+    expect(BEDTIME_TRACKS.every((track) => track.src.includes('audio/bedtime-5min/') && !track.src.startsWith('http'))).toBe(true)
   })
 
   it('does not repeat the previous track when another track is available', () => {

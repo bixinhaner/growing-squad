@@ -908,7 +908,7 @@ summary { cursor: pointer; font-weight: 750; }
 .goodnight-content > img { width: min(520px, 72vw); height: min(430px, 47vh); margin: 20px auto; object-fit: cover; border-radius: 48px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28); }
 .goodnight-moon { display: inline-grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; color: #26345e; background: var(--gold); font-size: 22px; }
 .goodnight-player { display: grid; justify-items: center; gap: 9px; margin: -3px auto 20px; }
-.goodnight-player > div { display: flex; justify-content: center; gap: 9px; }
+.goodnight-player > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
 .goodnight-player__track { display: flex; align-items: center; gap: 8px; min-height: 22px; color: #cfd5ea; font-size: 14px; }
 .goodnight-player__track i { width: 7px; height: 7px; border-radius: 50%; background: #f8cc70; box-shadow: 0 0 12px #f8cc70; animation: music-pulse 1.8s ease-in-out infinite; }
 .goodnight-music { margin: 0; min-height: 46px; display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 0 18px; color: #f6f7ff; border: 1px solid rgba(255, 255, 255, 0.24); background: rgba(255, 255, 255, 0.11); }

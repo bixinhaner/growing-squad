@@ -9,6 +9,7 @@ function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'growing-precache-'))
   folders.push(dir)
   mkdirSync(join(dir, 'assets/reading'), { recursive: true })
+  mkdirSync(join(dir, 'audio/bedtime-5min'), { recursive: true })
   writeFileSync(join(dir, 'index.html'), '<script src="assets/index-hash.js"></script>')
   writeFileSync(join(dir, 'sw.js'), "const CACHE_NAME = 'growing-squad-__BUILD_REVISION__'")
   writeFileSync(join(dir, 'assets/index-hash.js'), 'entry')
@@ -30,6 +31,14 @@ describe('offline build manifest', () => {
     const a = fixture(), b = fixture()
     writeFileSync(join(b, 'assets/reading/cover.webp'), 'changed image')
     expect(writePrecacheManifest(a).revision).not.toBe(writePrecacheManifest(b).revision)
+  })
+  it('includes bedtime audio and changes the cache when an audio file changes', () => {
+    const a = fixture(), b = fixture()
+    writeFileSync(join(a, 'audio/bedtime-5min/moon-clouds.m4a'), 'audio one')
+    writeFileSync(join(b, 'audio/bedtime-5min/moon-clouds.m4a'), 'audio two')
+    const manifest = writePrecacheManifest(a)
+    expect(manifest.assets).toContain('audio/bedtime-5min/moon-clouds.m4a')
+    expect(manifest.revision).not.toBe(writePrecacheManifest(b).revision)
   })
   it('is deterministic for identical builds and fails on an already patched worker', () => {
     const a = fixture(), b = fixture()

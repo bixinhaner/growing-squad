@@ -1,15 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getAccessibility, getActiveProfile, getCompletionOutcome, getSession, localDateKey } from '../domain/model.js'
 import { useBedtimeState } from '../store/useBedtime.js'
 import { Icon } from '../ui/Icons.jsx'
-import { pickBedtimeTrack } from '../audio/bgm.js'
+import { BEDTIME_TRACKS } from '../audio/bgm.js'
+import { createBedtimePlayer } from '../audio/bedtimePlayer.js'
 import { playSound } from '../audio/soundscape.js'
 import { CharacterPose, ThemeWorld } from '../ui/ThemeArt.jsx'
-
-const MUSIC_DURATION_MS = 5 * 60 * 1000
-const MUSIC_FADE_MS = 8000
-const MUSIC_VOLUME = 0.32
 
 export function GoodnightPage() {
   const { state } = useBedtimeState()
@@ -17,97 +14,31 @@ export function GoodnightPage() {
   const accessibility = getAccessibility(state)
   const session = getSession(state, localDateKey())
   const [dimmed, setDimmed] = useState(false)
-  const [musicPlaying, setMusicPlaying] = useState(false)
-  const [activeTrack, setActiveTrack] = useState(null)
-  const [musicError, setMusicError] = useState('')
-  const audioRef = useRef(null)
-  const timersRef = useRef([])
-
-  const clearMusicTimers = () => {
-    timersRef.current.forEach((timer) => {
-      window.clearTimeout(timer)
-      window.clearInterval(timer)
-    })
-    timersRef.current = []
-  }
-
-  const stopMusic = ({ feedback = true } = {}) => {
-    clearMusicTimers()
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.removeAttribute('src')
-      audioRef.current.load()
-      audioRef.current = null
-    }
-    setMusicPlaying(false)
-    if (feedback) playSound('dismiss', { muted: accessibility.soundOff })
-  }
+  const [music, setMusic] = useState({ status: 'idle', track: null, error: '' })
+  const [player] = useState(() => createBedtimePlayer(setMusic))
+  const active = music.status === 'playing' || music.status === 'loading' || music.status === 'paused'
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDimmed(true), 10000)
     return () => window.clearTimeout(timer)
   }, [])
 
-  useEffect(() => () => {
-    clearMusicTimers()
-    audioRef.current?.pause()
-    audioRef.current = null
-  }, [])
+  useEffect(() => () => player.dispose(), [player])
 
   useEffect(() => {
     if (session?.status === 'goodnight') playSound('goodnight', { muted: accessibility.soundOff })
   }, [accessibility.soundOff, session?.id, session?.status])
 
   useEffect(() => {
-    if (!accessibility.soundOff || !audioRef.current) return
-    clearMusicTimers()
-    audioRef.current.pause()
-    audioRef.current = null
-    queueMicrotask(() => setMusicPlaying(false))
-  }, [accessibility.soundOff])
+    if (accessibility.soundOff) player.stop()
+  }, [accessibility.soundOff, player])
 
   if (!session || session.status !== 'goodnight') return <Navigate to="/tonight" replace />
   const outcome = getCompletionOutcome(session)
-
-  const startMusic = async () => {
-    const previousId = activeTrack?.id
-    stopMusic({ feedback: false })
-    setMusicError('')
-    const track = pickBedtimeTrack(previousId)
-    const audio = new Audio(track.src)
-    audio.preload = 'auto'
-    audio.loop = true
-    audio.volume = 0.02
-    audioRef.current = audio
-    try {
-      await audio.play()
-      setActiveTrack(track)
-      setMusicPlaying(true)
-      playSound('musicStart', { muted: accessibility.soundOff })
-      const fadeInStartedAt = Date.now()
-      const fadeInTimer = window.setInterval(() => {
-        if (audioRef.current !== audio) return
-        const progress = Math.min(1, (Date.now() - fadeInStartedAt) / 2200)
-        audio.volume = 0.02 + (MUSIC_VOLUME - 0.02) * progress
-        if (progress >= 1) window.clearInterval(fadeInTimer)
-      }, 100)
-      const fadeOutTimer = window.setTimeout(() => {
-        const fadeOutStartedAt = Date.now()
-        const fadeTimer = window.setInterval(() => {
-          if (audioRef.current !== audio) return
-          const progress = Math.min(1, (Date.now() - fadeOutStartedAt) / MUSIC_FADE_MS)
-          audio.volume = Math.max(0, MUSIC_VOLUME * (1 - progress))
-          if (progress >= 1) stopMusic({ feedback: false })
-        }, 120)
-        timersRef.current.push(fadeTimer)
-      }, MUSIC_DURATION_MS - MUSIC_FADE_MS)
-      timersRef.current.push(fadeInTimer, fadeOutTimer)
-    } catch {
-      audioRef.current = null
-      setMusicPlaying(false)
-      setMusicError('音乐暂时没有响起，请检查 iPad 音量后再试一次。')
-    }
-  }
+  const statusText = music.status === 'playing' ? `正在播放：${music.track.title}`
+    : music.status === 'loading' ? `正在准备：${music.track.title}`
+      : music.status === 'paused' ? `已暂停：${music.track.title}`
+        : `今晚会从 ${BEDTIME_TRACKS.length} 首轻音乐中随机选择`
 
   return (
     <main className={`goodnight-page theme-${profile.theme} ${dimmed ? 'goodnight-page--dimmed' : ''}`}>
@@ -124,15 +55,18 @@ export function GoodnightPage() {
         <CharacterPose character={profile.character} pose="sleep" label={`${profile.name}的陪伴角色已经睡着了`} className="goodnight-companion" />
         {!accessibility.soundOff ? (
           <div className="goodnight-player">
-            {activeTrack && musicPlaying ? <span className="goodnight-player__track"><i></i>正在播放：{activeTrack.title}</span> : <span className="goodnight-player__track">今晚会从 4 首轻音乐中随机选择</span>}
+            <span className="goodnight-player__track" role="status">{music.status === 'playing' ? <i /> : null}{statusText}</span>
             <div>
-              <button className="goodnight-music" data-sound="none" type="button" onClick={musicPlaying ? () => stopMusic() : startMusic}><Icon name="volume" />{musicPlaying ? '停止轻音乐' : '随机播放 5 分钟'}</button>
-              {musicPlaying ? <button className="goodnight-music goodnight-music--next" data-sound="none" type="button" onClick={startMusic}>换一首</button> : null}
+              {music.status === 'paused'
+                ? <button className="goodnight-music" data-sound="none" type="button" onClick={() => player.resume()}><Icon name="volume" />继续播放</button>
+                : <button className="goodnight-music" data-sound="none" type="button" onClick={() => active ? player.stop() : player.start({ retry: music.status === 'error' })}><Icon name="volume" />{music.status === 'loading' ? '取消播放' : music.status === 'playing' ? '停止轻音乐' : music.status === 'error' ? '重新播放' : '随机播放 5 分钟'}</button>}
+              {music.status === 'paused' ? <button className="goodnight-music" data-sound="none" type="button" onClick={() => player.stop()}>停止轻音乐</button> : null}
+              {active || music.status === 'error' ? <button className="goodnight-music goodnight-music--next" data-sound="none" type="button" onClick={() => player.start()}>换一首</button> : null}
             </div>
-            {musicError ? <small className="goodnight-player__error" role="alert">{musicError}</small> : null}
+            {music.error ? <small className="goodnight-player__error" role="alert">{music.error}</small> : null}
           </div>
         ) : null}
-        <small>请关闭这个页面，把设备放到卧室外。</small>
+        <small>{active ? '这段轻音乐长 5 分钟。请把设备放到一旁，安心休息。' : '请关闭这个页面，把设备放到卧室外。'}</small>
       </section>
     </main>
   )
