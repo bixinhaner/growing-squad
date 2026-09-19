@@ -4,10 +4,10 @@ import { setupFamily } from '../e2e/helpers.js'
 test('production app shell and primary illustration work offline', async ({ context, page }) => {
   await page.goto('/bedtime/')
   const audioAssets = await page.evaluate(async () => Promise.all([
-    '/bedtime/audio/bgm/moon-clouds.m4a',
-    '/bedtime/audio/bgm/starry-meadow.m4a',
-    '/bedtime/audio/bgm/moonflower-piano.m4a',
-    '/bedtime/audio/bgm/rainy-dream.m4a',
+    '/bedtime/audio/bedtime-5min/wind-song.m4a',
+    '/bedtime/audio/bedtime-5min/you.m4a',
+    '/bedtime/audio/bedtime-5min/moonflower-piano.m4a',
+    '/bedtime/audio/bedtime-5min/rainy-dream.m4a',
   ].map(async (url) => {
     const response = await fetch(url, { headers: { Range: 'bytes=0-1023' } })
     return { url, ok: response.ok, type: response.headers.get('content-type') }
@@ -75,7 +75,7 @@ test('all bedtime tracks play on the first offline visit with correct byte range
   await page.mouse.click(10, 10)
   const tracks = await page.evaluate(async () => {
     const results = []
-    for (const name of ['moon-clouds', 'starry-meadow', 'moonflower-piano', 'rainy-dream']) {
+    for (const name of ['wind-song', 'you', 'moonflower-piano', 'rainy-dream']) {
       const url = `/bedtime/audio/bedtime-5min/${name}.m4a`
       const partial = await fetch(url, { headers: { Range: 'bytes=0-1023' } })
       const tail = await fetch(url, { headers: { Range: 'bytes=-1024' } })

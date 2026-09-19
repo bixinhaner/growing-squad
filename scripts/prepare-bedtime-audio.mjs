@@ -1,12 +1,20 @@
-// Optional asset authoring on macOS, not part of the production build.
-// Keep the CC0 sources unchanged; generated AAC files have a native ending,
-// quiet level and fades, independent of background timers or iOS volume APIs.
+// Generate the five-minute bedtime versions from the supplied source files.
+// The user-provided MP3 paths are intentionally passed through environment
+// variables so the repository never stores private download paths.
 import { spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const sampleRate = 44100, channels = 2, seconds = 300, gain = 0.32
+const sourceTracks = [
+  { id: 'wind-song', title: '风之歌', source: process.env.BEDTIME_WIND_SOURCE },
+  { id: 'you', title: 'You', source: process.env.BEDTIME_YOU_SOURCE },
+  { id: 'moonflower-piano', title: '月光花钢琴', source: 'public/audio/bgm/moonflower-piano.m4a' },
+  { id: 'rainy-dream', title: '小雨的梦', source: 'public/audio/bgm/rainy-dream.m4a' },
+]
+const missing = sourceTracks.filter((track) => !track.source).map((track) => track.id)
+if (missing.length) throw new Error(`Set BEDTIME_WIND_SOURCE and BEDTIME_YOU_SOURCE before generating: ${missing.join(', ')}`)
 const work = mkdtempSync(join(tmpdir(), 'bedtime-audio-'))
 const target = resolve('public/audio/bedtime-5min')
 mkdirSync(target, { recursive: true })
@@ -23,9 +31,9 @@ function pcmWave(data) {
   return Buffer.concat([header, data])
 }
 try {
-  for (const name of ['moon-clouds', 'starry-meadow', 'moonflower-piano', 'rainy-dream']) {
-    const wav = join(work, 'source.wav'), rendered = join(work, 'rendered.wav')
-    convert([resolve(`public/audio/bgm/${name}.m4a`), wav, '-f', 'WAVE', '-d', `LEI16@${sampleRate}`])
+  for (const track of sourceTracks) {
+    const wav = join(work, `${track.id}-source.wav`), rendered = join(work, `${track.id}-rendered.wav`)
+    convert([resolve(track.source), wav, '-f', 'WAVE', '-d', `LEI16@${sampleRate}`])
     const source = readFileSync(wav)
     let offset = 12, pcm
     while (offset + 8 <= source.length) {
@@ -33,11 +41,10 @@ try {
       if (source.toString('ascii', offset, offset + 4) === 'data') { pcm = source.subarray(offset + 8, offset + 8 + size); break }
       offset += 8 + size + size % 2
     }
-    if (!pcm || !pcm.length) throw new Error(`No PCM data in ${name}`)
+    if (!pcm || !pcm.length) throw new Error(`No PCM data in ${track.id}`)
     const frames = pcm.length / (channels * 2), length = seconds * sampleRate
     const output = Buffer.alloc(length * channels * 2)
-    // Short crossfades avoid a click or a hard boundary at each loop.
-    const overlap = Math.round(sampleRate * 0.15), stride = frames - overlap
+    const overlap = Math.round(sampleRate * 0.15), stride = Math.max(1, frames - overlap)
     for (let frame = 0; frame < length; frame += 1) {
       const position = frame < frames ? frame : overlap + (frame - frames) % stride
       const loopEnd = position >= stride
@@ -50,7 +57,7 @@ try {
       }
     }
     writeFileSync(rendered, pcmWave(output))
-    convert([rendered, join(target, `${name}.m4a`), '-f', 'm4af', '-d', 'aac', '-b', '96000', '-q', '127'])
-    console.log(`${name}: ${seconds}s, baked gain ${gain}, 2.2s fade in, 8s fade out`)
+    convert([rendered, join(target, `${track.id}.m4a`), '-f', 'm4af', '-d', 'aac', '-b', '96000', '-q', '127'])
+    console.log(`${track.title}: ${seconds}s, baked gain ${gain}, 2.2s fade in, 8s fade out`)
   }
 } finally { rmSync(work, { recursive: true, force: true }) }

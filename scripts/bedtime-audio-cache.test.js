@@ -8,7 +8,7 @@ function worker() {
   const cache = { match: vi.fn(async () => new Response(new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]), { headers: { 'Content-Type': 'audio/mp4', 'Content-Length': '8' } })) }
   const context = { self: { location: { href: 'https://example.com/bedtime/sw.js', origin: 'https://example.com' }, addEventListener: (name, fn) => { listeners[name] = fn } }, URL, Headers, Response, caches: { open: async () => cache }, fetch }
   runInNewContext(readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8'), context)
-  function request(headers = {}, path = 'audio/bedtime-5min/moon-clouds.m4a') {
+  function request(headers = {}, path = 'audio/bedtime-5min/wind-song.m4a') {
     let response
     listeners.fetch({ request: new Request(`https://example.com/bedtime/${path}`, { headers }), respondWith: (value) => { response = value } })
     return response
@@ -28,6 +28,6 @@ describe('bundled audio range responses', () => {
     expect((await w.request({ Range: 'bytes=0-1,3-4' })).status).toBe(200)
     expect(w.request({ Authorization: 'test', Range: 'bytes=0-1' })).toBeUndefined()
     expect(w.request({ Range: 'bytes=0-1' }, 'api/cloud/media/photo')).toBeUndefined()
-    expect(w.request({ Range: 'bytes=0-1' }, 'audio/bgm/moon-clouds.m4a')).toBeUndefined()
+    expect(w.request({ Range: 'bytes=0-1' }, 'audio/bgm/legacy-track.m4a')).toBeUndefined()
   })
 })

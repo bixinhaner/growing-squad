@@ -34,10 +34,10 @@ describe('offline build manifest', () => {
   })
   it('includes bedtime audio and changes the cache when an audio file changes', () => {
     const a = fixture(), b = fixture()
-    writeFileSync(join(a, 'audio/bedtime-5min/moon-clouds.m4a'), 'audio one')
-    writeFileSync(join(b, 'audio/bedtime-5min/moon-clouds.m4a'), 'audio two')
+    writeFileSync(join(a, 'audio/bedtime-5min/wind-song.m4a'), 'audio one')
+    writeFileSync(join(b, 'audio/bedtime-5min/wind-song.m4a'), 'audio two')
     const manifest = writePrecacheManifest(a)
-    expect(manifest.assets).toContain('audio/bedtime-5min/moon-clouds.m4a')
+    expect(manifest.assets).toContain('audio/bedtime-5min/wind-song.m4a')
     expect(manifest.revision).not.toBe(writePrecacheManifest(b).revision)
   })
   it('is deterministic for identical builds and fails on an already patched worker', () => {

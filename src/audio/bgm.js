@@ -1,8 +1,8 @@
 import { appPath } from '../data/paths.js'
 
 export const BEDTIME_TRACKS = [
-  { id: 'moon-clouds', title: '月亮云朵', artist: 'Joth', src: appPath('audio/bedtime-5min/moon-clouds.m4a') },
-  { id: 'starry-meadow', title: '星光草地', artist: 'pmiller', src: appPath('audio/bedtime-5min/starry-meadow.m4a') },
+  { id: 'wind-song', title: '风之歌', artist: '水', src: appPath('audio/bedtime-5min/wind-song.m4a') },
+  { id: 'you', title: 'You', artist: '寒蝉鸣泣之时', src: appPath('audio/bedtime-5min/you.m4a') },
   { id: 'moonflower-piano', title: '月光花钢琴', artist: 'Kistol', src: appPath('audio/bedtime-5min/moonflower-piano.m4a') },
   { id: 'rainy-dream', title: '小雨的梦', artist: 'Rizy', src: appPath('audio/bedtime-5min/rainy-dream.m4a') },
 ]
