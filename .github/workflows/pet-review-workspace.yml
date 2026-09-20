@@ -1,0 +1,38 @@
+name: Pet review workspace
+on:
+  push:
+    branches: [feat/trustworthy-growth-comfort]
+    paths: [.github/workflows/pet-review-workspace.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Export isolated public application sources
+        run: |
+          git ls-files -z -- src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js' | tar --null -T - -czf /tmp/pet-sources.tar.gz
+          tar -czf /tmp/pet-dependencies.tar.gz node_modules
+          git ls-files -s > /tmp/pet-source-index.txt
+          git rev-parse HEAD > /tmp/pet-source-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pet-review-workspace
+          path: |
+            /tmp/pet-sources.tar.gz
+            /tmp/pet-dependencies.tar.gz
+            /tmp/pet-source-index.txt
+            /tmp/pet-source-commit.txt
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
