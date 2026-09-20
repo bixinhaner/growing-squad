@@ -23,7 +23,7 @@ function ParentTools({ children }) {
   const navigate = useNavigate()
   return <section className="calm-management">{children}<nav className="calm-parent-links" aria-label="家庭管理入口">{[
     ['作息与提醒','schedule'],['睡前流程','routine'],['愿望与奖励','rewards'],['孩子资料','profile'],
-    ['家庭设备','devices'],['数据与安全','data'],['声音与易用性','accessibility'],['同步状态','sync'],['全天安排','timeline'],['陪伴与观察','support'],
+    ['电子伙伴','pet'],['家庭设备','devices'],['数据与安全','data'],['声音与易用性','accessibility'],['同步状态','sync'],['全天安排','timeline'],['陪伴与观察','support'],
   ].map(([label, route]) => <button type="button" className="calm-action calm-action--secondary" key={route} onClick={() => navigate(`/parent/${route}`)}>{label}<Icon name="chevron" /></button>)}</nav></section>
 }
 export function RedesignParentPlanPage() {

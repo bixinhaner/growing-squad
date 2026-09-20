@@ -302,10 +302,14 @@ export function BedtimeProvider({ children }) {
         setSaveStatus('retrying')
         setSaveMessage('已保存在这台设备，联网后会自动同步。')
       }
-    }).catch(() => {
+      return { ok: true, state: nextState }
+    }).catch((error) => {
+      const message = error?.status ? error.message : '这次操作还没有安全写入，请保持页面打开并重试。'
       setSaveStatus('error')
-      setSaveMessage('这次操作还没有安全写入，请保持页面打开并重试。')
+      setSaveMessage(message)
+      return { ok: false, message }
     })
+    return persistenceQueueRef.current
   }, [domainState.profiles, flushCloud, preferences.boundProfileId, selectProfile, selectedProfileId])
 
   useEffect(() => {

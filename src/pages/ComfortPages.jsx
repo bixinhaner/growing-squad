@@ -1,3 +1,4 @@
+import { PetEntry } from '../ui/pets/PetEntry.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { getActiveProfile, getLastSevenDays, getSchedule, dayTypeFor, localDateKey } from '../domain/model.js'
@@ -100,6 +101,7 @@ export function ComfortWorldPage() {
   const navigate = useNavigate()
   const moments = activityMomentsFor(state, state.activeProfileId)
   return <section className="calm-page calm-world"><header className="calm-section-head"><div><span className="calm-eyebrow">小队世界</span><h1>今天，想去哪儿看看？</h1><p>没有通关顺序，也不用每个地方都去。</p></div><span className="calm-badge">{AREAS.filter((a) => moments.some((m) => m.sourceModule === a.id)).length} / 5 个地方留下了记忆</span></header>
+    <PetEntry />
     <div className="calm-world-body"><WorldLandscape /><div className="calm-area-grid">{AREAS.map((area) => <button type="button" key={area.id} onClick={() => navigate(area.route)}><AssetArt id={area.asset} decorative /><span><strong>{area.title}</strong><small>{area.copy}</small></span><Icon name="chevron" /></button>)}</div></div>
   </section>
 }
@@ -112,7 +114,7 @@ export function ComfortBackpackPage() {
   const [category, setCategory] = useState('all')
   const filtered = filterMemories(moments, category)
   return <section className="calm-page calm-backpack"><header className="calm-section-head"><div><span className="calm-eyebrow">成长背包</span><h1>{profile.name}收集的每一份成长</h1><p>只收藏真实发生的事，不因为休息而清空。</p></div><AssetArt id="backpack" decorative /></header>
-    <div className="calm-pocket-links">{[['我的愿望','/wishes'],['喜欢的活动','/movement'],['读过的故事','/reading'],['我的小发明','/inventor']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(route)}>{title}<Icon name="chevron" /></Action>)}</div>
+    <div className="calm-pocket-links">{[['我的小伙伴','/pet'],['我的愿望','/wishes'],['喜欢的活动','/movement'],['读过的故事','/reading'],['我的小发明','/inventor']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(route)}>{title}<Icon name="chevron" /></Action>)}</div>
     {moments.length ? <div className="v2-memory-filters" role="group" aria-label="背包里的记忆类型">{MEMORY_FILTERS.filter(([id]) => id === 'all' || moments.some((m) => m.sourceModule === id)).map(([id, title]) => <button type="button" key={id} aria-pressed={category === id} onClick={() => { setCategory(id); setLimit(12) }}>{title}</button>)}</div> : null}
     {filtered.length ? <div className="calm-memory-list">{filtered.slice(0, limit).map((m) => <button type="button" key={m.id} onClick={() => navigate(m.route)}><AssetArt id={m.assetId} decorative /><span><time dateTime={new Date(m.at).toISOString()}>{dateLabel(m.at)}</time><strong>{m.title}</strong>{m.note ? <small>{m.noteSource === 'parent' ? '家长观察：' : m.noteSource === 'child' ? '孩子原话：' : '阅读笔记：'}{m.note}</small> : null}</span><Icon name="chevron" /></button>)}</div> : <EmptyMemory />}
     {filtered.length > limit ? <Action secondary onClick={() => setLimit((n) => n + 12)}>看看更早的记忆</Action> : null}
@@ -161,6 +163,6 @@ export function ComfortParentTodayPage() {
     <FamilyPulse now={now} /><ParentQuickActions />
     <article className="calm-parent-plan"><AssetArt id="pillow" decorative /><div><span className="calm-eyebrow">今晚的节奏</span><h2>{schedule.prepareTime} 开始准备 · {schedule.bedTime} 计划完成</h2><p>可以临时调整，也可以从下一晚再改变。</p></div><Action secondary onClick={() => navigate('/parent/schedule')}>调整时间</Action></article>
     <div className="calm-parent-actions"><article><Icon name="heart" /><h2>{help.length ? `${help.length} 个需要陪伴的请求` : '暂时没有帮助请求'}</h2><p>{help[0]?.title || '不需要找出问题，也可以只是一起待一会儿。'}</p><Action secondary onClick={() => navigate(help[0]?.route || '/parent/support')}>看看陪伴方式</Action></article><article><Icon name="star" /><h2>{pending ? `${pending} 个愿望等你回应` : '愿望可以慢慢商量'}</h2><p>批准时才扣星光，回应前先听听孩子的想法。</p><Action secondary onClick={() => navigate('/parent/rewards')}>管理愿望</Action></article><article><Icon name="moon" /><h2>{missingSleep ? `${missingSleep} 晚可以补记入睡` : '晚间记录'}</h2><p>实际上床和入睡时间分开记录，不用拿完成任务代替睡着。</p><Action secondary onClick={() => navigate('/parent/overview?view=bedtime')}>查看与补记</Action></article></div>
-    <nav className="calm-parent-links" aria-label="成长模块管理">{[['运动','movement'],['阅读','reading'],['家庭角色','responsibility'],['发明工坊','inventor'],['成长记录','report'],['成长助手','assistant'],['全天安排','timeline'],['陪伴与观察','support']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(`/parent/${route}`)}>{title}<Icon name="chevron" /></Action>)}</nav>
+    <nav className="calm-parent-links" aria-label="成长模块管理">{[['电子伙伴','pet'],['运动','movement'],['阅读','reading'],['家庭角色','responsibility'],['发明工坊','inventor'],['成长记录','report'],['成长助手','assistant'],['全天安排','timeline'],['陪伴与观察','support']].map(([title, route]) => <Action key={route} secondary onClick={() => navigate(`/parent/${route}`)}>{title}<Icon name="chevron" /></Action>)}</nav>
   </section>
 }

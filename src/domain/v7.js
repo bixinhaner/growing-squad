@@ -1,3 +1,4 @@
+import { emptyPetState, normalizePetState } from '../modules/pets/petModel.js'
 export const DATA_VERSION = 7
 
 export const REQUIRED_BEDTIME_STEPS = [
@@ -15,6 +16,7 @@ export function ensureRequiredBedtimeSteps(routines = []) {
 }
 
 const EMPTY_MODULES = {
+  pets: emptyPetState(),
   core: { version: 1, routines: [], activitySessions: {}, todayDecisions: {} },
   movement: { version: 1, sessions: {}, preferencesByProfile: {} },
   reading: { version: 1, books: [], sessions: {}, preferencesByProfile: {} },
@@ -110,6 +112,7 @@ export function normalizeV7(value) {
     modules: {
       ...structuredClone(EMPTY_MODULES),
       ...(value.modules || {}),
+      pets: normalizePetState(value.modules?.pets, value.profiles),
       bedtime,
     },
     scaffold: { states: {}, ...(value.scaffold || {}) },

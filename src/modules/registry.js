@@ -1,3 +1,5 @@
+import { petReducer } from './pets/petReducer.js'
+import { normalizePetState } from './pets/petModel.js'
 import { bedtimeReducer } from '../domain/model.js'
 import { operationEnvelopeSchema, toLegacyAction } from '../core/sync/operationSchemas.js'
 import { platformReducer } from './core/platformReducer.js'
@@ -15,10 +17,13 @@ const defineModule = ({ id, reduce, deriveTodayCandidates = noCandidates }) => O
 function coreReducer(state, operation) {
   if (operation.type.startsWith('core.support.')) return parentSupportReducer(state, operation)
   if (operation.type.startsWith('core.today.') || operation.type === 'core.routines.updated' || operation.type === 'core.scaffold.updated') return platformReducer(state, operation)
-  return bedtimeReducer(state, toLegacyAction(operation))
+  const next = bedtimeReducer(state, toLegacyAction(operation))
+  if (operation.type === 'core.profile.deleted' && next !== state && next.modules?.pets) next.modules = { ...next.modules, pets: normalizePetState(next.modules.pets, next.profiles) }
+  return next
 }
 export const moduleRegistry = new Map([
   ...[...passthroughModules].map((id) => [id, defineModule({ id, reduce: bedtimeReducer })]),
+  ['pets', defineModule({ id: 'pets', reduce: petReducer })],
   ['core', defineModule({ id: 'core', reduce: coreReducer })],
   ['movement', defineModule({ id: 'movement', reduce: movementReducer })],
   ['reading', defineModule({ id: 'reading', reduce: readingReducer })],
@@ -31,5 +36,5 @@ export function rootReducer(state, operation) {
   const envelope = operationEnvelopeSchema.parse(operation)
   const module = moduleRegistry.get(envelope.moduleId)
   if (!module) return state
-  return ['core','movement','reading','responsibility','inventor','assistant'].includes(module.id) ? module.reduce(state,envelope) : module.reduce(state,toLegacyAction(envelope))
+  return ['pets','core','movement','reading','responsibility','inventor','assistant'].includes(module.id) ? module.reduce(state,envelope) : module.reduce(state,toLegacyAction(envelope))
 }

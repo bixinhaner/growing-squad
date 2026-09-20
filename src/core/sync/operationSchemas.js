@@ -1,7 +1,8 @@
 import { z } from 'zod'
-export const MODULE_IDS=['core','bedtime','movement','reading','responsibility','inventor','assistant','growth','rewards']
+export const MODULE_IDS=['pets','core','bedtime','movement','reading','responsibility','inventor','assistant','growth','rewards']
 export const operationEnvelopeSchema=z.object({id:z.string().regex(/^op_[A-Za-z0-9_-]+$/),schemaVersion:z.literal(1),moduleId:z.enum(MODULE_IDS),type:z.string().min(1),target:z.object({profileId:z.string().nullable(),entityType:z.string(),entityId:z.string().nullable()}),expectedVersion:z.number().int().nullable(),occurredAt:z.number().int(),clientSequence:z.number().int().nonnegative(),payload:z.record(z.string(),z.any())})
 const VERSIONED_OPERATION_TYPES=new Set([
+'pets.adopted','pets.cared','pets.hatched','pets.renamed','pets.item-requested','pets.item-approved','pets.item-declined','pets.item-cancelled','pets.item-refunded','pets.settings-updated','pets.placed','pets.room-changed','pets.play-started','pets.play-ended','pets.memory-added','pets.memory-pinned','pets.life-shared',
   'bedtime.step.completed','bedtime.step.reset','bedtime.step.skipped','bedtime.in-bed.confirmed','bedtime.asleep.recorded','bedtime.asleep.skipped','bedtime.settlement.reverted','bedtime.schedule.updated','bedtime.routine.updated',
   'rewards.wish.approved','rewards.wish.reverted','rewards.catalog.updated','core.profile.deleted','core.profile.updated','core.accessibility.updated','core.routines.updated','core.scaffold.updated','core.support.resolved','core.support.evidence-recorded',
   'core.today.item-selected','core.today.completed','core.today.support-chosen','core.today.skipped','core.today.later',
@@ -14,6 +15,24 @@ const VERSIONED_OPERATION_TYPES=new Set([
 export function operationRequiresVersion(value) { return VERSIONED_OPERATION_TYPES.has(typeof value==='string' ? value : value?.type) }
 export function entityKeyForOperation(op) { return `${op?.moduleId || 'core'}:${op?.target?.profileId || 'family'}:${op?.target?.entityType || 'family'}:${op?.target?.entityId || 'root'}` }
 const DEFINITIONS={
+  PET_ADOPT:['pets','pets.adopted','pet'],
+  PET_CARE:['pets','pets.cared','pet'],
+  PET_HATCH:['pets','pets.hatched','pet'],
+  PET_RENAME:['pets','pets.renamed','pet'],
+  PET_REQUEST_ITEM:['pets','pets.item-requested','pet'],
+  PET_APPROVE_ITEM:['pets','pets.item-approved','pet'],
+  PET_DECLINE_ITEM:['pets','pets.item-declined','pet'],
+  PET_CANCEL_ITEM:['pets','pets.item-cancelled','pet'],
+  PET_REFUND_ITEM:['pets','pets.item-refunded','pet'],
+  PET_UPDATE_SETTINGS:['pets','pets.settings-updated','pet'],
+  PET_PLACE:['pets','pets.placed','pet'],
+  PET_ROOM:['pets','pets.room-changed','pet'],
+  PET_BEGIN_PLAY:['pets','pets.play-started','pet'],
+  PET_END_PLAY:['pets','pets.play-ended','pet'],
+  PET_NOTE:['pets','pets.memory-added','pet'],
+  PET_PIN:['pets','pets.memory-pinned','pet'],
+  PET_SHARE_LIFE:['pets','pets.life-shared','pet'],
+
   COMPLETE_TASK:['bedtime','bedtime.step.completed','bedtime-session'], RESET_TASK:['bedtime','bedtime.step.reset','bedtime-session'], SKIP_TASK:['bedtime','bedtime.step.skipped','bedtime-session'], CONFIRM_BED:['bedtime','bedtime.in-bed.confirmed','bedtime-session'],
   RECORD_ASLEEP_TIME:['bedtime','bedtime.asleep.recorded','bedtime-session'], SKIP_ASLEEP_TIME:['bedtime','bedtime.asleep.skipped','bedtime-session'], UNDO_BEDTIME_SETTLEMENT:['bedtime','bedtime.settlement.reverted','bedtime-session'], UPDATE_SCHEDULE:['bedtime','bedtime.schedule.updated','bedtime-schedule'], UPDATE_ROUTINE:['bedtime','bedtime.routine.updated','bedtime-routine'],
   REQUEST_REWARD:['rewards','rewards.wish.requested','wish'], APPROVE_REWARD:['rewards','rewards.wish.approved','wish-request'], UNDO_REWARD:['rewards','rewards.wish.reverted','wish-request'], ADD_REWARD_EVENT:['growth','growth.moment.created','growth-moment'], UNDO_REWARD_EVENT:['growth','growth.moment.reverted','growth-moment'],
@@ -32,7 +51,8 @@ export function createOperationEnvelope(action,profileId,clientSequence,id=opera
   const payload=Object.fromEntries(Object.entries(action).filter(([key]) => !['type','profileId','expectedVersion'].includes(key)))
   const dateKey=action.dateKey || payload.dateKey
   let entityId=action.suggestionId || action.reflectionId || action.artifactId || action.projectId || action.sessionId || action.requestId || action.momentId || action.payload?.id || null
-  if(type.startsWith('bedtime.step.') || type.startsWith('bedtime.in-bed.') || type.startsWith('bedtime.asleep.') || type.startsWith('bedtime.settlement.')) entityId=dateKey && profileId ? `${profileId}:${dateKey}` : entityId
+  if(moduleId === 'pets') entityId = profileId
+  else if(type.startsWith('bedtime.step.') || type.startsWith('bedtime.in-bed.') || type.startsWith('bedtime.asleep.') || type.startsWith('bedtime.settlement.')) entityId=dateKey && profileId ? `${profileId}:${dateKey}` : entityId
   else if(type==='bedtime.schedule.updated' || type==='bedtime.routine.updated') entityId=`${profileId}:${action.payload?.dayType || action.dayType || 'default'}`
   else if(type.startsWith('core.today.')) entityId=dateKey && profileId ? `${profileId}:${dateKey}${action.routineId ? `:${action.routineId}` : ''}` : entityId
   else if(type==='core.scaffold.updated') entityId=action.capabilityId || entityId
@@ -42,6 +62,7 @@ export function createOperationEnvelope(action,profileId,clientSequence,id=opera
 }
 export function toLegacyAction(operation) { const type=Object.entries(DEFINITIONS).find(([,d]) => d[1]===operation.type)?.[0]; if(!type) throw new Error(`不支持的操作：${operation.type}`); return {type,profileId:operation.target.profileId,...operation.payload} }
 const CHILD_TYPES=new Set([
+'pets.adopted','pets.cared','pets.hatched','pets.renamed','pets.item-requested','pets.item-cancelled','pets.placed','pets.room-changed','pets.play-started','pets.play-ended','pets.memory-added','pets.memory-pinned','pets.life-shared',
   'bedtime.step.completed','bedtime.step.reset','bedtime.step.skipped','bedtime.in-bed.confirmed','rewards.wish.requested',
   'core.today.item-selected','core.today.completed','core.today.support-chosen','core.today.skipped','core.today.later',
   'movement.activity.selected','movement.activity.started','movement.help.requested','movement.activity.completed','movement.feedback.recorded','movement.activity.skipped',

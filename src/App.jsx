@@ -19,6 +19,8 @@ const SetupPage = lazyNamed(() => import('./pages/SetupPage.jsx'), 'SetupPage')
 const TodayPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignTodayPage')
 const WorldPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignWorldPage')
 const MePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignBackpackPage')
+const PetHomePage = lazyNamed(() => import('./pages/PetHomePage.jsx'), 'PetHomePage')
+const PetParentPage = lazyNamed(() => import('./pages/PetParentPage.jsx'), 'PetParentPage')
 const TonightPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignTonightPage')
 const GardenPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignGardenPage')
 const WishesPage = lazyNamed(() => import('./pages/WishesPage.jsx'), 'WishesPage')
@@ -109,6 +111,7 @@ function AppRoutes() {
           <Route path="/today" element={<TodayPage />} />
           <Route path="/world" element={<WorldPage />} />
           <Route path="/me" element={<MePage />} />
+          <Route path="/pet" element={<PetHomePage />} />
           <Route path="/tonight" element={<TonightPage />} />
           <Route path="/garden" element={<GardenPage />} />
           <Route path="/wishes" element={<WishesPage />} />
@@ -148,6 +151,7 @@ function AppRoutes() {
             <Route path="schedule" element={<SchedulePage />} />
             <Route path="routine" element={<RoutinePage />} />
             <Route path="rewards" element={<RewardsPage />} />
+            <Route path="pet" element={<PetParentPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="accessibility" element={<AccessibilityPage />} />
             <Route path="devices" element={<DevicesPage />} />

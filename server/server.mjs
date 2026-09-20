@@ -439,6 +439,8 @@ function runAction(identity, operationId, submittedOperation, { enforceExpectedV
     const previous = assertState(JSON.parse(family.stateJson))
     if (!previous.profiles.some((profile) => profile.id === profileId)) throw Object.assign(new Error('找不到目标孩子'), { status: 404 })
     const timestamp = now()
+    // Spending limits and refund windows use server time, not a backdated client clock.
+    if (operation.moduleId === 'pets' && ['pets.item-requested', 'pets.item-approved', 'pets.item-refunded'].includes(operation.type)) operation.occurredAt = timestamp
     const entityKey = entityKeyForOperation(operation)
     const currentEntityVersion = Number(db.prepare('SELECT version FROM entity_versions WHERE family_id = ? AND entity_key = ?').get(identity.familyId, entityKey)?.version || 0)
     if (enforceExpectedVersion && operationRequiresVersion(operation) && operation.expectedVersion === null) {
@@ -604,6 +606,11 @@ function stateForProfile(state, profileId) {
   if (!profileId) return state
   const next = structuredClone(state)
   next.profiles = next.profiles.filter((item) => item.id === profileId)
+  if (next.modules?.pets) {
+    next.modules.pets.byProfile = next.modules.pets.byProfile[profileId] ? { [profileId]: next.modules.pets.byProfile[profileId] } : {}
+    next.modules.pets.settingsByProfile = next.modules.pets.settingsByProfile[profileId] ? { [profileId]: next.modules.pets.settingsByProfile[profileId] } : {}
+    next.modules.pets.requests = Object.fromEntries(Object.entries(next.modules.pets.requests || {}).filter(([, r]) => r.profileId === profileId))
+  }
   const filterObject = (value) => Object.fromEntries(Object.entries(value || {}).filter(([, item]) => item?.profileId === profileId))
   if (next.modules?.bedtime) {
     next.modules.bedtime.schedules = (next.modules.bedtime.schedules || []).filter((item) => item.profileId === profileId)

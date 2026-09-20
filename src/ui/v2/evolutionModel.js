@@ -20,7 +20,7 @@ export function familyPulse(state, now) {
 }
 export function sectionName(path) {
   const groups = [
-    ['overview', '今天'], ['report', '成长记录'], ['schedule', '作息与提醒'], ['routine', '睡前流程'],
+    ['pet', '小伙伴与星光'], ['overview', '今天'], ['report', '成长记录'], ['schedule', '作息与提醒'], ['routine', '睡前流程'],
     ['rewards', '愿望与鼓励'], ['profile', '家庭设置'], ['support', '陪伴与观察'], ['reading', '家庭书架'],
     ['movement', '运动游戏'], ['responsibility', '家庭角色'], ['inventor', '发明工坊'], ['assistant', '成长助手'],
     ['timeline', '全天安排'], ['accessibility', '声音与易用性'], ['devices', '家庭设备'], ['data', '数据与安全'], ['sync', '同步状态'],
