@@ -1,11 +1,20 @@
+import { freshLife, rememberPreference, CREATION, GARDEN, POINT, hasWork, validWorkForGame, snapshotFor } from './petLife.js'
 import { z } from 'zod'
 import { activityMomentsFor } from '../../core/activity/activitySelectors.js'
 import { PET_ACTIONS, PET_GAMES, PET_ITEMS, PET_ROOMS, PET_SKILLS, PET_SPECIES, getPetItem, getSpecies } from './petCatalog.js'
-import { emptyPetState, eggProgress, isPetQuiet, petAllowanceLeft, petBalance, petClock, petFor, petGameUnlocked, petGrowth, petRoundsLeft, petSettingsFor, petSettingsSchema, PLAY_MS } from './petModel.js'
+import { emptyPetState, eggProgress, isPetQuiet, petAllowanceLeft, petBalance, petClock, petFor, petGameUnlocked, petGrowth, petRoundsLeft, petSettingsFor, petSettingsSchema, playLimitFor } from './petModel.js'
 
 const id = z.string().regex(/^[A-Za-z0-9:_-]{1,160}$/).refine((value) => !['__proto__', 'constructor', 'prototype'].includes(value))
 const name = z.string().trim().min(1).max(12)
 const schemas = {
+  'pets.play-drafted': z.object({ sessionId:id, work:CREATION }),
+  'pets.work-saved': z.object({ work: CREATION }),
+  'pets.layout-updated': z.object({ itemId: z.string().max(80), point: POINT }),
+  'pets.garden-updated': z.object({ garden: GARDEN }),
+  'pets.snapshot-added': z.object({}),
+  'pets.media-added': z.object({ media:z.object({ id:z.string().regex(/^media_[A-Za-z0-9_-]{8,150}$/),kind:z.enum(['photo','audio','drawing']),mediaType:z.enum(['image/png','image/jpeg','image/webp','audio/mp4','audio/webm','audio/wav','audio/mpeg']),fileName:z.string().max(160),byteSize:z.number().int().min(1).max(12*1024*1024),status:z.enum(['local','synced']).default('local') }) }),
+  'pets.media-synced': z.object({ mediaId:z.string().regex(/^media_[A-Za-z0-9_-]{8,150}$/) }),
+  'pets.memory-removed': z.object({ memoryId:z.string().max(160) }),
   'pets.adopted': z.object({ species: z.enum(PET_SPECIES.map((s) => s.id)), name }),
   'pets.cared': z.object({ action: z.enum(Object.keys(PET_ACTIONS)) }),
   'pets.hatched': z.object({}),
@@ -19,7 +28,7 @@ const schemas = {
   'pets.placed': z.object({ slot: z.enum(['rug', 'lamp', 'decor', 'toy', 'dress']), itemId: z.string().max(80), position: z.enum(['left', 'middle', 'right']).optional() }),
   'pets.room-changed': z.object({ room: z.enum(PET_ROOMS.map((r) => r.id)) }),
   'pets.play-started': z.object({ sessionId: id, game: z.string().max(80) }),
-  'pets.play-ended': z.object({ sessionId: id, completed: z.boolean(), choices: z.array(z.string().max(80)).max(6).optional() }),
+  'pets.play-ended': z.object({ sessionId: id, completed: z.boolean(), choices: z.array(z.string().max(80)).max(30).optional(), work:CREATION.optional() }),
   'pets.memory-added': z.object({ note: z.string().trim().min(1).max(400) }),
   'pets.memory-pinned': z.object({ memoryId: z.string().nullable() }),
   'pets.life-shared': z.object({ sourceId: z.string().max(200) }),
@@ -57,6 +66,16 @@ function grant(state, pet, request, via, at) {
   addMemory(pet, { id: `purchase:${request.id}`, title: `添了${item.name}`, at, kind: 'purchase', art: item.art })
 }
 
+
+function storeWork(pet, work, key, at) {
+  if (!hasWork(work)) return
+  const old = pet.life.creations.find((c)=>c.id===key)
+  if (!old && pet.life.creations.length >= 100) fail('作品柜已经满了，请先让家长导出备份。')
+  if (old) { old.work=work; old.at=at }
+  else pet.life.creations.push({id:key,at,work})
+  addMemory(pet,{id:key,title:work.title,at,kind:'creation',art:work.kind==='blocks'?'blocks':work.kind==='robot'?'robot':'book',work,note:'自己创作的作品，随时可以回看。'})
+}
+
 /** Shared deterministic reducer; cloud applies it inside its existing SQLite transaction. */
 export function petReducer(state, operation) {
   const profileId = operation.target.profileId
@@ -82,13 +101,14 @@ export function petReducer(state, operation) {
     const species = getSpecies(payload.species)
     pets.byProfile[profileId] = { id: `pet:${profileId}`, profileId, species: species.id, name: payload.name, adoptedAt: at, hatchedAt: null,
       eggCare: {}, room: 'moon-room', inventory: {}, placed: {}, positions: {}, skills: {}, growthDays: {}, playSessions: {},
-      memories: [{ id: 'adopt', title: `把${species.eggName}带回了家`, at, kind: 'milestone', art: 'egg', note: '' }], lastAction: 'hello', lastActionAt: at, pinnedMemoryId: null }
+      memories: [{ id: 'adopt', title: `把${species.eggName}带回了家`, at, kind: 'milestone', art: 'egg', note: '' }], lastAction: 'hello', lastActionAt: at, pinnedMemoryId: null, life:freshLife() }
     next.meta = { ...next.meta, updatedAt: at }
     return next
   }
   const pet = pets.byProfile[profileId]
   if (!pet) fail('先选一颗星光蛋吧。')
   if (at < pet.adoptedAt) fail('这次记录比领养时间还早，请检查设备时间。', 409)
+  pet.life ??= freshLife()
   const day = petClock(next, at).day
   switch (operation.type) {
     case 'pets.cared': {
@@ -96,6 +116,8 @@ export function petReducer(state, operation) {
       if (!pet.hatchedAt) pet.eggCare[payload.action] ??= at
       else {
         grow(pet, day, `care:${payload.action}`, at)
+        rememberPreference(pet.life, `care:${payload.action}`, day)
+        if (['bath','brush'].includes(payload.action)) pet.life.dirt = 0
         if (['feed', 'brush', 'sleep'].includes(payload.action)) addMemory(pet, { id: `first:${payload.action}`, title: `第一次${PET_ACTIONS[payload.action].name}`, at, kind: 'milestone', art: PET_ACTIONS[payload.action].art })
       }
       pet.lastAction = payload.action; pet.lastActionAt = at
@@ -136,6 +158,7 @@ export function petReducer(state, operation) {
         if (request.status !== 'approved' || at < request.approvedAt || at - request.approvedAt > 30000) fail('这笔兑换已超过 30 秒撤销时间。', 409)
         if (pet.inventory[request.itemId]?.purchaseId !== request.id) fail('物件归属已变化。', 409)
         delete pet.inventory[request.itemId]
+        delete pet.life.layout[request.itemId]
         for (const [slot, itemId] of Object.entries(pet.placed)) if (itemId === request.itemId) delete pet.placed[slot]
         if (getPetItem(request.itemId)?.room === pet.room) pet.room = 'moon-room'
         request.status = 'refunded'; request.refundedAt = at
@@ -169,9 +192,17 @@ export function petReducer(state, operation) {
       if (pet.playSessions[payload.sessionId]) return state
       if (isPetQuiet(next, profileId, at)) fail('现在是安静时间，玩具已经收好。')
       if (petRoundsLeft(next, profileId, at) <= 0) fail('今天的小回合已经玩完啦，回忆会保留。')
-      if (Object.values(pet.playSessions).some((s) => !s.endedAt && at < s.startedAt + PLAY_MS)) fail('先结束正在玩的这一小轮吧。', 409)
-      for (const old of Object.values(pet.playSessions)) if (!old.endedAt) { old.endedAt = old.startedAt + PLAY_MS; old.completed = false }
+      if (Object.values(pet.playSessions).some((s) => !s.endedAt && at < s.startedAt + playLimitFor(s.game))) fail('先结束正在玩的这一小轮吧。', 409)
+      for (const old of Object.values(pet.playSessions)) if (!old.endedAt) { old.endedAt = old.startedAt + playLimitFor(old.game); old.completed = false }
       pet.playSessions[payload.sessionId] = { id: payload.sessionId, game: payload.game, startedAt: at, day, endedAt: null, completed: false, choices: [] }
+      break
+    }
+    case 'pets.play-drafted': {
+      const session=pet.playSessions[payload.sessionId]
+      if(!session) fail('找不到这一轮游戏。')
+      if(session.endedAt) return state
+      if(!validWorkForGame(payload.work,session.game)) fail('作品与这轮玩法不对应。')
+      session.work=payload.work
       break
     }
     case 'pets.play-ended': {
@@ -179,10 +210,17 @@ export function petReducer(state, operation) {
       if (!session) fail('找不到这一轮游戏。', 404)
       if (session.endedAt) return state
       const elapsed = at - session.startedAt
-      const completed = payload.completed && elapsed >= 3000 && elapsed <= PLAY_MS + 5000 && petGameUnlocked(pet, session.game) && !isPetQuiet(next, profileId, at)
+      const completed = payload.completed && elapsed >= 3000 && elapsed <= playLimitFor(session.game) + 5000 && petGameUnlocked(pet, session.game) && !isPetQuiet(next, profileId, at)
       session.endedAt = at; session.completed = completed; session.choices = payload.choices || []
+      const work=payload.work || session.work
+      if (work) {
+        if (!validWorkForGame(work, session.game)) fail('作品与这轮玩法不对应。')
+        storeWork(pet, work, `work:${session.id}`, at)
+      }
       if (completed) {
         grow(pet, day, `play:${session.game}`, at)
+        rememberPreference(pet.life,session.game,day)
+        if (['ball','family','story-picnic'].includes(session.game)) pet.life.dirt = Math.min(3, pet.life.dirt + 1)
         const skill = PET_SKILLS.find((s) => `skill-${s.id}` === session.game)
         if (skill) {
           pet.skills[skill.id] = Math.min(3, (pet.skills[skill.id] || 0) + 1)
@@ -193,6 +231,47 @@ export function petReducer(state, operation) {
         }
         pet.lastAction = 'play'; pet.lastActionAt = at
       }
+      break
+    }
+    case 'pets.work-saved': {
+      if (!pet.hatchedAt) fail('先迎接小伙伴出生吧。')
+      if (payload.work.kind === 'blocks' && !pet.inventory.blocks || payload.work.kind === 'robot' && !pet.inventory.robot) fail('先解锁对应的玩具。')
+      storeWork(pet,payload.work,`work:${operation.id}`,at)
+      break
+    }
+    case 'pets.layout-updated': {
+      if (!['food','bed','toy'].includes(payload.itemId) && !Object.entries(pet.placed).some(([slot,id])=>slot!=='dress' && id===payload.itemId)) fail('只能移动小屋里已有的物件。')
+      pet.life.layout[payload.itemId] = payload.point
+      break
+    }
+    case 'pets.garden-updated': {
+      if (!pet.hatchedAt) fail('先迎接小伙伴出生吧。')
+      pet.life.garden = {...payload.garden, updatedAt:at}
+      addMemory(pet,{id:'family-garden',title:'我为家庭花园添了一朵花',at,kind:'creation',art:'plant',note:payload.garden.note})
+      break
+    }
+    case 'pets.snapshot-added': {
+      if(pet.memories.length>=1000) fail('相册已满，请先备份。')
+      addMemory(pet,{id:operation.id,title:`${pet.name}的小屋纪念画`,at,kind:'snapshot',art:'frame',snapshot:snapshotFor(pet,petGrowth(pet).stage),note:'保存了此刻的房间、装扮和成长模样，不是现实照片。'})
+      break
+    }
+    case 'pets.media-added': {
+      if(!petSettingsFor(next,profileId).allowMedia) fail('需要家长先开启照片与语音记录。',403)
+      if(pet.memories.length>=1000) fail('相册已满，请先备份。')
+      if ((payload.media.kind==='audio') !== payload.media.mediaType.startsWith('audio/')) fail('资料种类不一致。')
+      if (Object.values(pets.byProfile).some((p)=>p.profileId!==profileId && p.memories.some((m)=>m.media?.id===payload.media.id))) fail('这份资料不属于当前孩子。',403)
+      addMemory(pet,{id:payload.media.id,title:payload.media.kind==='audio'?'我说给伙伴听的话':'我想留下的画面',at,kind:'media',art:payload.media.kind==='audio'?'music':'frame',media:payload.media,note:'家庭资料；不做语音识别或外部 AI 分析。'})
+      break
+    }
+    case 'pets.media-synced': {
+      const memory=pet.memories.find((m)=>m.media?.id===payload.mediaId)
+      if(memory) memory.media.status='synced'
+      break
+    }
+    case 'pets.memory-removed': {
+      pet.memories=pet.memories.filter((m)=>m.id!==payload.memoryId)
+      pet.life.creations=pet.life.creations.filter((c)=>c.id!==payload.memoryId)
+      if(pet.pinnedMemoryId===payload.memoryId) pet.pinnedMemoryId=null
       break
     }
     case 'pets.memory-added': {

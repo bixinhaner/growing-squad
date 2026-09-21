@@ -1,0 +1,23 @@
+import { useEffect,useRef,useState } from 'react'
+import { getMediaDraft,putMediaDraft } from '../../core/persistence/idb.js'
+import { getDeviceToken,fetchCloudMedia } from '../../data/cloud.js'
+
+export function PetMediaPreview({media,pet}){
+  const [url,setUrl]=useState(''),[error,setError]=useState('')
+  useEffect(()=>{let alive=true,object='';(async()=>{try{let local=await getMediaDraft(media.id);let blob=local?.blob;if(!blob&&getDeviceToken()){blob=await fetchCloudMedia(media.id);if(pet)await putMediaDraft({...media,moduleId:'pets',projectId:pet.id,profileId:pet.profileId,blob,status:'synced',remote:true,updatedAt:Date.now()})}if(!blob)throw new Error('这份资料还在原来的设备上，等待同步。');if(alive){object=URL.createObjectURL(blob);setUrl(object)}}catch(e){if(alive)setError(e.message)}})();return()=>{alive=false;if(object)URL.revokeObjectURL(object)}},[media,pet])
+  return url?media.kind==='audio'?<audio src={url} controls preload="metadata" aria-label="播放我留下的语音"/>:<img src={url} alt={media.fileName||'家庭相册照片'} className="pet-real-photo"/>:<p className="pet-small-note">{error||'正在打开这份回忆…'}</p>
+}
+export function PetMediaRecorder({onSave}){
+  const [recording,setRecording]=useState(false),[busy,setBusy]=useState(false),[blob,setBlob]=useState(null),[url,setUrl]=useState(''),[message,setMessage]=useState('')
+  const recorder=useRef(null),stream=useRef(null),timer=useRef(null),alive=useRef(true),request=useRef(0)
+  useEffect(()=>{alive.current=true;const generation=request;return()=>{alive.current=false;generation.current++;clearTimeout(timer.current);if(recorder.current?.state==='recording')recorder.current.stop();stream.current?.getTracks().forEach(t=>t.stop())}},[])
+  useEffect(()=>{if(!blob)return;const u=URL.createObjectURL(blob);setUrl(u);return()=>URL.revokeObjectURL(u)},[blob])
+  const stop=()=>{clearTimeout(timer.current);if(recorder.current?.state==='recording')recorder.current.stop();stream.current?.getTracks().forEach(t=>t.stop());if(alive.current){setRecording(false);setBusy(false)}}
+  useEffect(()=>{const hide=()=>{if(document.hidden){request.current++;stop()}};document.addEventListener('visibilitychange',hide);return()=>document.removeEventListener('visibilitychange',hide)},[])
+  async function start(){
+    if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){setMessage('这台设备不能直接录音，可以选择已有语音文件。');return}
+    setBusy(true);setMessage('请允许这一次使用麦克风；最长 30 秒。');const turn=++request.current
+    try{const tracks=await navigator.mediaDevices.getUserMedia({audio:true});if(!alive.current||turn!==request.current){tracks.getTracks().forEach(t=>t.stop());return}stream.current=tracks;const type=['audio/mp4','audio/webm'].find(t=>MediaRecorder.isTypeSupported(t));if(!type){tracks.getTracks().forEach(t=>t.stop());throw new Error('当前录音格式不支持，请改选语音文件。')}const r=new MediaRecorder(tracks,{mimeType:type}),chunks=[];recorder.current=r;r.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};r.onstop=()=>{tracks.getTracks().forEach(t=>t.stop());if(alive.current){setRecording(false);setBusy(false);setBlob(new Blob(chunks,{type}));setMessage('先听一遍，点“收好这段语音”才保存。')}};r.onerror=()=>{stop();if(alive.current)setMessage('录音没有成功，可以重新试一次。')};r.start();setRecording(true);setBusy(false);setBlob(null);timer.current=setTimeout(stop,30000);setMessage('正在录音，最长 30 秒。你可以随时停止。')}catch(e){stream.current?.getTracks().forEach(t=>t.stop());if(alive.current){setBusy(false);setMessage(e.name==='NotAllowedError'?'没有获得麦克风许可，仍然可以写字或画画。':e.message)}}
+  }
+  return <section className="pet-recording"><h3>留下自己的声音或照片</h3><p className="pet-small-note">只有主动点击才使用麦克风；语音不识别、不评分，不发送到外部 AI。</p><div className="pet-studio-tools"><button type="button" className="pet-button pet-button--soft" disabled={busy} onClick={recording?stop:start}>{recording?'停止录音':'录一小段语音'}</button>{busy&&<button type="button" className="pet-text-button" onClick={()=>{request.current++;setBusy(false);setMessage('已取消')}}>取消等待</button>}<label className="pet-button pet-button--soft">选择照片或语音<input type="file" accept="image/jpeg,image/png,image/webp,audio/mp4,audio/webm,audio/mpeg,audio/wav" aria-label="添加伙伴照片或语音" onChange={async e=>{const f=e.target.files?.[0];e.target.value='';if(f)try{await onSave(f);setMessage('已经收好，请留意本机保存和同步提示。')}catch(err){setMessage(err.message)}}}/></label></div>{blob&&url&&<div className="pet-recording-preview"><audio src={url} controls/><button type="button" className="pet-button" onClick={async()=>{try{await onSave(new File([blob],'伙伴语音.'+(blob.type.includes('mp4')?'m4a':'webm'),{type:blob.type}));setBlob(null);setMessage('这段语音已经收好。')}catch(e){setMessage(e.message)}}}>收好这段语音</button><button type="button" className="pet-text-button" onClick={()=>setBlob(null)}>不保存这次录音</button></div>}<p role="status">{message}</p></section>
+}

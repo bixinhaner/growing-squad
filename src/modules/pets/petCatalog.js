@@ -40,9 +40,12 @@ export const PET_ACTIONS = {
   feed: { name: '准备食物', message: '吧唧吧唧，谢谢你准备的小点心。', art: 'bowl' },
   water: { name: '喝一点水', message: '咕嘟，喝好啦！', art: 'cup' },
   brush: { name: '梳梳毛', message: '毛毛变得蓬松又舒服。', art: 'brush' },
+  bath: { name: '洗个泡泡澡', message: '泡泡冲干净，变回蓬松的小伙伴啦。', art: 'bath' },
   sleep: { name: '盖被子晚安', message: '安心休息，下次还在这里。', art: 'blanket' },
 }
 export const PET_GAMES = [
+  { id:'theater', name:'我的小剧场', art:'book', itemId:null, copy:'排好动作，让伙伴演出你的小故事。' },
+  { id:'robot', name:'机器人试验场', art:'robot', itemId:'robot', copy:'换轮子、改挡板，真的试试能不能送到。' },
   { id: 'ball', name: '你推我接', art: 'ball', itemId: null, copy: '把球轻轻滚过来，伙伴会推回去。' },
   { id: 'hide', name: '找找小伙伴', art: 'tent', itemId: null, copy: '看看耳朵和小提示，找到它。' },
   { id: 'blocks', name: '小小建筑师', art: 'blocks', itemId: 'blocks', copy: '挑颜色、搭房子，没有标准答案。' },

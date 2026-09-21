@@ -1,15 +1,17 @@
 import { useId } from 'react'
-import { CharacterPose } from '../ThemeArt.jsx'
+import { PetCreature } from './PetCreature.jsx'
 import { getSpecies } from '../../modules/pets/petCatalog.js'
 
 const starPath = 'M50 9 61 35 90 38 68 57 74 86 50 71 26 86 32 57 10 38 39 35Z'
 /** Reusable text-free illustrations: actual independent pieces, not a sliced UI poster. */
-export function PetProp({ kind = 'heart', className = '', label, decorative = true }) {
+export function PetProp({ kind = 'heart', className = '', label, decorative = true, style }) {
   const uid = useId().replaceAll(':', '')
   let shape
   switch (kind) {
     case 'egg': shape = <><path d="M50 8C26 8 13 49 17 69C21 98 79 98 83 69C87 49 74 8 50 8Z" fill="#f9edcf" stroke="#c9a679" strokeWidth="2" /><path d={starPath} transform="translate(23 28) scale(.53)" fill="#ecc45b" /></>; break
     case 'ball': shape = <><circle cx="50" cy="51" r="39" fill="#88b7d3" /><path d="M23 25Q58 22 77 75M19 71Q32 39 76 26" fill="none" stroke="#dceaf2" strokeWidth="8" /><path d={starPath} transform="translate(28 28) scale(.45)" fill="#f4ce69" /></>; break
+    case 'bath': shape=<><path d="M12 49h76l-7 34H19Z" fill="#a6c9d1" /><ellipse cx="50" cy="49" rx="38" ry="11" fill="#eaf6f7" />{[[25,41,11],[43,30,16],[65,39,13],[78,22,7]].map(([x,y,r])=><circle key={x} cx={x} cy={y} r={r} fill="#edf9fc" stroke="#c3dee9" />)}</>; break
+    case 'bed': shape=<><path d="M10 32q40-27 80 0v51H10Z" fill="#c9a277" /><rect x="16" y="38" width="68" height="42" rx="12" fill="#b2c8a0" /><rect x="21" y="34" width="58" height="16" rx="7" fill="#fff2d8" /><path d="M19 64h62M34 48v30M57 48v30" stroke="#e2e9d3" strokeWidth="7" /></>;break
     case 'bowl': shape = <><ellipse cx="50" cy="39" rx="32" ry="14" fill="#b98657" />{[25,37,49,61,73].map((x) => <circle key={x} cx={x} cy={36 + x % 3 * 3} r="6" fill="#946747" />)}<path d="M16 40 9 77Q50 94 91 77L84 40Q50 59 16 40Z" fill="#e7b65e" /><circle cx="50" cy="66" r="12" fill="#b17a49" /><circle cx="43" cy="57" r="5" fill="#b17a49" /><circle cx="57" cy="57" r="5" fill="#b17a49" /><circle cx="46" cy="65" r="1.6" /><circle cx="54" cy="65" r="1.6" /></>; break
     case 'cup': shape = <><path d="M75 34Q101 32 92 62Q88 72 74 67" fill="none" stroke="#91bbd0" strokeWidth="10" /><path d="M20 27H77V72Q48 96 20 72Z" fill="#99c7da" /><ellipse cx="48" cy="27" rx="28" ry="10" fill="#4f8da6" /><path d={starPath} transform="translate(30 42) scale(.35)" fill="#fce0a0" /></>; break
     case 'brush': shape = <><rect x="42" y="57" width="16" height="36" rx="8" fill="#bb895b" /><ellipse cx="50" cy="37" rx="30" ry="32" fill="#d5b287" /><ellipse cx="50" cy="35" rx="23" ry="24" fill="#f9e4d4" />{[30,40,50,60,70].map((x) => <path key={x} d={`M${x} 25v20`} stroke="#bb895b" strokeWidth="3" strokeLinecap="round" />)}</>; break
@@ -32,7 +34,7 @@ export function PetProp({ kind = 'heart', className = '', label, decorative = tr
     case 'star': shape = <path d={starPath} fill="#ebc566" stroke="#d8b056" strokeWidth="2" />; break
     default: shape = <path d="M50 87C38 75 5 52 11 29Q20 1 50 25Q80 1 89 29C95 52 62 75 50 87Z" fill="#dca6a4" />
   }
-  return <svg className={`pet-prop ${className}`} viewBox="0 0 100 100" role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : label || kind} aria-hidden={decorative ? 'true' : undefined} focusable="false"><defs><filter id={`${uid}-shadow`} x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#795e41" floodOpacity=".12" /></filter></defs><g filter={`url(#${uid}-shadow)`}>{shape}</g></svg>
+  return <svg className={`pet-prop ${className}`} style={style} viewBox="0 0 100 100" role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : label || kind} aria-hidden={decorative ? 'true' : undefined} focusable="false"><defs><filter id={`${uid}-shadow`} x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#795e41" floodOpacity=".12" /></filter></defs><g filter={`url(#${uid}-shadow)`}>{shape}</g></svg>
 }
 
 export function EggArt({ species = 'bear', crack = 0, className = '', label }) {
@@ -47,6 +49,6 @@ export function EggArt({ species = 'bear', crack = 0, className = '', label }) {
   </svg>
 }
 
-export function PetActor({ species, pose = 'wave', motion = 'idle', size = 'baby', className = '' }) {
-  return <span className={`pet-actor pet-actor--${motion} pet-actor--${size} ${className}`}><CharacterPose character={species} pose={pose} decorative className="pet-character" /></span>
+export function PetActor({ species, pose = 'wave', motion = 'idle', size = 'baby', className = '', dress='', skill=3, dirt=0 }) {
+  return <span className={`pet-actor pet-actor--${motion} pet-actor--${size} ${className}`}><PetCreature species={species} age={size} action={motion === 'idle' ? pose === 'sleep' ? 'rest' : 'idle' : motion} asleep={pose === 'sleep'} dress={dress} skill={skill} dirt={dirt} /></span>
 }

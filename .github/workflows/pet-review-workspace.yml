@@ -14,14 +14,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Export recovered public sources for verification
+      - name: Export pet continuation sources for isolated validation
         run: |
           git ls-files -z -- src public tests scripts docs .github package.json package-lock.json vite.config.js eslint.config.js playwright.config.js playwright.production.config.js index.html README.md .gitignore 'server/*.mjs' 'server/*.test.js' | tar --null -T - -czf /tmp/pet-sources.tar.gz
           git ls-files -s > /tmp/pet-source-index.txt
           git rev-parse HEAD > /tmp/pet-source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: pet-recovered-sources
+          name: pet-continuation-sources
           path: |
             /tmp/pet-sources.tar.gz
             /tmp/pet-source-index.txt

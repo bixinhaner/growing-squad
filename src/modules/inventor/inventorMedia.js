@@ -23,8 +23,8 @@ export async function saveInventorMedia({ file, projectId, profileId, stage, ver
 
 export async function syncPendingInventorMedia(onSynced) {
   const token = getParentToken() || getDeviceToken()
-  if (!token) return { synced: 0, pending: (await listMediaDrafts()).filter((item) => item.status !== 'synced').length }
-  const drafts = await listMediaDrafts()
+  if (!token) return { synced: 0, pending: (await listMediaDrafts()).filter((item) => item.moduleId !== 'pets' && item.status !== 'synced').length }
+  const drafts = (await listMediaDrafts()).filter((item) => item.moduleId !== 'pets')
   let synced = 0
   for (const draft of drafts.filter((item) => item.status !== 'synced')) {
     try {
@@ -37,7 +37,7 @@ export async function syncPendingInventorMedia(onSynced) {
       break
     }
   }
-  return { synced, pending: drafts.filter((item) => item.status !== 'synced').length - synced }
+  return { synced, pending: drafts.filter((item) => item.moduleId !== 'pets' && item.status !== 'synced').length - synced }
 }
 
 export async function inventorMediaBlob(asset) {
