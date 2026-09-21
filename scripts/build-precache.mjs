@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 export function writePrecacheManifest(directory) {
   const dist = resolve(directory)
   const assets = []
-  function walk(folder, pattern = /\.(js|css|png|webp|svg|ico)$/i) {
+  function walk(folder, pattern = /\.(js|css|png|webp|svg|ico)$|^manifest\.json$/i) {
     for (const entry of readdirSync(folder, { withFileTypes: true })) {
       const path = join(folder, entry.name)
       if (entry.isDirectory()) walk(path, pattern)

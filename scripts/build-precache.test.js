@@ -32,6 +32,17 @@ describe('offline build manifest', () => {
     writeFileSync(join(b, 'assets/reading/cover.webp'), 'changed image')
     expect(writePrecacheManifest(a).revision).not.toBe(writePrecacheManifest(b).revision)
   })
+  it('precaches public art manifests and versions their contents without including arbitrary JSON', () => {
+    const a = fixture(), b = fixture()
+    for (const [dir, content] of [[a, '{"art":1}'], [b, '{"art":2}']]) {
+      writeFileSync(join(dir, 'assets/reading/manifest.json'), content)
+      writeFileSync(join(dir, 'assets/reading/private.json'), '{}')
+    }
+    const manifest = writePrecacheManifest(a)
+    expect(manifest.assets).toContain('assets/reading/manifest.json')
+    expect(manifest.assets).not.toContain('assets/reading/private.json')
+    expect(manifest.revision).not.toBe(writePrecacheManifest(b).revision)
+  })
   it('includes bedtime audio and changes the cache when an audio file changes', () => {
     const a = fixture(), b = fixture()
     writeFileSync(join(a, 'audio/bedtime-5min/wind-song.m4a'), 'audio one')

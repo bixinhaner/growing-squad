@@ -13,7 +13,7 @@ async function precacheApp() {
   const manifest = await manifestResponse.clone().json()
   if (manifest.version !== 1 || `${CACHE_PREFIX}${manifest.revision}` !== CACHE_NAME || !Array.isArray(manifest.assets)) throw new Error('Offline build revision mismatch')
   const assets = manifest.assets.map((path) => {
-    const visualAsset = typeof path === 'string' && path.startsWith('assets/') && /\.(js|css|png|webp|svg|ico)$/i.test(path)
+    const visualAsset = typeof path === 'string' && path.startsWith('assets/') && /(\.(js|css|png|webp|svg|ico)|\/manifest\.json)$/i.test(path)
     const bedtimeAudio = typeof path === 'string' && /^audio\/bedtime-5min\/[a-z-]+\.m4a$/.test(path)
     if (typeof path !== 'string' || path.includes('..') || (!visualAsset && !bedtimeAudio)) throw new Error('Invalid offline asset')
     return appPath(path)
@@ -92,7 +92,7 @@ self.addEventListener('fetch', (event) => {
       // Precache requests can omit Origin while module/style requests include it.
       // Public, same-origin build assets are identical across those Vary variants;
       // preserve normal matching for all other resources and never ignore queries.
-      if (url.pathname.startsWith(appPath('assets/')) && /\.(js|css|png|webp|svg|ico)$/i.test(url.pathname)) {
+      if (url.pathname.startsWith(appPath('assets/')) && /(\.(js|css|png|webp|svg|ico)|\/manifest\.json)$/i.test(url.pathname)) {
         const staticAsset = await cache.match(request, { ignoreVary: true })
         if (staticAsset) return staticAsset
       }

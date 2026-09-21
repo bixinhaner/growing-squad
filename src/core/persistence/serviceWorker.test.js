@@ -32,13 +32,13 @@ describe('service-worker boundaries', () => {
 
 
 describe('offline static variants', () => {
-  it('serves a precached public module when Vary Origin differs from the page request', async () => {
+  it.each(['UnvisitedRoute-hash.js', 'pets-v2/manifest.json'])('serves precached %s when Vary Origin differs from the page request', async (path) => {
     const response = new Response('export const ready = true', { headers: { Vary: 'Origin', 'Content-Type': 'text/javascript' } })
     const match = vi.fn(async (_request, options) => options?.ignoreVary ? response : undefined)
     const caches = { open: vi.fn(async () => ({ match })) }
     const fetch = vi.fn(async () => { throw new Error('offline') })
     const { handlers } = worker(caches, fetch)
-    const request = new Request('https://family.test/bedtime/assets/UnvisitedRoute-hash.js', { headers: { Origin: 'https://family.test' } })
+    const request = new Request(`https://family.test/bedtime/assets/${path}`, { headers: { Origin: 'https://family.test' } })
     let pending
     handlers.fetch({ request, respondWith: (promise) => { pending = promise }, waitUntil: vi.fn() })
     expect(await (await pending).text()).toBe('export const ready = true')
