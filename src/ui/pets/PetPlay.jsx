@@ -30,11 +30,19 @@ export function PetPlay({ pet, session, others = [], onFinish, onDraft, quiet = 
   useEffect(() => {
     const end = () => { if (!finished.current) { finished.current = true; Promise.resolve(finishRef.current(false, progressRef.current.choices, progressRef.current.work ? {...progressRef.current.work,title:progressRef.current.work.title.trim() || '我们的新作品'} : null)).then((ok) => { if (ok === false) finished.current = false }) } }
     const timer = window.setInterval(() => { const ms = Math.max(0, Date.now() - session.startedAt); setElapsed(ms); if (ms >= limit) end() }, 500)
-    const hide = () => { if (document.hidden) end() }
+    const hide = () => {
+      if (!document.hidden) return
+      // Reload also hides the page. Keep a creative round resumable while its
+      // original time limit remains in force; persist the latest draft now.
+      if (studioKind) {
+        const draft = progressRef.current.work
+        if (!finished.current && draft?.title.trim()) draftRef.current?.(draft)
+      } else end()
+    }
     if (quiet || timeLeft <= 0) end()
     document.addEventListener('visibilitychange', hide)
     return () => { window.clearInterval(timer); window.clearTimeout(timeoutRef.current); document.removeEventListener('visibilitychange', hide) }
-  }, [session.startedAt, quiet, limit, timeLeft])
+  }, [session.startedAt, quiet, limit, timeLeft, studioKind])
   const baseSkill = PET_SKILLS.find((s) => session.game === `skill-${s.id}`)
   const skill = baseSkill?.id==='signature'?{...baseSkill,...signatureFor(pet)}:baseSkill
   const game = PET_GAMES.find((g) => g.id === session.game)

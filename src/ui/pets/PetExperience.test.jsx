@@ -67,6 +67,26 @@ describe('artwork and readable surfaces',()=>{
 })
 
 describe('creative interaction components use real editable works',()=>{
+  it('saves a hidden creative draft for reload without resetting its time limit',async()=>{
+    vi.useFakeTimers();vi.setSystemTime(T)
+    vi.spyOn(document,'hidden','get').mockReturnValue(true)
+    const onFinish=vi.fn().mockResolvedValue(true),onDraft=vi.fn()
+    const work={kind:'theater',title:'继续我的演出',scene:'forest',acts:['wave','sleep']}
+    render(<PetPlay pet={pet()} session={{id:'draft-round',game:'theater',startedAt:T,work}} onFinish={onFinish} onDraft={onDraft}/>)
+    fireEvent(document,new Event('visibilitychange'))
+    expect(onDraft).toHaveBeenCalledWith(work)
+    expect(onFinish).not.toHaveBeenCalled()
+    await act(async()=>vi.advanceTimersByTime(180000))
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith(false,[],work)
+  })
+  it('still ends a non-creative game when the page is hidden',()=>{
+    vi.spyOn(Date,'now').mockReturnValue(T)
+    vi.spyOn(document,'hidden','get').mockReturnValue(true)
+    const onFinish=vi.fn().mockResolvedValue(true)
+    render(<PetPlay pet={pet()} session={{id:'ball-round',game:'ball',startedAt:T}} onFinish={onFinish}/>)
+    fireEvent(document,new Event('visibilitychange'))
+    expect(onFinish).toHaveBeenCalledExactlyOnceWith(false,[],null)
+  })
   it('places, rotates, removes and undoes a block without duplicate occupancy',async()=>{
     const saved=vi.fn(),changes=vi.fn(),user=userEvent.setup()
     render(<PetStudio kind="blocks" pet={pet()} onSave={saved} onChange={changes}/>)
