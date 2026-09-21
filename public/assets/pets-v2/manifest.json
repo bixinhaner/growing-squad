@@ -1,0 +1,826 @@
+{
+  "source": "Images generated in this conversation, processed into individual runtime assets. Not continuous frame-by-frame animation.",
+  "sources": {
+    "kawaii_pastel_plush_pet_collection.png": {
+      "generationId": "ded60566-6f76-48c4-ac3f-834309a3f558",
+      "sha256": "b55fdef4080ae123a9508cc39c5cb1746b535817d6084b8a5a352e224b0f36b5",
+      "dimensions": [
+        1448,
+        1086
+      ]
+    },
+    "pastel_plush_animal_sprite_grid.png": {
+      "generationId": "51fcc3ff-3836-4de4-aa76-f3d50eb4740a",
+      "sha256": "0fe1c87ad66e286b0738951b016462888fc0cefd2c631c87641c20e13249a5a3",
+      "dimensions": [
+        1448,
+        1086
+      ]
+    },
+    "kawaii_plush_pet_shop_sticker_sheet.png": {
+      "generationId": "1859dd47-544a-406c-8acc-258d1232e37a",
+      "sha256": "6864c44a91e253ffa95c6a65be655c66b95880cd9d12d82ffd331fbeb577a5f6",
+      "dimensions": [
+        1448,
+        1086
+      ]
+    }
+  },
+  "assets": {
+    "pets/unicorn/idle": {
+      "path": "assets/pets-v2/pets/unicorn/idle.webp",
+      "crop": [
+        62,
+        0,
+        407,
+        412
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "fd4a4663d10750989e1b1709b3e47b35191b8b1aaf1a86bd8295fb9a08bc45ae"
+    },
+    "pets/unicorn/happy": {
+      "path": "assets/pets-v2/pets/unicorn/happy.webp",
+      "crop": [
+        249,
+        0,
+        494,
+        253
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "35cef3d4fa1ca48e334674f1a93ec5f04f473c63c367a8346ac013c55a36f300"
+    },
+    "pets/unicorn/eating": {
+      "path": "assets/pets-v2/pets/unicorn/eating.webp",
+      "crop": [
+        494,
+        0,
+        735,
+        253
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "288ed8f808867a9c76991b57d0279712795f898bfbf4245814eb19128aa08b8d"
+    },
+    "pets/unicorn/wave": {
+      "path": "assets/pets-v2/pets/unicorn/wave.webp",
+      "crop": [
+        735,
+        0,
+        975,
+        253
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "ca3b03d3034a40901f4f5dd2784bad008e78f4ad92a2cda3ef087f814991373d"
+    },
+    "pets/unicorn/sleep": {
+      "path": "assets/pets-v2/pets/unicorn/sleep.webp",
+      "crop": [
+        975,
+        0,
+        1210,
+        253
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "87491490350f22ae197ad6ad051bf25c76c7baba7bc680e9091b9e12a9b7e234"
+    },
+    "pets/unicorn/skill": {
+      "path": "assets/pets-v2/pets/unicorn/skill.webp",
+      "crop": [
+        1210,
+        0,
+        1448,
+        253
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "8141461f53072dfcbbde0b2604f8b9af9426516d2dfc985175b70f2aa7cf1e21"
+    },
+    "pets/puppy/idle": {
+      "path": "assets/pets-v2/pets/puppy/idle.webp",
+      "crop": [
+        708,
+        32,
+        1120,
+        409
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "708d08b31974d171878740b1160b104c940cef54d961b96800294f00e5940796"
+    },
+    "pets/puppy/happy": {
+      "path": "assets/pets-v2/pets/puppy/happy.webp",
+      "crop": [
+        249,
+        253,
+        494,
+        467
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "d7568f4cc7cae778d4b62fe5a10cca8cde0aa5af160379fff007f295846b5c69"
+    },
+    "pets/puppy/eating": {
+      "path": "assets/pets-v2/pets/puppy/eating.webp",
+      "crop": [
+        494,
+        253,
+        735,
+        467
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "a31bccd4fcb726357eb0712416f7179bf707bce963ee308157aa7a0fec0de2d6"
+    },
+    "pets/puppy/wave": {
+      "path": "assets/pets-v2/pets/puppy/wave.webp",
+      "crop": [
+        735,
+        253,
+        975,
+        467
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "b26b06ef104fc180c4281462ac32e7c128c095876bd2744653b5ef7336da78fa"
+    },
+    "pets/puppy/sleep": {
+      "path": "assets/pets-v2/pets/puppy/sleep.webp",
+      "crop": [
+        975,
+        253,
+        1210,
+        467
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "5a84ce0a0fb5d6990385a25ed59518d2e04edd3310c8439547f63d1205b81056"
+    },
+    "pets/puppy/skill": {
+      "path": "assets/pets-v2/pets/puppy/skill.webp",
+      "crop": [
+        1210,
+        253,
+        1448,
+        467
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "62f318a521a41a17a6a6cccbb64288b23d0fc2c5ea08fbd914efded763c252bd"
+    },
+    "pets/rabbit/idle": {
+      "path": "assets/pets-v2/pets/rabbit/idle.webp",
+      "crop": [
+        0,
+        434,
+        404,
+        784
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "2fb96e8d3b2d3a650a500ffcdf765e9af49f2907e92c2b6c129e772f26a6aa98"
+    },
+    "pets/rabbit/happy": {
+      "path": "assets/pets-v2/pets/rabbit/happy.webp",
+      "crop": [
+        249,
+        467,
+        494,
+        674
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "87cd33cdb6979e8a7c3cb35632d8ca2b20662d107e88ed0e3d1d9c9f916cff66"
+    },
+    "pets/rabbit/eating": {
+      "path": "assets/pets-v2/pets/rabbit/eating.webp",
+      "crop": [
+        494,
+        467,
+        735,
+        674
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "88cb7b4d10fb2a2bb519432b50df49a0da7c815e110a6055e2d22ecb0394bef9"
+    },
+    "pets/rabbit/wave": {
+      "path": "assets/pets-v2/pets/rabbit/wave.webp",
+      "crop": [
+        735,
+        467,
+        975,
+        674
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "7530f32025e96f0d93520e11c881cc5fb1dd27feb12ecfd3bd9a02c352d2dc7f"
+    },
+    "pets/rabbit/sleep": {
+      "path": "assets/pets-v2/pets/rabbit/sleep.webp",
+      "crop": [
+        975,
+        467,
+        1210,
+        674
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "3a2add59a8d47616c041c67b515935138fbd495f01244244cd334be166e219f0"
+    },
+    "pets/rabbit/skill": {
+      "path": "assets/pets-v2/pets/rabbit/skill.webp",
+      "crop": [
+        1210,
+        467,
+        1448,
+        674
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "29c0a4a12860c87332addd8dec3d303cc51012d5284ba329021fb0305cca4ed4"
+    },
+    "pets/fox/idle": {
+      "path": "assets/pets-v2/pets/fox/idle.webp",
+      "crop": [
+        710,
+        417,
+        1150,
+        795
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "2c58b763c04205a5825bee3e8e0062ee3bd95cba5457e184e978acc7bbc795f4"
+    },
+    "pets/fox/happy": {
+      "path": "assets/pets-v2/pets/fox/happy.webp",
+      "crop": [
+        249,
+        674,
+        494,
+        884
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "f2dfb28db36e00000f48f49ead7a1b02d09b998b340244bb9d0cae580220d89d"
+    },
+    "pets/fox/eating": {
+      "path": "assets/pets-v2/pets/fox/eating.webp",
+      "crop": [
+        494,
+        674,
+        735,
+        884
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "ffb457ea3d8b756aaac5ca0f85a31dfde04bfe244777fd6b0bd6241fa588d669"
+    },
+    "pets/fox/wave": {
+      "path": "assets/pets-v2/pets/fox/wave.webp",
+      "crop": [
+        735,
+        674,
+        975,
+        884
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "89b8a256001de8e73d16631893e74d1ac07e5f39bb5558b888e4c4d98b282e01"
+    },
+    "pets/fox/sleep": {
+      "path": "assets/pets-v2/pets/fox/sleep.webp",
+      "crop": [
+        975,
+        674,
+        1210,
+        884
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "e5425187d6ba8d7946b44117c4a142b6f6887163d4067b5fab752abd28865db6"
+    },
+    "pets/fox/skill": {
+      "path": "assets/pets-v2/pets/fox/skill.webp",
+      "crop": [
+        1210,
+        674,
+        1448,
+        884
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "d57f393a6367dbc908824b6855093be4ada6c65808285e204180ccb444823117"
+    },
+    "pets/chick/idle": {
+      "path": "assets/pets-v2/pets/chick/idle.webp",
+      "crop": [
+        259,
+        787,
+        567,
+        1080
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "ceeaa43d90d0b731ab6fffde6c5cb0a3d45e1d4be31cb3c69d17f73d5017ae1f"
+    },
+    "pets/chick/happy": {
+      "path": "assets/pets-v2/pets/chick/happy.webp",
+      "crop": [
+        249,
+        884,
+        494,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "86ea525fea1cea53d8d58bc5290da7c354331a7caf28c506fd8b714390e59ebf"
+    },
+    "pets/chick/eating": {
+      "path": "assets/pets-v2/pets/chick/eating.webp",
+      "crop": [
+        494,
+        884,
+        735,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "29ca48cca90ea408b95266f3f6c8091a4a8b327d4de4e225c634f30716352adc"
+    },
+    "pets/chick/wave": {
+      "path": "assets/pets-v2/pets/chick/wave.webp",
+      "crop": [
+        735,
+        884,
+        975,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "d0054284930732a92f78038756cc3b628793054211207557d87405714c713791"
+    },
+    "pets/chick/sleep": {
+      "path": "assets/pets-v2/pets/chick/sleep.webp",
+      "crop": [
+        975,
+        884,
+        1210,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "d65102fad0919ab41ce520ce9f6de54fda76701585727840838a2ebeab976004"
+    },
+    "pets/chick/skill": {
+      "path": "assets/pets-v2/pets/chick/skill.webp",
+      "crop": [
+        1210,
+        884,
+        1448,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "pastel_plush_animal_sprite_grid.png",
+      "sha256": "0e2eeddca5fb06b415088018d087f815b529f50b58ec651897d090945c79e971"
+    },
+    "eggs/unicorn": {
+      "path": "assets/pets-v2/eggs/unicorn.webp",
+      "crop": [
+        410,
+        62,
+        699,
+        416
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "f96d940909bc8637d740d7c0039f333752cbbd2dd9761f890be42355cf36a59e"
+    },
+    "eggs/puppy": {
+      "path": "assets/pets-v2/eggs/puppy.webp",
+      "crop": [
+        1120,
+        61,
+        1448,
+        423
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "e6985dfa801a430e89ee95c9a18ee8c5fa5d8c37dedd149a098fd863b2bfa871"
+    },
+    "eggs/rabbit": {
+      "path": "assets/pets-v2/eggs/rabbit.webp",
+      "crop": [
+        411,
+        454,
+        702,
+        795
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "af3d886679b769e5b117e8c1e887bf9df5620369a0dbceab87e4b2f5b5adf294"
+    },
+    "eggs/fox": {
+      "path": "assets/pets-v2/eggs/fox.webp",
+      "crop": [
+        1150,
+        451,
+        1448,
+        799
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "3a060e8a64e43045be6ef58adf20172d4e253aba7a4fe8bc25fb127be95b6b90"
+    },
+    "eggs/chick": {
+      "path": "assets/pets-v2/eggs/chick.webp",
+      "crop": [
+        565,
+        787,
+        813,
+        1086
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "cba4a618e211c4545bb8b795dd6d611832d88788d0528d1732c89c71dff743c2"
+    },
+    "badge": {
+      "path": "assets/pets-v2/badge.webp",
+      "crop": [
+        877,
+        822,
+        1116,
+        1067
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "1ccbfd946cf9cdc786e280650b7279fe8c3f1734fee07f8e68b25068fe2c4710"
+    },
+    "star": {
+      "path": "assets/pets-v2/star.webp",
+      "crop": [
+        1133,
+        806,
+        1384,
+        1057
+      ],
+      "size": [
+        192,
+        192
+      ],
+      "source": "kawaii_pastel_plush_pet_collection.png",
+      "sha256": "0f4152fba170bfcae5d10712ea31e5e2b01bddb9e1e94fdbcdfca91ded8eb1e8"
+    },
+    "shop/dress-pink": {
+      "path": "assets/pets-v2/shop/dress-pink.webp",
+      "crop": [
+        0,
+        198,
+        287,
+        470
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "92a7af0327ea385afda7a703cf4c28b2e9d8a8ae139ee0e6f3ef9e58aa6fc9f3"
+    },
+    "shop/dress-sailor": {
+      "path": "assets/pets-v2/shop/dress-sailor.webp",
+      "crop": [
+        287,
+        198,
+        577,
+        470
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "33ebe19397eb7ca3e478586eff201540575aedc622041d2008522873dcebc955"
+    },
+    "shop/dress-rainbow": {
+      "path": "assets/pets-v2/shop/dress-rainbow.webp",
+      "crop": [
+        577,
+        198,
+        868,
+        470
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "30fbf183cbd4341b782ce29d40615ed07331f713f82688221f0ad1e13e40b567"
+    },
+    "shop/dress-leaf": {
+      "path": "assets/pets-v2/shop/dress-leaf.webp",
+      "crop": [
+        868,
+        198,
+        1160,
+        470
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "f5fcb2eb6b4d59b00ad95da56dcbd5e61983621ecabfcae21402968178d3e8b9"
+    },
+    "shop/dress-bee": {
+      "path": "assets/pets-v2/shop/dress-bee.webp",
+      "crop": [
+        1160,
+        198,
+        1448,
+        470
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "bb47ba3be1b5f1f8126322380302faf877fb032d26cf138f7b63cf51d04bb583"
+    },
+    "shop/house-strawberry": {
+      "path": "assets/pets-v2/shop/house-strawberry.webp",
+      "crop": [
+        0,
+        472,
+        287,
+        756
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "ee48ec6757daa2d9d8b89a11d357006348e04472ede0a64a84d131cd2d2f3ccc"
+    },
+    "shop/house-cloud": {
+      "path": "assets/pets-v2/shop/house-cloud.webp",
+      "crop": [
+        287,
+        472,
+        577,
+        756
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "997ef90cef46955e49014d9c0869ad1f3b0a7ba38a66c10aff37627a6665c0a7"
+    },
+    "shop/house-moon": {
+      "path": "assets/pets-v2/shop/house-moon.webp",
+      "crop": [
+        577,
+        472,
+        868,
+        756
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "3858a9fa5693822db74ecd1fbd0d515c5d02de85ed06b4b94fb70d7ee3a5648f"
+    },
+    "shop/house-tree": {
+      "path": "assets/pets-v2/shop/house-tree.webp",
+      "crop": [
+        868,
+        472,
+        1160,
+        756
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "2ee7ac09db6a930158e62982c482c2d228fbb3053090e9392d668915e791b6b9"
+    },
+    "shop/house-star": {
+      "path": "assets/pets-v2/shop/house-star.webp",
+      "crop": [
+        1160,
+        472,
+        1448,
+        756
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "41794ed672e67ec90cd967b5d95c6793d361fdeaaed0971a2551ace89c40445c"
+    },
+    "shop/furniture-bed": {
+      "path": "assets/pets-v2/shop/furniture-bed.webp",
+      "crop": [
+        0,
+        755,
+        258,
+        958
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "ab80e0756de080a224ccc43c13be0568fa7ab9b0863af24896be0c326b6b5ade"
+    },
+    "shop/furniture-lamp": {
+      "path": "assets/pets-v2/shop/furniture-lamp.webp",
+      "crop": [
+        258,
+        744,
+        428,
+        963
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "ac3068fe6d58f60dbe90995cf86665c563fc47de3831ae0a6af1e6a0f70e9bf1"
+    },
+    "shop/furniture-rug": {
+      "path": "assets/pets-v2/shop/furniture-rug.webp",
+      "crop": [
+        428,
+        763,
+        732,
+        964
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "a5d5d84211c800f7d47895f0e478d29262a287daa55e8569fa76b4ae8480b5bc"
+    },
+    "shop/furniture-shelf": {
+      "path": "assets/pets-v2/shop/furniture-shelf.webp",
+      "crop": [
+        732,
+        750,
+        940,
+        970
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "4d7257a7e9ca5b3809c77533103a232fbb8ff09f963a0d93479b8c4aa28e8118"
+    },
+    "shop/furniture-cushion": {
+      "path": "assets/pets-v2/shop/furniture-cushion.webp",
+      "crop": [
+        940,
+        783,
+        1210,
+        962
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "5ee8a00cd99cf96ee7f5d35c5596202ab32cc0ca0ca11e3752aa943fde758a04"
+    },
+    "shop/furniture-chest": {
+      "path": "assets/pets-v2/shop/furniture-chest.webp",
+      "crop": [
+        1205,
+        756,
+        1448,
+        966
+      ],
+      "size": [
+        384,
+        384
+      ],
+      "source": "kawaii_plush_pet_shop_sticker_sheet.png",
+      "sha256": "7c989c7acd00bf991457d8ecb7f8fe773f0a5e25838de0462c9d9a01bd31b62a"
+    }
+  }
+}

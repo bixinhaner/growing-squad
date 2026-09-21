@@ -1,11 +1,14 @@
+import { illustrated, GENERATED_PROPS, itemImage } from './petVisualAssets.js'
+import { PlushActor, PlushEgg } from './PlushArt.jsx'
 import { useId } from 'react'
 import { PetCreature } from './PetCreature.jsx'
 import { getSpecies } from '../../modules/pets/petCatalog.js'
 
 const starPath = 'M50 9 61 35 90 38 68 57 74 86 50 71 26 86 32 57 10 38 39 35Z'
 /** Reusable text-free illustrations: actual independent pieces, not a sliced UI poster. */
-export function PetProp({ kind = 'heart', className = '', label, decorative = true, style }) {
+export function PetProp({ kind = 'heart', className = '', label, decorative = true, style, ...svgProps }) {
   const uid = useId().replaceAll(':', '')
+  if (GENERATED_PROPS.includes(kind)) return <svg className={`pet-prop pet-generated-prop ${className}`} style={style} {...svgProps} viewBox="0 0 100 100" role={decorative?undefined:"img"} aria-label={decorative?undefined:label||kind} aria-hidden={decorative?"true":undefined}><image href={itemImage(kind)} width="100" height="100"/></svg>
   let shape
   switch (kind) {
     case 'egg': shape = <><path d="M50 8C26 8 13 49 17 69C21 98 79 98 83 69C87 49 74 8 50 8Z" fill="#f9edcf" stroke="#c9a679" strokeWidth="2" /><path d={starPath} transform="translate(23 28) scale(.53)" fill="#ecc45b" /></>; break
@@ -34,13 +37,14 @@ export function PetProp({ kind = 'heart', className = '', label, decorative = tr
     case 'star': shape = <path d={starPath} fill="#ebc566" stroke="#d8b056" strokeWidth="2" />; break
     default: shape = <path d="M50 87C38 75 5 52 11 29Q20 1 50 25Q80 1 89 29C95 52 62 75 50 87Z" fill="#dca6a4" />
   }
-  return <svg className={`pet-prop ${className}`} style={style} viewBox="0 0 100 100" role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : label || kind} aria-hidden={decorative ? 'true' : undefined} focusable="false"><defs><filter id={`${uid}-shadow`} x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#795e41" floodOpacity=".12" /></filter></defs><g filter={`url(#${uid}-shadow)`}>{shape}</g></svg>
+  return <svg className={`pet-prop ${className}`} style={style} {...svgProps} viewBox="0 0 100 100" role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : label || kind} aria-hidden={decorative ? 'true' : undefined} focusable="false"><defs><filter id={`${uid}-shadow`} x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#795e41" floodOpacity=".12" /></filter></defs><g filter={`url(#${uid}-shadow)`}>{shape}</g></svg>
 }
 
-export function EggArt({ species = 'bear', crack = 0, className = '', label }) {
+export function EggArt({ species = 'bear', crack = 0, className = '', label, ...svgProps }) {
   const uid = useId().replaceAll(':', '')
   const kind = getSpecies(species)
-  return <svg className={`pet-egg ${className}`} viewBox="0 0 240 280" role="img" aria-label={label || kind.eggName} focusable="false">
+  if(illustrated(species)) return <PlushEgg species={species} crack={crack} className={className} label={label||kind.eggName} width={svgProps.width} height={svgProps.height}/>
+  return <svg className={`pet-egg ${className}`} viewBox="0 0 240 280" {...svgProps} role="img" aria-label={label || kind.eggName} focusable="false">
     <defs><radialGradient id={`${uid}-egg`} cx="32%" cy="28%" r="75%"><stop offset="0" stopColor="#fff9ec" /><stop offset=".68" stopColor={kind.color} stopOpacity=".55" /><stop offset="1" stopColor={kind.color} /></radialGradient><pattern id={`${uid}-speck`} width="13" height="14" patternUnits="userSpaceOnUse"><path d="m2 3 2 1m5 7 2-1" stroke="#fffdf3" strokeWidth="1" opacity=".35" /></pattern><clipPath id={`${uid}-mask`}><path d="M120 19C72 19 33 103 31 169C27 228 65 260 120 260S213 228 209 169C207 103 168 19 120 19Z" /></clipPath></defs>
     <ellipse cx="120" cy="262" rx="91" ry="10" fill="#a07f5f" opacity=".15" /><g clipPath={`url(#${uid}-mask)`}><path d="M20 12h200v253H20Z" fill={`url(#${uid}-egg)`} /><path d="M20 12h200v253H20Z" fill={`url(#${uid}-speck)`} />
       {species === 'bear' ? <><path d="M82 148Q35 109 89 83Q122 116 82 148M151 203Q117 160 169 147Q193 179 151 203" fill="#7a9f78" opacity=".7" /><path d="m84 146 4-37m62 94 16-36" stroke="#e4eed9" strokeWidth="3" /></> : species === 'rabbit' ? <><path d="M155 104C106 133 65 69 112 47C82 84 121 119 155 104Z" fill="#edc96e" /><path d={starPath} transform="translate(51 151) scale(.48)" fill="#bba9cd" /><path d={starPath} transform="translate(145 187) scale(.32)" fill="#f6d784" /></> : species === 'cloud' ? <><path d="M46 127Q32 102 56 95Q59 68 81 85Q108 82 108 110Q124 135 95 138H62Z" fill="#8eb8d0" opacity=".7" /><path d="M128 190Q114 165 138 158Q141 131 163 148Q190 145 190 173Q203 198 176 201H144Z" fill="#9bbfd4" opacity=".6" /></> : <><circle cx="112" cy="109" r="32" fill="#9c8ec6" /><ellipse cx="112" cy="111" rx="49" ry="12" transform="rotate(-28 112 111)" fill="none" stroke="#f6d897" strokeWidth="8" /><path d={starPath} transform="translate(138 175) scale(.48)" fill="#efce75" /></>}
@@ -49,6 +53,10 @@ export function EggArt({ species = 'bear', crack = 0, className = '', label }) {
   </svg>
 }
 
-export function PetActor({ species, pose = 'wave', motion = 'idle', size = 'baby', className = '', dress='', skill=3, dirt=0 }) {
-  return <span className={`pet-actor pet-actor--${motion} pet-actor--${size} ${className}`}><PetCreature species={species} age={size} action={motion === 'idle' ? pose === 'sleep' ? 'rest' : 'idle' : motion} asleep={pose === 'sleep'} dress={dress} skill={skill} dirt={dirt} /></span>
+export function PetActor({ species, pose='wave', motion='idle', size='baby', className='', dress='', skill=3, dirt=0 }) {
+  const action=motion==='idle' ? pose==='sleep'?'rest':pose==='celebrate'?'celebrate':'idle' : motion
+  return <span className={`pet-actor pet-actor--${motion} pet-actor--${size} ${className}`}>
+    {illustrated(species) ? <PlushActor species={species} age={size} action={action} dress={dress} skill={skill} dirt={dirt}/>
+    : <PetCreature species={species} age={size} action={action==='signature'?'celebrate':action} asleep={pose==='sleep'} dress={dress} skill={skill} dirt={dirt}/>}
+  </span>
 }

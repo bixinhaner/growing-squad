@@ -1,7 +1,7 @@
 import { z } from 'zod'
 export const MODULE_IDS=['pets','core','bedtime','movement','reading','responsibility','inventor','assistant','growth','rewards']
 export const operationEnvelopeSchema=z.object({id:z.string().regex(/^op_[A-Za-z0-9_-]+$/),schemaVersion:z.literal(1),moduleId:z.enum(MODULE_IDS),type:z.string().min(1),target:z.object({profileId:z.string().nullable(),entityType:z.string(),entityId:z.string().nullable()}),expectedVersion:z.number().int().nullable(),occurredAt:z.number().int(),clientSequence:z.number().int().nonnegative(),payload:z.record(z.string(),z.any())})
-const VERSIONED_OPERATION_TYPES=new Set(['pets.memory-removed',
+const VERSIONED_OPERATION_TYPES=new Set(['pets.growth-requested','pets.badge-exchanged','pets.goal-selected','pets.memory-removed',
 'pets.play-drafted','pets.work-saved','pets.layout-updated','pets.garden-updated','pets.snapshot-added','pets.media-added','pets.media-synced','pets.adopted','pets.cared','pets.hatched','pets.renamed','pets.item-requested','pets.item-approved','pets.item-declined','pets.item-cancelled','pets.item-refunded','pets.settings-updated','pets.placed','pets.room-changed','pets.play-started','pets.play-ended','pets.memory-added','pets.memory-pinned','pets.life-shared',
   'bedtime.step.completed','bedtime.step.reset','bedtime.step.skipped','bedtime.in-bed.confirmed','bedtime.asleep.recorded','bedtime.asleep.skipped','bedtime.settlement.reverted','bedtime.schedule.updated','bedtime.routine.updated',
   'rewards.wish.approved','rewards.wish.reverted','rewards.catalog.updated','core.profile.deleted','core.profile.updated','core.accessibility.updated','core.routines.updated','core.scaffold.updated','core.support.resolved','core.support.evidence-recorded',
@@ -15,6 +15,9 @@ const VERSIONED_OPERATION_TYPES=new Set(['pets.memory-removed',
 export function operationRequiresVersion(value) { return VERSIONED_OPERATION_TYPES.has(typeof value==='string' ? value : value?.type) }
 export function entityKeyForOperation(op) { return `${op?.moduleId || 'core'}:${op?.target?.profileId || 'family'}:${op?.target?.entityType || 'family'}:${op?.target?.entityId || 'root'}` }
 const DEFINITIONS={
+  PET_REQUEST_GROWTH:['pets','pets.growth-requested','pet'],
+  PET_EXCHANGE_BADGES:['pets','pets.badge-exchanged','pet'],
+  PET_SELECT_GOAL:['pets','pets.goal-selected','pet'],
   PET_SAVE_PLAY_DRAFT:['pets','pets.play-drafted','pet'],
   PET_SAVE_WORK:['pets','pets.work-saved','pet'],
   PET_MOVE_OBJECT:['pets','pets.layout-updated','pet'],
@@ -70,7 +73,7 @@ export function createOperationEnvelope(action,profileId,clientSequence,id=opera
   return operationEnvelopeSchema.parse({id,schemaVersion:1,moduleId,type,target:{profileId:profileId || null,entityType,entityId:entityId ? String(entityId) : null},expectedVersion:Number.isInteger(action.expectedVersion) ? action.expectedVersion : null,occurredAt:Number(action.timestamp) || Date.now(),clientSequence,payload})
 }
 export function toLegacyAction(operation) { const type=Object.entries(DEFINITIONS).find(([,d]) => d[1]===operation.type)?.[0]; if(!type) throw new Error(`不支持的操作：${operation.type}`); return {type,profileId:operation.target.profileId,...operation.payload} }
-const CHILD_TYPES=new Set([
+const CHILD_TYPES=new Set(['pets.growth-requested','pets.badge-exchanged','pets.goal-selected',
 'pets.play-drafted','pets.work-saved','pets.layout-updated','pets.garden-updated','pets.snapshot-added','pets.media-added','pets.media-synced','pets.adopted','pets.cared','pets.hatched','pets.renamed','pets.item-requested','pets.item-cancelled','pets.placed','pets.room-changed','pets.play-started','pets.play-ended','pets.memory-added','pets.memory-pinned','pets.life-shared',
   'bedtime.step.completed','bedtime.step.reset','bedtime.step.skipped','bedtime.in-bed.confirmed','rewards.wish.requested',
   'core.today.item-selected','core.today.completed','core.today.support-chosen','core.today.skipped','core.today.later',

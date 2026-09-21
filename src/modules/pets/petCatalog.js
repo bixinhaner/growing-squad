@@ -1,5 +1,9 @@
 /** Fixed catalogue. Prices are authoritative on the client AND server. No loot boxes. */
 export const PET_SPECIES = [
+  { id:'unicorn', name:'独角兽', eggName:'彩虹蛋', mark:'rainbow', color:'#c6b3dc', copy:'软软的彩虹鬃毛，会带来小小惊喜', defaultName:'彩彩' },
+  { id:'puppy', name:'小狗', eggName:'爪印蛋', mark:'paw', color:'#cdb398', copy:'垂着耳朵、爱玩球的小狗', defaultName:'布丁' },
+  { id:'fox', name:'九尾狐', eggName:'月舞蛋', mark:'moon', color:'#d3a5b9', copy:'有蓬松尾巴、会跳月光舞的小狐狸', defaultName:'月月' },
+  { id:'chick', name:'小鸡', eggName:'暖暖蛋', mark:'feather', color:'#edd58b', copy:'圆滚滚、会拍小翅膀的小鸡', defaultName:'啾啾' },
   { id: 'bear', name: '眠眠熊', eggName: '森林蛋', mark: 'leaf', color: '#87a67a', copy: '一只会抱抱、会玩球的小熊', defaultName: '糯糯' },
   { id: 'rabbit', name: '月兔', eggName: '月光蛋', mark: 'moon', color: '#d6b3c8', copy: '一只耳朵会跟着心情动的月兔', defaultName: '团团' },
   { id: 'cloud', name: '云朵', eggName: '云朵蛋', mark: 'cloud', color: '#95bed2', copy: '一朵软绵绵、喜欢躲猫猫的云朵', defaultName: '绵绵' },
@@ -10,7 +14,7 @@ export const PET_ROOMS = [
   { id: 'forest', name: '森林小屋', itemId: 'forest-room' },
   { id: 'space', name: '安静太空', itemId: 'space-room' },
 ]
-export const PET_ITEMS = [
+const LEGACY_ITEMS = [
   { id: 'daisy-rug', name: '小花地毯', price: 3, category: 'decor', art: 'rug', slot: 'rug', copy: '把脚下变成软软的小花。永久保留。' },
   { id: 'star-lamp', name: '星星小夜灯', price: 5, category: 'decor', art: 'lamp', slot: 'lamp', copy: '点一下，亮起温暖的星光。永久保留。' },
   { id: 'moon-planter', name: '月亮花盆', price: 6, category: 'decor', art: 'plant', slot: 'decor', copy: '一朵不用追着浇水的小花。永久保留。' },
@@ -27,7 +31,26 @@ export const PET_ITEMS = [
   { id: 'forest-room', name: '森林小屋', price: 25, category: 'room', art: 'forest', room: 'forest', copy: '把小屋换成森林配色，原有家具和回忆都保留。' },
   { id: 'space-room', name: '安静太空', price: 25, category: 'room', art: 'planet', room: 'space', copy: '星球窗外的小屋；不用重新孵蛋。' },
 ]
+// Existing item IDs and historic prices stay stable for ownership and refunds.
+// New purchases always use badgePrice; no new item purchase spends starlight.
+export const PET_ITEMS = [
+  ...LEGACY_ITEMS.map(item => ({...item, badgePrice: item.category === 'room' ? 2 : item.category === 'story' || item.category === 'skill' ? 2 : 1})),
+  ...[
+    ['pink-dress','花花公主裙','dress-pink'], ['sailor-dress','星星海军裙','dress-sailor'],
+    ['rainbow-outfit','彩虹连帽裙','dress-rainbow'], ['leaf-dress','森林花裙','dress-leaf'], ['bee-outfit','蜜蜂小裙子','dress-bee'],
+  ].map(([id,name,art]) => ({id,name,art,category:'dress',slot:'dress',badgePrice:1,price:1,copy:'1 枚徽章，永久拥有。先试穿，再决定。'})),
+  ...[
+    ['strawberry-house','草莓小屋','house-strawberry'], ['cloud-house','彩虹云朵屋','house-cloud'],
+    ['moon-house','弯弯月亮屋','house-moon'], ['tree-house','森林树洞屋','house-tree'], ['star-house','星星帐篷屋','house-star'],
+  ].map(([id,name,art]) => ({id,name,art,category:'house',slot:'house',badgePrice:2,price:2,copy:'2 枚徽章，永久拥有。摆在小屋里，伙伴可以进去休息。'})),
+  ...[
+    ['paw-bed','软软爪印床','furniture-bed','bed'], ['storybook-shelf','故事小书架','furniture-shelf','decor'],
+    ['flower-cushion','花朵软坐垫','furniture-cushion','decor'], ['toy-chest','星星玩具箱','furniture-chest','toy'],
+  ].map(([id,name,art,slot]) => ({id,name,art,slot,category:'decor',badgePrice:1,price:1,copy:'用 1 枚徽章给小屋添一点喜欢。永久保留，可随时收起。'})),
+]
+
 export const PET_SKILLS = [
+  { id:'signature', name:'专属小本领', art:'star', itemId:null, minLevel:3, copy:'3 级开放，不再花星光；一起练习三次，学会自己的招牌动作。' },
   { id: 'wave', name: '挥手打招呼', art: 'heart', itemId: null, copy: '抬起小手，看看你，再挥一挥。' },
   { id: 'spin', name: '开心转圈', art: 'ribbon', itemId: 'ribbon', copy: '先小转身，再转一圈，最后站稳。' },
   { id: 'tidy', name: '自己收玩具', art: 'basket', itemId: 'toy-basket', copy: '找到球、抱起来、轻轻放回篮子。' },
@@ -44,6 +67,7 @@ export const PET_ACTIONS = {
   sleep: { name: '盖被子晚安', message: '安心休息，下次还在这里。', art: 'blanket' },
 }
 export const PET_GAMES = [
+  { id:'drawing', name:'画给小伙伴', art:'frame', itemId:null, copy:'画一幅自己的画，送给小伙伴。' },
   { id:'theater', name:'我的小剧场', art:'book', itemId:null, copy:'排好动作，让伙伴演出你的小故事。' },
   { id:'robot', name:'机器人试验场', art:'robot', itemId:'robot', copy:'换轮子、改挡板，真的试试能不能送到。' },
   { id: 'ball', name: '你推我接', art: 'ball', itemId: null, copy: '把球轻轻滚过来，伙伴会推回去。' },

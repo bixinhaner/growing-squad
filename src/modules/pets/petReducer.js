@@ -1,12 +1,16 @@
+import { newEconomy, levelProgress, badgeBalance, appendBadge, applyGrowth } from './petEconomy.js'
 import { freshLife, rememberPreference, CREATION, GARDEN, POINT, hasWork, validWorkForGame, snapshotFor } from './petLife.js'
 import { z } from 'zod'
 import { activityMomentsFor } from '../../core/activity/activitySelectors.js'
 import { PET_ACTIONS, PET_GAMES, PET_ITEMS, PET_ROOMS, PET_SKILLS, PET_SPECIES, getPetItem, getSpecies } from './petCatalog.js'
-import { emptyPetState, eggProgress, isPetQuiet, petAllowanceLeft, petBalance, petClock, petFor, petGameUnlocked, petGrowth, petRoundsLeft, petSettingsFor, petSettingsSchema, playLimitFor } from './petModel.js'
+import { emptyPetState, eggProgress, isPetQuiet, petAllowanceLeft, petBalance, petClock, petFor, petGameUnlocked, petGrowth, petRoundsLeft, petSettingsFor, petSettingsSchema, playLimitFor, petPlayTimeLeft } from './petModel.js'
 
 const id = z.string().regex(/^[A-Za-z0-9:_-]{1,160}$/).refine((value) => !['__proto__', 'constructor', 'prototype'].includes(value))
 const name = z.string().trim().min(1).max(12)
 const schemas = {
+  'pets.growth-requested': z.object({ amount:z.number().int().min(1).max(50), requestId:id }),
+  'pets.badge-exchanged': z.object({ itemId:id, requestId:id }),
+  'pets.goal-selected': z.object({ itemId: z.string().max(80).nullable() }),
   'pets.play-drafted': z.object({ sessionId:id, work:CREATION }),
   'pets.work-saved': z.object({ work: CREATION }),
   'pets.layout-updated': z.object({ itemId: z.string().max(80), point: POINT }),
@@ -15,7 +19,7 @@ const schemas = {
   'pets.media-added': z.object({ media:z.object({ id:z.string().regex(/^media_[A-Za-z0-9_-]{8,150}$/),kind:z.enum(['photo','audio','drawing']),mediaType:z.enum(['image/png','image/jpeg','image/webp','audio/mp4','audio/webm','audio/wav','audio/mpeg']),fileName:z.string().max(160),byteSize:z.number().int().min(1).max(12*1024*1024),status:z.enum(['local','synced']).default('local') }) }),
   'pets.media-synced': z.object({ mediaId:z.string().regex(/^media_[A-Za-z0-9_-]{8,150}$/) }),
   'pets.memory-removed': z.object({ memoryId:z.string().max(160) }),
-  'pets.adopted': z.object({ species: z.enum(PET_SPECIES.map((s) => s.id)), name }),
+  'pets.adopted': z.object({ species: z.enum(PET_SPECIES.map((s) => s.id)), name, economyVersion:z.literal(2).optional() }),
   'pets.cared': z.object({ action: z.enum(Object.keys(PET_ACTIONS)) }),
   'pets.hatched': z.object({}),
   'pets.renamed': z.object({ name }),
@@ -25,7 +29,7 @@ const schemas = {
   'pets.item-cancelled': z.object({ requestId: id }),
   'pets.item-refunded': z.object({ requestId: id }),
   'pets.settings-updated': z.object({ settings: petSettingsSchema }),
-  'pets.placed': z.object({ slot: z.enum(['rug', 'lamp', 'decor', 'toy', 'dress']), itemId: z.string().max(80), position: z.enum(['left', 'middle', 'right']).optional() }),
+  'pets.placed': z.object({ slot: z.enum(['rug', 'lamp', 'decor', 'toy', 'dress', 'house', 'bed']), itemId: z.string().max(80), position: z.enum(['left', 'middle', 'right']).optional() }),
   'pets.room-changed': z.object({ room: z.enum(PET_ROOMS.map((r) => r.id)) }),
   'pets.play-started': z.object({ sessionId: id, game: z.string().max(80) }),
   'pets.play-ended': z.object({ sessionId: id, completed: z.boolean(), choices: z.array(z.string().max(80)).max(30).optional(), work:CREATION.optional() }),
@@ -54,7 +58,33 @@ function ledger(state, entry) {
   // Legacy selectors use the alias when it exists. Both must change atomically.
   if (Object.hasOwn(state, 'starLedger')) state.starLedger = next
 }
+function grantGrowth(state, pet, request, via, at) {
+  if (!pet.economy || !pet.hatchedAt) fail('请先更新并迎接小伙伴出生。')
+  if (petBalance(state, pet.profileId) < request.amount) fail('星光余额已经变化，没有扣除星光。',409)
+  if (via === 'allowance' && petAllowanceLeft(state,pet.profileId,at) < request.amount) fail('今天的自主额度不够，请家长回应。',409)
+  // All three records are part of the same rootReducer/SQLite transaction.
+  const change = applyGrowth(pet,request.amount,request.id,at)
+  ledger(state,{id:`pet-growth:${request.id}`,profileId:pet.profileId,delta:-request.amount,reason:`培养${pet.name}：${request.amount}颗星光`,petRequestId:request.id,createdAt:at})
+  Object.assign(request,{status:'approved',approvedAt:at,cost:request.amount,via,purchaseDay:petClock(state,at).day,levels:change.gained})
+  for (const level of change.gained) addMemory(pet,{id:`level:${level}`,title:`${pet.name}升到 ${level} 级啦`,at,kind:'milestone',art:'badge',note:'获得 15 枚徽章，可以兑换小屋和裙子。'})
+  pet.lastAction='growth';pet.lastActionAt=at
+}
+function grantBadgeItem(state, pet, request, at) {
+  const item=getPetItem(request.itemId)
+  if (!pet.economy || !item || !Number.isInteger(item.badgePrice)) fail('请先更新徽章小铺。')
+  if (pet.inventory[item.id]) return
+  if (badgeBalance(pet) < item.badgePrice) fail('徽章余额已经变化，没有兑换。',409)
+  appendBadge(pet,{id:`purchase:${request.id}`,delta:-item.badgePrice,reason:'purchase',requestId:request.id,at})
+  Object.assign(request,{status:'approved',approvedAt:at,cost:item.badgePrice,via:'badge',purchaseDay:petClock(state,at).day})
+  pet.inventory[item.id]={purchaseId:request.id,at}
+  if (pet.life?.goalItemId===item.id)pet.life.goalItemId=null
+  addMemory(pet,{id:`purchase:${request.id}`,title:`添了${item.name}`,at,kind:'purchase',art:item.art})
+}
 function grant(state, pet, request, via, at) {
+  if (request.kind === 'growth') return grantGrowth(state,pet,request,via,at)
+  if (request.currency === 'badge') return grantBadgeItem(state,pet,request,at)
+  if (pet.economy) fail('这份旧星光物品申请已停止使用，请到徽章小铺重新选择。',409)
+
   const item = getPetItem(request.itemId)
   if (!item) fail('这个物件暂时没有开放。')
   if (pet.inventory[item.id]) fail('已经拥有这个物件，不会再扣星光。', 409)
@@ -62,6 +92,7 @@ function grant(state, pet, request, via, at) {
   if (via === 'allowance' && petAllowanceLeft(state, pet.profileId, at) < item.price) fail('今天的自主额度不够了，可以请家长回应。', 409)
   Object.assign(request, { status: 'approved', approvedAt: at, cost: item.price, via, purchaseDay: petClock(state, at).day })
   pet.inventory[item.id] = { purchaseId: request.id, at }
+  if (pet.life?.goalItemId === item.id) pet.life.goalItemId = null
   ledger(state, { id: `pet:${request.id}`, profileId: pet.profileId, delta: -item.price, reason: `伙伴小铺：${item.name}`, petRequestId: request.id, createdAt: at })
   addMemory(pet, { id: `purchase:${request.id}`, title: `添了${item.name}`, at, kind: 'purchase', art: item.art })
 }
@@ -71,9 +102,13 @@ function storeWork(pet, work, key, at) {
   if (!hasWork(work)) return
   const old = pet.life.creations.find((c)=>c.id===key)
   if (!old && pet.life.creations.length >= 100) fail('作品柜已经满了，请先让家长导出备份。')
+  if (!old && pet.memories.length >= 1000) fail('相册已经装满，请先导出并整理。')
   if (old) { old.work=work; old.at=at }
   else pet.life.creations.push({id:key,at,work})
-  addMemory(pet,{id:key,title:work.title,at,kind:'creation',art:work.kind==='blocks'?'blocks':work.kind==='robot'?'robot':'book',work,note:'自己创作的作品，随时可以回看。'})
+  const memory = {id:key,title:work.title,at,kind:'creation',art:work.kind==='blocks'?'blocks':work.kind==='robot'?'robot':'book',workId:key,note:'自己创作的作品，随时可以回看。'}
+  const saved = pet.memories.find(m => m.id === key)
+  if (saved) Object.assign(saved, memory)
+  else addMemory(pet,memory)
 }
 
 /** Shared deterministic reducer; cloud applies it inside its existing SQLite transaction. */
@@ -101,7 +136,7 @@ export function petReducer(state, operation) {
     const species = getSpecies(payload.species)
     pets.byProfile[profileId] = { id: `pet:${profileId}`, profileId, species: species.id, name: payload.name, adoptedAt: at, hatchedAt: null,
       eggCare: {}, room: 'moon-room', inventory: {}, placed: {}, positions: {}, skills: {}, growthDays: {}, playSessions: {},
-      memories: [{ id: 'adopt', title: `把${species.eggName}带回了家`, at, kind: 'milestone', art: 'egg', note: '' }], lastAction: 'hello', lastActionAt: at, pinnedMemoryId: null, life:freshLife() }
+      memories: [{ id: 'adopt', title: `把${species.eggName}带回了家`, at, kind: 'milestone', art: 'egg', note: '' }], lastAction: 'hello', lastActionAt: at, pinnedMemoryId: null, life:freshLife(), ...(payload.economyVersion===2?{economy:newEconomy()}:{}) }
     next.meta = { ...next.meta, updatedAt: at }
     return next
   }
@@ -130,8 +165,45 @@ export function petReducer(state, operation) {
       addMemory(pet, { id: 'hatch', title: `${pet.name}破壳啦`, at, kind: 'milestone', art: 'egg', note: '这是我们的第一次见面。破壳动画可以随时重看。' })
       break
     }
+    case 'pets.goal-selected': {
+      if (payload.itemId && (!getPetItem(payload.itemId) || pet.inventory[payload.itemId])) fail('请选择尚未拥有的小物件。')
+      pet.life.goalItemId = payload.itemId
+      break
+    }
     case 'pets.renamed': pet.name = payload.name; break
+    case 'pets.growth-requested': {
+      if (!pet.economy || !pet.hatchedAt) fail('先迎接小伙伴破壳，再用星光培养。')
+      const existing=pets.requests[payload.requestId]
+      if (existing) {
+        if (existing.profileId!==profileId || existing.kind!=='growth' || existing.amount!==payload.amount) fail('这个申请编号已经被使用。',409)
+        return state
+      }
+      if (Object.values(pets.requests).some(r=>r.profileId===profileId&&r.kind==='growth'&&r.status==='pending')) fail('已经有一份培养申请等家长回应。',409)
+      if(payload.amount>levelProgress(pet).capacity) fail('超过满级需要的星光，请减少数量。',409)
+      if(petBalance(next,profileId)<payload.amount) fail('星光还不够，基础照顾和普通玩耍一直免费。',409)
+      const request={id:payload.requestId,profileId,itemId:'pet-growth',kind:'growth',currency:'starlight',amount:payload.amount,cost:payload.amount,status:'pending',requestedAt:at}
+      pets.requests[request.id]=request
+      if(petSettingsFor(next,profileId).spending==='allowance' && petAllowanceLeft(next,profileId,at)>=payload.amount) grantGrowth(next,pet,request,'allowance',at)
+      break
+    }
+    case 'pets.badge-exchanged': {
+      if(!pet.economy) fail('请先更新徽章小铺。')
+      const item=getPetItem(payload.itemId)
+      if(!item) fail('这个物件暂时没有开放。')
+      const existing=pets.requests[payload.requestId]
+      if(existing) {
+        if(existing.profileId!==profileId||existing.itemId!==item.id||existing.currency!=='badge')fail('这个申请编号已经被使用。',409)
+        return state
+      }
+      if(pet.inventory[item.id])return state
+      const request={id:payload.requestId,profileId,itemId:item.id,kind:'item',currency:'badge',cost:item.badgePrice,status:'pending',requestedAt:at}
+      pets.requests[request.id]=request
+      grantBadgeItem(next,pet,request,at)
+      break
+    }
     case 'pets.item-requested': {
+      if(pet.economy) fail('物品已改为徽章兑换；旧版不会自动扣款，请更新后重新选择。',409)
+
       const item = getPetItem(payload.itemId)
       if (!item) fail('这个物件暂时没有开放。')
       if (pets.requests[payload.requestId]) {
@@ -155,6 +227,7 @@ export function petReducer(state, operation) {
       if (!request || request.profileId !== profileId) fail('没有找到属于这个孩子的申请。', 404)
       if (operation.type === 'pets.item-refunded') {
         if (request.status === 'refunded') return state
+        if (request.kind === 'growth') fail('已经投入的培养会永久保留，不能换回星光；未批准的申请可取消。',409)
         if (request.status !== 'approved' || at < request.approvedAt || at - request.approvedAt > 30000) fail('这笔兑换已超过 30 秒撤销时间。', 409)
         if (pet.inventory[request.itemId]?.purchaseId !== request.id) fail('物件归属已变化。', 409)
         delete pet.inventory[request.itemId]
@@ -162,7 +235,8 @@ export function petReducer(state, operation) {
         for (const [slot, itemId] of Object.entries(pet.placed)) if (itemId === request.itemId) delete pet.placed[slot]
         if (getPetItem(request.itemId)?.room === pet.room) pet.room = 'moon-room'
         request.status = 'refunded'; request.refundedAt = at
-        ledger(next, { id: `pet-refund:${request.id}`, profileId, delta: request.cost, reason: `撤销伙伴兑换：${getPetItem(request.itemId).name}`, petRequestId: request.id, createdAt: at })
+        if(request.currency==='badge') appendBadge(pet,{id:`refund:${request.id}`,delta:request.cost,at,reason:'refund',requestId:request.id})
+        else ledger(next, { id: `pet-refund:${request.id}`, profileId, delta: request.cost, reason: `撤销伙伴兑换：${getPetItem(request.itemId).name}`, petRequestId: request.id, createdAt: at })
         const memory = pet.memories.find((m) => m.id === `purchase:${request.id}`)
         if (memory) memory.title = `撤销了${getPetItem(request.itemId).name}的兑换`
       } else {
@@ -177,7 +251,10 @@ export function petReducer(state, operation) {
       if (payload.itemId && (!item || item.slot !== payload.slot || !pet.inventory[item.id])) fail('只能摆放自己已经拥有的物件。')
       if (payload.itemId) pet.placed[payload.slot] = payload.itemId
       else delete pet.placed[payload.slot]
-      if (payload.position) pet.positions[payload.slot] = payload.position
+      if (payload.position) {
+        pet.positions[payload.slot] = payload.position
+        if (payload.itemId) delete pet.life.layout[payload.itemId]
+      }
       break
     }
     case 'pets.room-changed': {
@@ -191,9 +268,13 @@ export function petReducer(state, operation) {
       if (!petGameUnlocked(pet, payload.game)) fail('这个玩法还没有解锁。')
       if (pet.playSessions[payload.sessionId]) return state
       if (isPetQuiet(next, profileId, at)) fail('现在是安静时间，玩具已经收好。')
+      if (petPlayTimeLeft(next, profileId, at) <= 0) fail('今天约好的玩耍时间到了，作品已经收好。')
       if (petRoundsLeft(next, profileId, at) <= 0) fail('今天的小回合已经玩完啦，回忆会保留。')
       if (Object.values(pet.playSessions).some((s) => !s.endedAt && at < s.startedAt + playLimitFor(s.game))) fail('先结束正在玩的这一小轮吧。', 409)
-      for (const old of Object.values(pet.playSessions)) if (!old.endedAt) { old.endedAt = old.startedAt + playLimitFor(old.game); old.completed = false }
+      for (const old of Object.values(pet.playSessions)) if (!old.endedAt) {
+        if (old.work) { storeWork(pet, old.work, `work:${old.id}`, at); old.workSaved = true; delete old.work }
+        old.endedAt = old.startedAt + playLimitFor(old.game); old.completed = false
+      }
       pet.playSessions[payload.sessionId] = { id: payload.sessionId, game: payload.game, startedAt: at, day, endedAt: null, completed: false, choices: [] }
       break
     }
@@ -202,6 +283,7 @@ export function petReducer(state, operation) {
       if(!session) fail('找不到这一轮游戏。')
       if(session.endedAt) return state
       if(!validWorkForGame(payload.work,session.game)) fail('作品与这轮玩法不对应。')
+      if (!petGameUnlocked(pet, session.game)) fail('对应的玩具已收回小铺，先解锁再继续。')
       session.work=payload.work
       break
     }
@@ -210,12 +292,14 @@ export function petReducer(state, operation) {
       if (!session) fail('找不到这一轮游戏。', 404)
       if (session.endedAt) return state
       const elapsed = at - session.startedAt
+      if (elapsed < 0) fail('这次结束时间早于开始，请检查设备时间。',409)
       const completed = payload.completed && elapsed >= 3000 && elapsed <= playLimitFor(session.game) + 5000 && petGameUnlocked(pet, session.game) && !isPetQuiet(next, profileId, at)
       session.endedAt = at; session.completed = completed; session.choices = payload.choices || []
       const work=payload.work || session.work
       if (work) {
         if (!validWorkForGame(work, session.game)) fail('作品与这轮玩法不对应。')
         storeWork(pet, work, `work:${session.id}`, at)
+        session.workSaved = true; delete session.work
       }
       if (completed) {
         grow(pet, day, `play:${session.game}`, at)
@@ -269,6 +353,9 @@ export function petReducer(state, operation) {
       break
     }
     case 'pets.memory-removed': {
+      const target = pet.memories.find(m => m.id === payload.memoryId)
+      if (!target) return state
+      if (!['creation','snapshot','media','note'].includes(target.kind)) fail('出生和成长记录保留在相册中。')
       pet.memories=pet.memories.filter((m)=>m.id!==payload.memoryId)
       pet.life.creations=pet.life.creations.filter((c)=>c.id!==payload.memoryId)
       if(pet.pinnedMemoryId===payload.memoryId) pet.pinnedMemoryId=null

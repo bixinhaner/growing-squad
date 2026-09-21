@@ -1,3 +1,7 @@
+> 历史版本记录。当前电子宠物2.0规则及素材以 `pet-starlight-v2.md` 和 `../design/pets-v2/README.md` 为准，旧测试数字不作为本次验收结果。
+
+> 历史第一版说明：当前功能、动作、媒体和验收状态请以 [pet-release-local.md](pet-release-local.md) 为准。本文保留用于理解初始范围。
+
 # 从蛋开始的小伙伴 · 第一版交付
 
 ## 产品范围

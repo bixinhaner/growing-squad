@@ -10,6 +10,7 @@ import { unzipSync, strFromU8 } from 'fflate'
 import { createDefaultData } from '../src/domain/model.js'
 import { createOperationEnvelope, entityKeyForOperation } from '../src/core/sync/operationSchemas.js'
 import { petBalance } from '../src/modules/pets/petModel.js'
+import { badgeBalance, levelProgress } from '../src/modules/pets/petEconomy.js'
 const base='http://127.0.0.1:18901'
 let server, directory, child, sibling, parent, sequence=0
 async function request(path,{token,body}={}) {
@@ -42,46 +43,55 @@ afterAll(async()=>{if(server&&server.exitCode===null){await new Promise(resolve=
 
 describe('pet cloud transactions and parent authorization',()=>{
   it('persists two real device pets, rejects cross-child writes and denies child approvals/settings',async()=>{
-    expect((await operation('PET_ADOPT',{species:'bear',name:'糯糯'})).body.accepted).toHaveLength(1)
+    expect((await operation('PET_ADOPT',{species:'bear',name:'糯糯',economyVersion:2,timestamp:Date.now()-7*3600000})).body.accepted).toHaveLength(1)
     expect((await operation('PET_ADOPT',{species:'rabbit',name:'妹妹专属'},'child-2',sibling)).body.accepted).toHaveLength(1)
+    expect((await operation('PET_HATCH')).body.accepted).toHaveLength(1)
     const wrong=await operation('PET_RENAME',{name:'不能改妹妹'},'child-2',child)
     expect(wrong.body.rejected[0].status).toBe(403)
     for(const type of ['PET_APPROVE_ITEM','PET_UPDATE_SETTINGS','PET_REFUND_ITEM']) expect((await operation(type,{requestId:'none'})).body.rejected[0].status).toBe(403)
   })
-  it('authoritative fixed price, duplicate requests, debit once and refund exactly once',async()=>{
-    const submitted=await operation('PET_REQUEST_ITEM',{itemId:'star-lamp',requestId:'cloud-lamp',price:0})
-    expect(submitted.body.state.modules.pets.requests['cloud-lamp'].cost).toBe(5)
+  it('keeps cultivation, badges and original stars atomic, idempotent and fixed-price',async()=>{
+    const submitted=await operation('PET_REQUEST_GROWTH',{amount:5,requestId:'cloud-grow',price:0})
+    expect(submitted.body.state.modules.pets.requests['cloud-grow'].cost).toBe(5)
     expect(petBalance(submitted.body.state,'child-1')).toBe(12)
-    const approved=await operation('PET_APPROVE_ITEM',{requestId:'cloud-lamp'},'child-1',parent)
+    const approved=await operation('PET_APPROVE_ITEM',{requestId:'cloud-grow'},'child-1',parent)
     expect(approved.body.rejected).toEqual([])
     expect(petBalance(approved.body.state,'child-1')).toBe(7)
+    expect(levelProgress(approved.body.state.modules.pets.byProfile['child-1']).level).toBe(2)
+    expect(badgeBalance(approved.body.state.modules.pets.byProfile['child-1'])).toBe(15)
     const duplicate=await request('/api/v2/operations:batch',{token:parent,body:{cursor:0,operations:[approved.op]}})
     expect(petBalance(duplicate.body.state,'child-1')).toBe(7)
-    expect(duplicate.body.state.rewards.starLedger.filter(e=>e.id==='pet:cloud-lamp')).toHaveLength(1)
-    expect((await operation('PET_REQUEST_ITEM',{itemId:'robot',requestId:'too-expensive'})).body.rejected[0].status).toBe(409)
-    const refund=await operation('PET_REFUND_ITEM',{requestId:'cloud-lamp'},'child-1',parent)
-    expect(petBalance(refund.body.state,'child-1')).toBe(12)
-    const again=await operation('PET_REFUND_ITEM',{requestId:'cloud-lamp'},'child-1',parent)
-    expect(petBalance(again.body.state,'child-1')).toBe(12)
+    expect(badgeBalance(duplicate.body.state.modules.pets.byProfile['child-1'])).toBe(15)
+    const item=await operation('PET_EXCHANGE_BADGES',{itemId:'pink-dress',requestId:'badge-dress',price:0})
+    expect(item.body.state.modules.pets.requests['badge-dress'].cost).toBe(1)
+    expect(badgeBalance(item.body.state.modules.pets.byProfile['child-1'])).toBe(14)
+    const refund=await operation('PET_REFUND_ITEM',{requestId:'badge-dress'},'child-1',parent)
+    expect(badgeBalance(refund.body.state.modules.pets.byProfile['child-1'])).toBe(15)
+    expect(petBalance(refund.body.state,'child-1')).toBe(7)
+    const again=await operation('PET_REFUND_ITEM',{requestId:'badge-dress'},'child-1',parent)
+    expect(badgeBalance(again.body.state.modules.pets.byProfile['child-1'])).toBe(15)
+    expect((await operation('PET_REFUND_ITEM',{requestId:'cloud-grow'},'child-1',parent)).body.rejected[0].status).toBe(409)
   })
-  it('rejects stale updates and independent pending requests cannot overspend the shared balance',async()=>{
+  it('rejects stale device writes and rechecks balance after an intervening family change',async()=>{
     const before=await request('/api/cloud/state',{token:parent})
     const key='pets:child-1:pet:child-1',version=before.body.entityVersions[key]
-    const first=await operation('PET_REQUEST_ITEM',{itemId:'blocks',requestId:'cloud-blocks'},'child-1',child,version)
+    const first=await operation('PET_REQUEST_GROWTH',{amount:6,requestId:'next-grow'},'child-1',child,version)
     expect(first.body.accepted).toHaveLength(1)
-    const stale=await operation('PET_REQUEST_ITEM',{itemId:'picnic',requestId:'stale-picnic'},'child-1',child,version)
+    const stale=await operation('PET_NOTE',{note:'stale'},'child-1',child,version)
     expect(stale.body.rejected[0]).toMatchObject({status:409})
-    await operation('PET_REQUEST_ITEM',{itemId:'picnic',requestId:'cloud-picnic'})
-    const approved=await operation('PET_APPROVE_ITEM',{requestId:'cloud-blocks'},'child-1',parent)
-    expect(petBalance(approved.body.state,'child-1')).toBe(4)
-    const depleted=await operation('PET_APPROVE_ITEM',{requestId:'cloud-picnic'},'child-1',parent)
+    // A parent-authorized restore represents another legitimate household expense.
+    const current=(await request('/api/cloud/state',{token:parent})).body.state
+    current.rewards.starLedger.push({id:'other-family-spend',profileId:'child-1',delta:-6,reason:'other wish',createdAt:Date.now()})
+    await request('/api/cloud/import',{token:parent,body:{state:current}})
+    const depleted=await operation('PET_APPROVE_ITEM',{requestId:'next-grow'},'child-1',parent)
     expect(depleted.body.rejected[0].status).toBe(409)
-    expect(petBalance(depleted.body.state,'child-1')).toBe(4)
-    expect(depleted.body.state.modules.pets.byProfile['child-1'].inventory.picnic).toBeUndefined()
+    expect(petBalance(depleted.body.state,'child-1')).toBe(1)
+    expect(levelProgress(depleted.body.state.modules.pets.byProfile['child-1']).invested).toBe(5)
+    await operation('PET_CANCEL_ITEM',{requestId:'next-grow'})
   })
   it('uses server spending day and includes only the requested child in a protected export',async()=>{
     const moment=Date.now()
-    const result=await operation('PET_REQUEST_ITEM',{itemId:'daisy-rug',requestId:'server-clock',timestamp:moment-86400000})
+    const result=await operation('PET_REQUEST_GROWTH',{amount:1,requestId:'server-clock',timestamp:moment-86400000})
     expect(result.body.state.modules.pets.requests['server-clock'].requestedAt).toBeGreaterThanOrEqual(moment)
     await operation('PET_NOTE',{note:'妹妹单独的故事'},'child-2',sibling)
     const response=await fetch(`${base}/api/v2/export?profileId=child-1`,{headers:{Authorization:`Bearer ${parent}`}})

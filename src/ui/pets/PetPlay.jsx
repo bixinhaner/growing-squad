@@ -1,3 +1,4 @@
+import { signatureFor } from '../../modules/pets/petEconomy.js'
 import { PetStudio } from './PetStudio.jsx'
 import { petGrowth } from '../../modules/pets/petModel.js'
 import { useEffect, useRef, useState } from 'react'
@@ -5,7 +6,7 @@ import { PET_GAMES, PET_SKILLS, PET_STORIES } from '../../modules/pets/petCatalo
 import { playLimitFor } from '../../modules/pets/petModel.js'
 import { PetActor, PetProp } from './PetArt.jsx'
 
-export function PetPlay({ pet, session, others = [], onFinish, onDraft, quiet = false }) {
+export function PetPlay({ pet, session, others = [], onFinish, onDraft, quiet = false, timeLeft = Infinity }) {
   const [work,setWork]=useState(session.work || null)
   const limit=playLimitFor(session.game)
   const [lane,setLane]=useState('middle')
@@ -16,7 +17,7 @@ export function PetPlay({ pet, session, others = [], onFinish, onDraft, quiet = 
   const [choices, setChoices] = useState([])
   const [elapsed, setElapsed] = useState(() => Math.max(0, Date.now() - session.startedAt))
   useEffect(()=>{progressRef.current={choices,work}},[choices,work])
-  const studioKind=['blocks','theater','robot'].includes(session.game)?session.game:null
+  const studioKind=['blocks','theater','robot','drawing'].includes(session.game)?session.game:null
   const stage=petGrowth(pet).stage
   const finished = useRef(false)
   const timeoutRef = useRef(null)
@@ -27,33 +28,34 @@ export function PetPlay({ pet, session, others = [], onFinish, onDraft, quiet = 
   useEffect(()=>{return()=>{const work=progressRef.current.work;if(!finished.current&&work?.title.trim())draftRef.current?.(work)}},[])
   useEffect(() => { finishRef.current = onFinish }, [onFinish])
   useEffect(() => {
-    const end = () => { if (!finished.current) { finished.current = true; Promise.resolve(finishRef.current(false, progressRef.current.choices, progressRef.current.work)).then((ok) => { if (ok === false) finished.current = false }) } }
+    const end = () => { if (!finished.current) { finished.current = true; Promise.resolve(finishRef.current(false, progressRef.current.choices, progressRef.current.work ? {...progressRef.current.work,title:progressRef.current.work.title.trim() || '我们的新作品'} : null)).then((ok) => { if (ok === false) finished.current = false }) } }
     const timer = window.setInterval(() => { const ms = Math.max(0, Date.now() - session.startedAt); setElapsed(ms); if (ms >= limit) end() }, 500)
     const hide = () => { if (document.hidden) end() }
-    if (quiet) end()
+    if (quiet || timeLeft <= 0) end()
     document.addEventListener('visibilitychange', hide)
     return () => { window.clearInterval(timer); window.clearTimeout(timeoutRef.current); document.removeEventListener('visibilitychange', hide) }
-  }, [session.startedAt, quiet, limit])
-  const skill = PET_SKILLS.find((s) => session.game === `skill-${s.id}`)
+  }, [session.startedAt, quiet, limit, timeLeft])
+  const baseSkill = PET_SKILLS.find((s) => session.game === `skill-${s.id}`)
+  const skill = baseSkill?.id==='signature'?{...baseSkill,...signatureFor(pet)}:baseSkill
   const game = PET_GAMES.find((g) => g.id === session.game)
   const story = session.game.startsWith('story-') ? PET_STORIES[session.game.slice(6)] : null
   const title = skill?.name || game?.name || '一起玩一小轮'
-  const finish = (complete, savedWork=work) => { if (finished.current) return; finished.current = true; Promise.resolve(onFinish(complete, choices, savedWork)).then((ok) => { if (ok === false) finished.current = false }) }
+  const finish = (complete, savedWork=work) => { if (finished.current) return; finished.current = true; Promise.resolve(onFinish(complete, choices, savedWork ? {...savedWork,title:savedWork.title.trim() || '我们的新作品'} : null)).then((ok) => { if (ok === false) finished.current = false }) }
   const animate = (message, choice) => {
     if (busy) return
     setBusy(true); setResponse(message)
     if (choice) setChoices((items) => [...items, choice])
-    timeoutRef.current = window.setTimeout(() => { setStep((s) => s + 1); setBusy(false) }, 1100)
+    timeoutRef.current = window.setTimeout(() => { setStep((s) => s + 1); setBusy(false) }, 2400)
   }
   const target = (session.id.charCodeAt(session.id.length - 1) + step) % 3
-  const achieved = studioKind ? Boolean(work && (studioKind==='blocks'?work.blocks.length>=1:studioKind==='robot'?work.trials>0:work.acts.length>0)) : story ? step >= story.length : skill ? step >= 3 : session.game === 'blocks' ? choices.length >= 3 : step >= 3
+  const achieved = studioKind ? Boolean(work && (studioKind==='blocks'?work.blocks.length>=1:studioKind==='robot'?work.trials>0:studioKind==='drawing'?work.strokes.length>0:work.acts.length>0)) : story ? step >= story.length : skill ? step >= 3 : session.game === 'blocks' ? choices.length >= 3 : step >= 3
   return <section className="pet-play" aria-label={title}>
     <div className="pet-play-heading"><div><span className="pet-eyebrow">一小轮，不赶时间</span><h2>{title}</h2></div><span className="pet-chip">最多 {limit/60000} 分钟</span></div>
     {studioKind ? <PetStudio kind={studioKind} pet={pet} initialWork={session.work} onChange={setWork} onSave={(w)=>finish(true,w)} disabled={elapsed<3000} /> : <div className={`pet-play-stage pet-play-stage--${session.game} pet-lane--${lane}`}>
       {session.game === 'hide' && !achieved ? <div className="pet-hide-places">{[0,1,2].map((index) => <button key={index} type="button" aria-label={`找找第 ${index + 1} 个小窝`} onClick={() => { if (index === target) animate('找到啦！再换个地方。', `找到了第${index + 1}个小窝`); else setResponse(`听，${['左边', '中间', '右边'][target]}有轻轻的动静。`) }} disabled={busy}>
         {index === target ? <PetActor species={pet.species} size="baby" motion="peek" /> : null}<PetProp kind="tent" /><span>{index + 1}</span>
       </button>)}</div> : <>
-        <PetActor species={pet.species} pose={achieved ? 'celebrate' : busy ? 'celebrate' : 'wave'} motion={busy ? skill?.id === 'spin' ? 'spin' : skill?.id === 'tidy' ? 'tidy' : 'play' : 'idle'} size={stage==='companion'?'adult':stage} skill={skill ? pet.skills[skill.id] || 0 : 3} />
+        <PetActor species={pet.species} pose={achieved ? 'celebrate' : busy ? 'celebrate' : 'wave'} motion={busy ? skill ? skill.id : 'play' : 'idle'} size={stage==='companion'?'adult':stage} skill={skill ? pet.skills[skill.id] || 0 : 3} />
         {session.game === 'ball' ? <PetProp kind="ball" className={`pet-play-ball ${pet.placed.toy === 'star-ball' ? 'pet-play-ball--star' : 'pet-play-ball--plain'} ${busy ? 'is-rolling' : ''}`} /> : null}
         {session.game === 'blocks' ? <div className="pet-built-blocks" aria-label={`已经放了 ${choices.length} 块积木`}>{choices.map((color, index) => <span key={index} className={`pet-block pet-block--${color}`} />)}</div> : null}
         {skill?.id === 'tidy' ? <PetProp kind="basket" className="pet-play-ball" /> : null}

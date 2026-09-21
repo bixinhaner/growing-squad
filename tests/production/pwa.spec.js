@@ -117,5 +117,7 @@ test('pet can be adopted and hatched on its first offline visit with all four co
   await expect.poll(()=>page.locator('img').evaluateAll(images=>images.every(img=>img.complete && img.naturalWidth>0))).toBe(true)
   const sources=await page.evaluate(async()=>Promise.all(['bear','rabbit','cloud','space-cat'].map(async name=>(await fetch(`/bedtime/assets/companions/${name}-poses-v1.webp`)).ok)))
   expect(sources).toEqual([true,true,true,true])
+  const artwork=await page.evaluate(async()=>{const manifest=await (await fetch('/bedtime/assets/pets-v2/manifest.json')).json();return Promise.all(Object.values(manifest.assets).map(async asset=>(await fetch('/bedtime/'+asset.path)).ok))})
+  expect(artwork).toHaveLength(53);expect(artwork.every(Boolean)).toBe(true)
   await page.screenshot({path:'artifacts/visual-qa/pet-offline.png',fullPage:true})
 })

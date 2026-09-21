@@ -1,3 +1,4 @@
+import { verifyPetMediaOwner, verifyMediaSignature } from './petMediaPolicy.mjs'
 import { createHash, pbkdf2Sync, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto'
 import { copyFileSync, existsSync, linkSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
@@ -342,7 +343,8 @@ function authenticate(request, allowParent = true) {
   if (allowParent) {
     const session = db.prepare(`
       SELECT parent_sessions.family_id AS familyId, parent_sessions.device_id AS deviceId, parent_sessions.expires_at AS expiresAt
-      FROM parent_sessions WHERE token_hash = ? AND expires_at > ?
+      FROM parent_sessions JOIN devices ON devices.id = parent_sessions.device_id
+      WHERE parent_sessions.token_hash = ? AND expires_at > ? AND devices.revoked_at IS NULL
     `).get(tokenHash, now())
     if (session) return { ...session, role: 'parent' }
   }
@@ -440,7 +442,19 @@ function runAction(identity, operationId, submittedOperation, { enforceExpectedV
     if (!previous.profiles.some((profile) => profile.id === profileId)) throw Object.assign(new Error('找不到目标孩子'), { status: 404 })
     const timestamp = now()
     // Spending limits and refund windows use server time, not a backdated client clock.
-    if (operation.moduleId === 'pets' && ['pets.item-requested', 'pets.item-approved', 'pets.item-refunded'].includes(operation.type)) operation.occurredAt = timestamp
+    if (operation.moduleId === 'pets' && ['pets.item-requested', 'pets.item-approved', 'pets.item-refunded','pets.growth-requested','pets.badge-exchanged'].includes(operation.type)) operation.occurredAt = timestamp
+    if (operation.moduleId === 'pets' && ['pets.media-added','pets.media-synced'].includes(operation.type)) {
+      const mediaId = operation.payload.media?.id || operation.payload.mediaId
+      const asset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(mediaId || '')
+      const pet = previous.modules?.pets?.byProfile?.[profileId]
+      if (asset && (asset.family_id !== identity.familyId || asset.profile_id !== profileId || asset.project_id !== pet?.id)) throw Object.assign(new Error('这份资料不属于当前伙伴。'), {status:403})
+      if ((operation.type === 'pets.media-synced' || operation.payload.media?.status === 'synced') && !asset) throw Object.assign(new Error('资料尚未上传完成。'), {status:409})
+      const media = operation.payload.media
+      if (media) {
+        verifyPetMediaOwner({state:previous, identity, profileId, projectId:pet?.id, mediaId, mediaType:media.mediaType, kind:media.kind, byteSize:media.byteSize})
+        if (asset && (asset.byte_size !== media.byteSize || asset.media_type !== media.mediaType || asset.kind !== media.kind)) throw Object.assign(new Error('资料内容与记录不一致。'), {status:409})
+      }
+    }
     const entityKey = entityKeyForOperation(operation)
     const currentEntityVersion = Number(db.prepare('SELECT version FROM entity_versions WHERE family_id = ? AND entity_key = ?').get(identity.familyId, entityKey)?.version || 0)
     if (enforceExpectedVersion && operationRequiresVersion(operation) && operation.expectedVersion === null) {
@@ -873,12 +887,26 @@ async function handleApi(request, response) {
     const state = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
     if (!state.profiles.some((profile) => profile.id === profileId)) return json(response, 404, { error: '找不到目标孩子。' })
     if (identity.role !== 'parent' && identity.mode === 'dedicated' && identity.boundProfileId !== profileId) return json(response, 403, { error: '这台设备不能保存其他孩子的资料。' })
+    const isPet = projectId.startsWith('pet:')
+    if (isPet) verifyPetMediaOwner({state, identity, profileId, projectId, mediaId:id, mediaType, kind, requireMemory:true})
+    const oldAsset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id)
+    if (oldAsset && (oldAsset.family_id !== identity.familyId || oldAsset.profile_id !== profileId || oldAsset.project_id !== projectId)) return json(response,403,{error:'不能替换其他孩子的资料。'})
     const blob = await readBinary(request)
+    if (isPet) {
+      // Reading the request is asynchronous: recheck authorization and ownership after it finishes.
+      const currentIdentity = authenticate(request)
+      if (!currentIdentity) return json(response,401,{error:'设备已失效，请重新连接。'})
+      const latest = assertState(JSON.parse(db.prepare('SELECT state_json AS stateJson FROM families WHERE id = ?').get(identity.familyId).stateJson))
+      verifyPetMediaOwner({state:latest, identity:currentIdentity, profileId, projectId, mediaId:id, mediaType, kind, byteSize:blob.length, requireMemory:true})
+      verifyMediaSignature(blob,mediaType)
+    }
     const extension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/webm': 'webm', 'audio/wav': 'wav', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' })[mediaType]
     const digest = createHash('sha256').update(blob).digest('hex')
+    const latestAsset = db.prepare('SELECT * FROM media_assets WHERE id = ?').get(id)
+    if (latestAsset && (latestAsset.family_id !== identity.familyId || latestAsset.profile_id !== profileId || latestAsset.project_id !== projectId || latestAsset.sha256 !== digest || latestAsset.media_type !== mediaType || latestAsset.kind !== kind)) return json(response,409,{error:'资料编号已经使用，请重新添加。'})
     const storageName = `${digest.slice(0, 2)}/${digest}.${extension}`
     const finalPath = join(mediaDir, storageName)
-    const tempPath = `${finalPath}.upload`
+    const tempPath = `${finalPath}.${randomUUID()}.upload`
     mkdirSync(dirname(finalPath), { recursive: true })
     if (!existsSync(finalPath)) {
       writeFileSync(tempPath, blob, { mode: 0o600 })
@@ -894,11 +922,12 @@ async function handleApi(request, response) {
   }
 
   if (mediaMatch && request.method === 'GET') {
-    const asset = db.prepare('SELECT media_type AS mediaType, file_name AS fileName, storage_name AS storageName FROM media_assets WHERE id = ? AND family_id = ?').get(mediaMatch[1], identity.familyId)
+    const asset = db.prepare('SELECT profile_id AS profileId, project_id AS projectId, media_type AS mediaType, file_name AS fileName, storage_name AS storageName FROM media_assets WHERE id = ? AND family_id = ?').get(mediaMatch[1], identity.familyId)
     if (!asset) return json(response, 404, { error: '找不到这份资料。' })
+    if (identity.role !== 'parent' && identity.mode === 'dedicated' && identity.boundProfileId !== asset.profileId) return json(response,403,{error:'这台设备不能打开其他孩子的资料。'})
     const path = join(mediaDir, asset.storageName)
     const size = statSync(path).size
-    response.writeHead(200, { 'Content-Type': asset.mediaType, 'Content-Length': size, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(asset.fileName)}`, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff' })
+    response.writeHead(200, { 'Content-Type': asset.mediaType, 'Content-Length': size, 'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(asset.fileName)}`, 'Cache-Control': 'private, no-store', 'Vary': 'Authorization', 'X-Content-Type-Options': 'nosniff' })
     response.end(readFileSync(path))
     return
   }
@@ -906,8 +935,12 @@ async function handleApi(request, response) {
 
   if (mediaMatch && request.method === 'DELETE') {
     if (identity.role !== 'parent') return json(response, 403, { error: '需要家长验证。' })
-    const asset = db.prepare('SELECT storage_name AS storageName FROM media_assets WHERE id = ? AND family_id = ?').get(mediaMatch[1], identity.familyId)
+    const asset = db.prepare('SELECT profile_id AS profileId, project_id AS projectId, storage_name AS storageName FROM media_assets WHERE id = ? AND family_id = ?').get(mediaMatch[1], identity.familyId)
     if (!asset) return json(response, 404, { error: '找不到这份资料。' })
+    if (asset.projectId.startsWith('pet:')) {
+      const deletion = createOperationEnvelope({type:'PET_REMOVE_MEMORY',memoryId:mediaMatch[1]},asset.profileId,now())
+      runAction(identity,deletion.id,deletion)
+    }
     db.prepare('DELETE FROM media_assets WHERE id = ? AND family_id = ?').run(mediaMatch[1], identity.familyId)
     removeUnreferencedMedia([asset.storageName])
     recordAudit(identity.familyId, identity, 'privacy-media-delete', 'accepted', { assetId: mediaMatch[1] })

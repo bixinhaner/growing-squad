@@ -28,3 +28,13 @@ migration-artifacts
 *.njsproj
 *.sln
 *.sw?
+
+# Private local family data and credentials (never commit)
+.env
+.env.*
+!.env.example
+server/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
