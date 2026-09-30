@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { dayTypeFor, getAccessibility, getActiveProfile, getRoutine, getSchedule, getSession, localDateKey } from '../../domain/model.js'
 import { useBedtimeActions, useBedtimeState } from '../../store/useBedtime.js'
 import { AssetArt } from '../../ui/AssetArt.jsx'
+import { appPath } from '../../data/paths.js'
 import { Icon } from '../ui/Icon.jsx'
 import { Buddy, Speak, Tap } from '../ui/kit.jsx'
 import { useToast } from '../ui/toast.js'
+import { gardenLine, gardenStage } from '../lib/garden.js'
 import { clockLabel, useNow, useReducedMotion, useSpeaker } from '../lib/hooks.js'
 
 /** A little star arcs from the button to the stone it lights up. */
@@ -55,6 +57,8 @@ function PathFor({ home }) {
   const done = steps.filter((step) => statusOf(step) === 'done').length
   const settled = session?.status === 'goodnight'
   const finished = steps.length > 0 && todo.length === 0
+  // Tonight's pot grows with every step, then blooms at the watering.
+  const flower = gardenStage(session, true)
   const [pickedId, setPickedId] = useState(null)
   const [cheer, setCheer] = useState(0)
   const advance = useRef(0)
@@ -103,10 +107,10 @@ function PathFor({ home }) {
           <h1 id="k-path-title" className="u-display">今晚的小路</h1>
           <p className="k-path__time"><Icon name="moon" size={18} />{timeLine}</p>
         </div>
-        <p className="k-path__count" role="status" aria-live="polite">
-          <b className="u-num">{done}</b><span>/</span><span className="u-num">{steps.length}</span>
-          <span className="u-sr">件已经做好</span>
-        </p>
+        <button type="button" className="k-path__count" onClick={() => navigate('/garden')} aria-label={`今晚的月亮花：${gardenLine(session, flower, true)}去花园看看`}>
+          <img key={flower} className="k-path__flower" src={appPath(`assets/v3/moonflower-${flower}.webp`)} alt="" />
+          <span role="status" aria-live="polite"><b className="u-num">{done}</b><span>/</span><span className="u-num">{steps.length}</span><span className="u-sr">件已经做好</span></span>
+        </button>
       </header>
 
       <ol className="k-stones" ref={pathRef} aria-label="今晚要做的事">
@@ -145,7 +149,7 @@ function PathFor({ home }) {
             <p>月亮花已经开好了。放下屏幕，安心休息。</p>
             <div className="k-step__actions">
               <Tap tone="night" size="l" icon="moon" onClick={() => navigate('/goodnight')}>去说晚安</Tap>
-              <Tap tone="soft" size="l" onClick={() => navigate('/box?tab=garden')}>看看月亮花</Tap>
+              <Tap tone="soft" size="l" onClick={() => navigate('/garden')}>看看月亮花</Tap>
             </div>
           </article>
         ) : finished ? (

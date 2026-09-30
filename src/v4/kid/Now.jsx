@@ -60,7 +60,7 @@ function DayMoment({ candidate, now }) {
 
   const doing = candidate.inProgress ? candidate.options[0] : null
   const also = [
-    { id: 'play', title: '去玩', art: 'park', to: '/play' },
+    { id: 'world', title: '星光世界', art: 'park', to: '/world' },
     { id: 'pet', title: pet ? pet.name : '小伙伴', art: 'heart', to: '/pet' },
     { id: 'box', title: '我的宝盒', art: 'surprise', to: '/box' },
   ]
@@ -100,11 +100,11 @@ function DayMoment({ candidate, now }) {
         ) : settled ? (
           <div className="k-focus__actions">
             <Tap tone="night" size="l" icon="moon" onClick={() => navigate('/goodnight')}>去说晚安</Tap>
-            <Tap tone="soft" size="l" onClick={() => navigate('/box?tab=garden')}>看看月亮花</Tap>
+            <Tap tone="soft" size="l" onClick={() => navigate('/garden')}>看看月亮花</Tap>
           </div>
         ) : (
           <div className="k-focus__actions">
-            <Tap tone="primary" size="l" icon="sparkle" onClick={() => navigate('/play')}>去玩一会儿</Tap>
+            <Tap tone="primary" size="l" icon="sparkle" onClick={() => navigate('/world')}>去玩一会儿</Tap>
           </div>
         )}
 

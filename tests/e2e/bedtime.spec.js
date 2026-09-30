@@ -6,11 +6,14 @@ test('setup, reversible steps, early finish, watering and goodnight', async ({ p
   const stones = page.locator('.k-stones button')
   const count = await stones.count()
   expect(count).toBeGreaterThan(1)
+  const flower = page.locator('.k-path__flower')
+  await expect(flower).toHaveAttribute('src', /moonflower-1/)
   await expect(page.locator('.k-path__time')).toContainText('21:30')
 
   // Undo from the step card and from the toast.
   await page.getByRole('button', { name: '做好了', exact: true }).click()
   await expect(stones.first()).toHaveClass(/is-done/)
+  await expect(flower).toHaveAttribute('src', /moonflower-2/)
   await stones.first().click()
   await page.getByRole('button', { name: '其实还没做好' }).click()
   await expect(stones.first()).toHaveClass(/is-todo/)
@@ -42,7 +45,13 @@ test('setup, reversible steps, early finish, watering and goodnight', async ({ p
   await page.goto('/bedtime/tonight')
   await expect(page.getByRole('heading', { name: '今晚完成啦' })).toBeVisible()
   await page.goto('/bedtime/box?tab=garden')
-  await expect(page.locator('.k-pot.is-today')).toHaveClass(/is-stage-4/)
+  await expect(page).toHaveURL(/\/garden$/)
+  const bloom = page.locator('.k-bloom.is-today')
+  await expect(bloom).toHaveClass(/is-stage-4/)
+  await expect(bloom).toHaveClass(/has-fruit/)
+  await expect(bloom.locator('.k-bloom__fruit')).toHaveText('45')
+  await expect(page.getByRole('heading', { name: '月光花园' })).toBeVisible()
+  await expect(page.locator('.k-grove__head')).toContainText('结了 45 点星光果')
 })
 
 test('late completion keeps a memory without deducting stars or inventing sleep', async ({ page }) => {
@@ -53,6 +62,10 @@ test('late completion keeps a memory without deducting stars or inventing sleep'
   const [session] = await sessions(page)
   expect(session.asleepAt).toBeFalsy()
   expect(session.completionEarlyMinutes).toBe(0)
+  // The flower still blooms; there is just no star fruit.
+  await page.goto('/bedtime/garden')
+  await expect(page.locator('.k-bloom.is-today')).toHaveClass(/is-stage-4/)
+  await expect(page.locator('.k-bloom__fruit')).toHaveCount(0)
 })
 
 test('wish request waits for a parent, approval spends stars and undo returns them', async ({ page }) => {

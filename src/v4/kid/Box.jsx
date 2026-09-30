@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { getActiveProfile, getCompletionOutcome, getLastSevenDays, getStarBalance, localDateKey } from '../../domain/model.js'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { getActiveProfile, getStarBalance, localDateKey } from '../../domain/model.js'
 import { activityMomentsFor } from '../../core/activity/activitySelectors.js'
 import { useBedtimeActions, useBedtimeState } from '../../store/useBedtime.js'
 import { AssetArt } from '../../ui/AssetArt.jsx'
@@ -10,7 +10,6 @@ import { Buddy, Pic, Sheet, Speak, Tap } from '../ui/kit.jsx'
 import { useToast } from '../ui/toast.js'
 
 const TABS = [
-  { id: 'garden', title: '月亮花', icon: 'leaf' },
   { id: 'memories', title: '回忆', icon: 'image' },
   { id: 'wishes', title: '愿望', icon: 'gift' },
 ]
@@ -20,7 +19,9 @@ export function Box() {
   const { state } = useBedtimeState()
   const [params, setParams] = useSearchParams()
   const profile = getActiveProfile(state)
-  const tab = TABS.some((item) => item.id === params.get('tab')) ? params.get('tab') : 'garden'
+  const tab = TABS.some((item) => item.id === params.get('tab')) ? params.get('tab') : 'memories'
+  // The moonflowers moved out of the box into their own garden.
+  if (params.get('tab') === 'garden') return <Navigate to="/garden" replace />
   return (
     <section className="k-box" aria-labelledby="k-box-title">
       <header className="k-box__head">
@@ -37,69 +38,9 @@ export function Box() {
         </div>
       </header>
       <div id="k-box-panel" role="tabpanel" aria-labelledby={`k-tab-${tab}`} className="k-box__panel" key={tab}>
-        {tab === 'garden' ? <Garden /> : tab === 'memories' ? <Memories /> : <Wishes />}
+        {tab === 'memories' ? <Memories /> : <Wishes />}
       </div>
     </section>
-  )
-}
-
-/* ─────────────  月亮花: last seven nights as pots on a shelf ───────────── */
-const WEEKDAY = '日一二三四五六'
-function stageOf(session, today) {
-  if (!session) return today ? 1 : 0
-  if (session.status === 'goodnight') return 4
-  const values = Object.values(session.stepStatus || {})
-  const resolved = values.length ? values.filter((status) => status !== 'todo').length / values.length : 0
-  return resolved === 0 ? 1 : resolved < 0.5 ? 2 : 3
-}
-function describe(session, stage, today) {
-  const outcome = getCompletionOutcome(session)
-  if (stage === 4) return outcome === 'early' ? `提前完成，收下 ${session.starsAwarded || session.earlyMinutes} 点星光。月亮花开得特别亮！`
-    : outcome === 'on-time' ? '按时完成，月亮花开啦。' : '完成了睡前小路，月亮花照常开了。'
-  if (today) return ['', '种子在等今晚的第一件小事。', '冒出小芽了，继续加油。', '花苞鼓鼓的，快开花了。'][stage] || '种子在等今晚的第一件小事。'
-  return stage === 0 ? '这盆花那天在休息。休息不是失败。' : '那天做了一部分，也是真的努力。'
-}
-
-function Garden() {
-  const { state } = useBedtimeState()
-  const navigate = useNavigate()
-  const profile = getActiveProfile(state)
-  const todayKey = localDateKey()
-  const days = getLastSevenDays(state)
-  const [selected, setSelected] = useState(todayKey)
-  const blooms = days.filter((day) => day.session?.status === 'goodnight').length
-  const active = days.find((day) => day.dateKey === selected) || days.at(-1)
-  const activeToday = active?.dateKey === todayKey
-  const activeStage = stageOf(active?.session, activeToday)
-  const text = active ? describe(active.session, activeStage, activeToday) : ''
-  const todayDone = days.find((day) => day.dateKey === todayKey)?.session?.status === 'goodnight'
-  return (
-    <div className="k-garden">
-      <p className="k-box__lead">{blooms ? `最近七个晚上，开了 ${blooms} 朵月亮花。` : '每走完一次睡前小路，这里就开一朵月亮花。'}</p>
-      <ol className="k-shelf" aria-label="最近七天的月亮花">
-        {days.map((day, index) => {
-          const today = day.dateKey === todayKey
-          const stage = stageOf(day.session, today)
-          const label = today ? '今天' : `周${WEEKDAY[day.date.getDay()]}`
-          return (
-            <li key={day.dateKey} style={{ '--i': index }}>
-              <button type="button" className={`k-pot is-stage-${stage}${today ? ' is-today' : ''}${getCompletionOutcome(day.session) === 'early' ? ' is-early' : ''}`} aria-pressed={selected === day.dateKey} onClick={() => setSelected(day.dateKey)} aria-label={`${label}：${describe(day.session, stage, today)}`}>
-                <img src={appPath(`assets/v3/moonflower-${stage}.webp`)} alt="" />
-                <span>{label}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ol>
-      <div className="k-garden__note" aria-live="polite">
-        <Buddy character={profile.character} mood={activeStage === 4 ? 'garden' : 'water'} />
-        <div>
-          <strong className="u-display">{activeToday ? '今天' : `周${WEEKDAY[active?.date.getDay() ?? 0]}`}</strong>
-          <p>{text}<Speak text={text} /></p>
-          {!todayDone ? <Tap tone="primary" icon="moon" onClick={() => navigate('/tonight')}>去走今晚的小路</Tap> : null}
-        </div>
-      </div>
-    </div>
   )
 }
 

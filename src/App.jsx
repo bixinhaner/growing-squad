@@ -18,7 +18,8 @@ const CloudPairPage = lazyNamed(entry, 'Pair')
 const ParentGatePage = lazyNamed(entry, 'ParentGate')
 const NowPage = lazyNamed(() => import('./v4/kid/Now.jsx'), 'Now')
 const TonightPage = lazyNamed(() => import('./v4/kid/TonightPath.jsx'), 'TonightPath')
-const PlayPage = lazyNamed(() => import('./v4/kid/Play.jsx'), 'Play')
+const WorldPage = lazyNamed(() => import('./v4/kid/World.jsx'), 'World')
+const GardenPage = lazyNamed(() => import('./v4/kid/Garden.jsx'), 'Garden')
 const BoxPage = lazyNamed(() => import('./v4/kid/Box.jsx'), 'Box')
 const Pet = lazyNamed(() => import('./v4/kid/Pet.jsx'), 'Pet')
 const WateringPage = lazyNamed(() => import('./v4/kid/Ritual.jsx'), 'Watering')
@@ -67,7 +68,7 @@ const FamilySync = lazyNamed(family, 'FamilySync')
 
 // Addresses from earlier versions (bookmarks, stored activity routes) keep working.
 const LEGACY_CHILD = [
-  ['/world', '/play'], ['/me', '/box?tab=memories'], ['/garden', '/box?tab=garden'], ['/wishes', '/box?tab=wishes'],
+  ['/play', '/world'], ['/me', '/box?tab=memories'], ['/wishes', '/box?tab=wishes'],
   ['/energy-plaza', '/movement'], ['/story-treehouse', '/reading'], ['/family-cottage', '/family'], ['/responsibility', '/family'],
   ['/companion-question', '/ask'],
 ]
@@ -140,7 +141,8 @@ function AppRoutes() {
         <Route element={<KidShell />}>
           <Route path="/today" element={<NowPage />} />
           <Route path="/tonight" element={<TonightPage />} />
-          <Route path="/play" element={<PlayPage />} />
+          <Route path="/world" element={<WorldPage />} />
+          <Route path="/garden" element={<GardenPage />} />
           <Route path="/box" element={<BoxPage />} />
           <Route path="/pet" element={<Pet />} />
           <Route path="/movement" element={<MovementChoicePage />} />

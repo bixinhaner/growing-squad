@@ -84,8 +84,12 @@
 .k-path__head h1 { font-size: clamp(30px, 4vw, 44px); line-height: 1.1; color: var(--sky-ink); text-shadow: 0 3px 16px rgba(0, 0, 0, .18); }
 .k-path__time { display: flex; align-items: center; gap: 8px; color: var(--sky-ink-2); font-weight: 600; }
 .k-path__time b { color: var(--honey); }
-.k-path__count { display: flex; align-items: baseline; gap: 4px; padding: 8px 18px; border-radius: 22px; background: color-mix(in srgb, var(--paper) 90%, transparent); color: var(--ink); font-size: 20px; font-weight: 700; }
+.k-path__count { display: flex; align-items: center; gap: 6px; padding: 6px 18px 6px 8px; border: 0; cursor: pointer; font-family: inherit; border-radius: 22px; background: color-mix(in srgb, var(--paper) 90%, transparent); color: var(--ink); font-size: 20px; font-weight: 700; }
 .k-path__count b { font-size: 36px; color: var(--honey-deep); }
+.k-path__count > span { display: flex; align-items: baseline; gap: 4px; }
+.k-path__flower { width: 42px; height: 90px; margin: -18px 0 -4px; object-fit: contain; animation: k-sprout .6s var(--spring); }
+@keyframes k-sprout { from { transform: translateY(8px) scale(.7); opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .k-path__flower { animation: none; } }
 
 .k-stones { position: relative; display: flex; gap: 14px; margin: 0; padding: 12px 6px 16px; list-style: none; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
 .k-stones::-webkit-scrollbar { display: none; }

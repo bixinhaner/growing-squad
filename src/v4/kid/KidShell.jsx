@@ -23,14 +23,15 @@ const BACKDROPS = {
 // Where the round back button leads, and what it is called.
 const PLACES = {
   tonight: ['睡前小路', '/today'],
-  play: ['去玩', '/today'],
+  world: ['星光世界', '/today'],
+  garden: ['月光花园', '/world'],
   box: ['我的宝盒', '/today'],
   pet: ['小伙伴', '/today'],
   ask: ['小问题', '/today'],
-  movement: ['动一动', '/play'],
-  reading: ['读故事', '/play'],
-  family: ['帮家里', '/play'],
-  inventor: ['小发明', '/play'],
+  movement: ['动一动', '/world'],
+  reading: ['读故事', '/world'],
+  family: ['帮家里', '/world'],
+  inventor: ['小发明', '/world'],
 }
 
 function backFor(pathname) {
