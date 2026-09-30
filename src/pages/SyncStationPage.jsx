@@ -41,7 +41,7 @@ export function SyncStationPage() {
   return <section className="sync-station">
     <header className="sync-station__title"><span><Icon name="moon" /></span><div><small>家庭设备之间</small><h1>家庭同步站</h1></div></header>
     <div className="sync-station__layout">
-      <aside className="sync-station__story"><img src={appPath('assets/sync/family-sync-station-hero.png')} alt="两位月光邮差正在安全合并两份成长记录" /><span>月光邮局会保留每一份成长</span></aside>
+      <aside className="sync-station__story"><img src={appPath('assets/sync/family-sync-station-hero.webp')} alt="两位月光邮差正在安全合并两份成长记录" /><span>月光邮局会保留每一份成长</span></aside>
       <article className="sync-station__panel">
         {conflict ? <>
           <div className="sync-station__notice"><span><Icon name="user" /></span><div><h2>{syncConflicts.length} 项需要家长确认</h2><p>孩子的记录都在，只需决定保留哪一个设置。</p></div></div>

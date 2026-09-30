@@ -40,16 +40,10 @@
 }
 @media(max-width:650px) {
   .gs-child-app .family-cottage { display: flex; flex-direction: column; gap: 16px; }
-  .gs-child-app .family-cottage__hero { display: block; height: 164px; min-height: 164px; flex: none; border-radius: 24px; }
-  .gs-child-app .family-cottage__hero > img { height: 100%; width: 100%; object-fit: cover; object-position: center 52%; }
-  .gs-child-app .family-cottage__hero > div { inset: auto 20px 20px; }
-  .gs-child-app .family-cottage__hero h1 { margin: 4px 0; font: 750 27px/1.4 var(--v2-type); color: #fffdf5; }
-  .gs-child-app .family-cottage__hero p { margin: 0; font-size: 13px; color: #fffdf5; }
 }
 /* The old timeline was a 760px minimum-width board. Keep that desktop
    affordance inside its card; on mobile make every editable item a full row. */
 .gs-parent-content :is(.timeline-page,.support-page) { min-width: 0; width: 100%; }
-.gs-parent-content :is(.timeline-workspace,.timeline-board,.child-preview,.support-workspace) { min-width: 0; max-width: 100%; }
 @media(max-width:1100px) {
   .gs-parent-content .timeline-workspace { grid-template-columns: minmax(0,1fr); }
 }
@@ -71,7 +65,6 @@
   .child-preview { overflow: hidden; }
   .schedule-advice { flex-wrap: wrap; }
   .schedule-advice>div { min-width: 0; flex: 1 1 180px; }
-  .support-reassurance { flex-wrap: wrap; justify-content: start; line-height: 1.8; }
 }
 /* Keep explicit destination labels beside icons, including the mobile bar. */
 .gs-parent-app .gs-parent-sidebar nav a span { display: block; }

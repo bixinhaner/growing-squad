@@ -2,7 +2,6 @@ import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ChildStage } from './v3/ChildStage.jsx'
 import { ParentConsole } from './v3/ParentConsole.jsx'
-import { CloudPairPage } from './pages/CloudPairPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
@@ -14,11 +13,11 @@ import './app.css'
 import './redesign.css'
 import '@fontsource-variable/fredoka'
 import './v3/tokens.css'
-import './v3/ritual.css'
 
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })))
-const WelcomePage = lazyNamed(() => import('./pages/WelcomePage.jsx'), 'WelcomePage')
-const SetupPage = lazyNamed(() => import('./pages/SetupPage.jsx'), 'SetupPage')
+const WelcomePage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'WelcomeStage')
+const SetupPage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'SetupStage')
+const CloudPairPage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'PairStage')
 const TodayPage = lazyNamed(() => import('./v3/pages/NowScene.jsx'), 'NowScene')
 const WorldPage = lazyNamed(() => import('./v3/pages/WorldMap.jsx'), 'WorldMap')
 const MePage = lazyNamed(() => import('./v3/pages/BackpackRoom.jsx'), 'BackpackRoom')
@@ -26,9 +25,9 @@ const PetHomePage = lazyNamed(() => import('./pages/PetHomePage.jsx'), 'PetHomeP
 const PetParentPage = lazyNamed(() => import('./pages/PetParentPage.jsx'), 'PetParentPage')
 const TonightPage = lazyNamed(() => import('./v3/pages/TonightScene.jsx'), 'TonightScene')
 const GardenPage = lazyNamed(() => import('./v3/pages/GardenScene.jsx'), 'GardenScene')
-const WishesPage = lazyNamed(() => import('./pages/WishesPage.jsx'), 'WishesPage')
-const WateringPage = lazyNamed(() => import('./pages/WateringPage.jsx'), 'WateringPage')
-const GoodnightPage = lazyNamed(() => import('./pages/GoodnightPage.jsx'), 'GoodnightPage')
+const WishesPage = lazyNamed(() => import('./v3/pages/WishSky.jsx'), 'WishSky')
+const WateringPage = lazyNamed(() => import('./v3/pages/BedtimeRitual.jsx'), 'WateringRitual')
+const GoodnightPage = lazyNamed(() => import('./v3/pages/BedtimeRitual.jsx'), 'GoodnightRoom')
 const ParentGatePage = lazyNamed(() => import('./v3/pages/ParentGate.jsx'), 'ParentGate')
 const ParentOverviewPage = lazyNamed(() => import('./v3/pages/ParentToday.jsx'), 'ParentToday')
 const FamilyTimelinePage = lazyNamed(() => import('./pages/FamilyTimelinePage.jsx'), 'FamilyTimelinePage')
@@ -37,30 +36,30 @@ const SchedulePage = lazyNamed(() => import('./pages/SchedulePage.jsx'), 'Schedu
 const RoutinePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignRoutineEditorPage')
 const RewardsPage = lazyNamed(() => import('./pages/RewardsPage.jsx'), 'RewardsPage')
 const ProfilePage = lazyNamed(() => import('./pages/ProfilePage.jsx'), 'ProfilePage')
-const MovementChoicePage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementChoicePage')
-const MovementReadyPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementReadyPage')
-const MovementPlayPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementPlayPage')
-const EnergyPlazaPage = lazyNamed(() => import('./pages/EnergyPlazaPage.jsx'), 'EnergyPlazaPage')
+const MovementChoicePage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementChoice')
+const MovementReadyPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementReady')
+const MovementPlayPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementPlay')
+const EnergyPlazaPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'EnergyPlaza')
 const MovementParentPage = lazyNamed(() => import('./pages/MovementParentPage.jsx'), 'MovementParentPage')
-const ReadingShelfPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingShelfPage')
-const ReadingBookPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingBookPage')
-const ReadingPlayPage = lazyNamed(() => import('./pages/ReadingPage.jsx'), 'ReadingPlayPage')
+const ReadingShelfPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryShelf')
+const ReadingBookPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryBook')
+const ReadingPlayPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryPlay')
 const ReadingParentPage = lazyNamed(() => import('./pages/ReadingParentPage.jsx'), 'ReadingParentPage')
-const FamilyCottagePage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'FamilyCottagePage')
-const ResponsibilityRolePage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'ResponsibilityRolePage')
-const ResponsibilityPlayPage = lazyNamed(() => import('./pages/ResponsibilityPage.jsx'), 'ResponsibilityPlayPage')
+const FamilyCottagePage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyCottage')
+const ResponsibilityRolePage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyRole')
+const ResponsibilityPlayPage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyPlay')
 const ResponsibilityParentPage = lazyNamed(() => import('./pages/ResponsibilityParentPage.jsx'), 'ResponsibilityParentPage')
 const AccessibilityPage = lazyNamed(() => import('./pages/AccessibilityPage.jsx'), 'AccessibilityPage')
 const DevicesPage = lazyNamed(() => import('./pages/DevicesPage.jsx'), 'DevicesPage')
 const DataPage = lazyNamed(() => import('./pages/DataPage.jsx'), 'DataPage')
-const InventorWorkshopPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorWorkshopPage')
-const InventorNewPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorNewPage')
-const InventorProjectPage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorProjectPage')
-const InventorShowcasePage = lazyNamed(() => import('./pages/InventorPage.jsx'), 'InventorShowcasePage')
+const InventorWorkshopPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorWorkshop')
+const InventorNewPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorNew')
+const InventorProjectPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorProject')
+const InventorShowcasePage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorShowcase')
 const InventorParentPage = lazyNamed(() => import('./pages/InventorParentPage.jsx'), 'InventorParentPage')
 const AssistantPage = lazyNamed(() => import('./pages/AssistantPage.jsx'), 'AssistantPage')
 const WeeklyReportPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentGrowthPage')
-const CompanionQuestionPage = lazyNamed(() => import('./pages/CompanionQuestionPage.jsx'), 'CompanionQuestionPage')
+const CompanionQuestionPage = lazyNamed(() => import('./v3/pages/CompanionQuestion.jsx'), 'CompanionQuestion')
 const SyncStationPage = lazyNamed(() => import('./pages/SyncStationPage.jsx'), 'SyncStationPage')
 
 function HomeRedirect() {
@@ -174,7 +173,7 @@ function CloudBoundary() {
   if (cloud.mode === 'checking') {
     return <main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>成长小队正在打开家庭花园…</strong><span className="spinner" /></main>
   }
-  if (cloud.mode === 'pairing') return <CloudPairPage onPaired={pairCloud} />
+  if (cloud.mode === 'pairing') return <Suspense fallback={<main className="cloud-loading" aria-live="polite"><span className="spinner" /></main>}><CloudPairPage onPaired={pairCloud} /></Suspense>
   return <><SoundEffectsBridge /><BrowserRouter basename={APP_BASENAME}><Suspense fallback={<main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>正在打开这片小天地…</strong><span className="spinner" /></main>}><AppRoutes /></Suspense></BrowserRouter><UpdateNotice /></>
 }
 

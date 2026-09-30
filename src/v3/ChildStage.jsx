@@ -11,10 +11,12 @@ import { stopSpeaking } from './speech.js'
 import './tokens.css'
 import './child.css'
 import './scenes.css'
+import './places.css'
+import './pet-skin.css'
 
 const CORE_VIEWS = ['/today', '/world', '/me', '/tonight', '/garden']
 const PLACE_NAMES = {
-  pet: '小伙伴的家', wishes: '愿望星空', movement: '能量广场', 'energy-plaza': '能量广场', reading: '故事树屋', 'story-treehouse': '故事树屋',
+  pet: '小伙伴的家', wishes: '愿望码头', movement: '能量广场', 'energy-plaza': '能量广场', reading: '故事树屋', 'story-treehouse': '故事树屋',
   responsibility: '家庭小屋', 'family-cottage': '家庭小屋', inventor: '发明工坊', 'companion-question': '小问题',
 }
 const DOCK = [

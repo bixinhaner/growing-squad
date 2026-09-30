@@ -265,3 +265,51 @@
   .v3-parent .v3-desk__main .device-settings-card { grid-template-columns: auto minmax(0, 1fr); }
   .v3-parent .v3-desk__main .device-settings-card > :is(small, label, .device-revoke) { grid-column: 1 / -1; }
 }
+
+/* ─────────────  One voice for every parent page  ─────────────
+ * Older parent pages carried their own palettes (sage, teal, terracotta) and
+ * fonts (Kaiti, Yuanti). Pull them onto the console tokens: display font for
+ * page titles, night indigo for primary actions, paper cards. */
+.v3-parent .v3-desk__main :is(.reading-parent, .responsibility-parent, .movement-parent) {
+  --family-sage: var(--v3-night-2);
+  --family-sage-deep: var(--v3-night-1);
+  --family-paper: var(--card);
+}
+.v3-parent .v3-desk__main h1 {
+  font-family: var(--v3-font-display);
+  font-weight: 400;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.2;
+  letter-spacing: .03em;
+}
+.v3-parent .v3-desk__main :is(h2, h3, strong, b) { font-family: var(--v3-font-body); }
+.v3-parent .v3-desk__main :is(.guardian-hero, .assistant-hero, [class*='hero']) :is(h1, h2) { font-family: var(--v3-font-display); font-weight: 400; letter-spacing: .03em; }
+.v3-parent .v3-desk__main .button--primary,
+.v3-parent .v3-desk__main .pet-button:not(.pet-button--soft) {
+  border: 0;
+  border-radius: 14px;
+  background: var(--v3-night-2);
+  color: var(--v3-wool);
+  box-shadow: none;
+}
+.v3-parent .v3-desk__main .pet-button--soft { border-radius: 14px; background: var(--card); color: var(--v3-ink); box-shadow: 0 0 0 1px var(--line) inset; }
+.v3-parent .v3-desk__main :is(.calm-parent, .responsibility-parent, .support-page) button.is-active:not(.toggle) {
+  background: var(--v3-night-2);
+  color: var(--v3-wool);
+  box-shadow: none;
+}
+.v3-parent .v3-desk__main :is(.calm-parent, .support-page) nav button,
+.v3-parent .v3-desk__main :is(.calm-parent, .support-page) [role='tablist'] button { border-radius: 999px; }
+.v3-parent .v3-desk__main [class*='eyebrow'] { color: var(--v3-moon-deep); letter-spacing: .08em; }
+.v3-parent .v3-desk__main :is(.calm-page, .calm-parent, .calm-management) {
+  --calm-green: var(--v3-night-2);
+  --calm-ink: var(--v3-ink);
+  --calm-muted: var(--v3-ink-soft);
+  --calm-paper: var(--card);
+  --calm-line: var(--line);
+  font-family: var(--v3-font-body);
+}
+.v3-parent .v3-desk__main .calm-action { box-shadow: none; }
+.v3-parent .v3-desk__main .responsibility-child-preview h2 { font-family: var(--v3-font-display); font-weight: 400; letter-spacing: .04em; }
+/* The console top bar already reports save state. */
+.v3-parent .v3-desk__main .save-indicator { display: none; }

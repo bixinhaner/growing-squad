@@ -93,7 +93,7 @@ test('repeated movement sessions under a fixed clock each preserve their own fee
   await setupFamily(page)
   for (const feedback of ['还想玩', '有点难']) {
     await page.goto('/bedtime/movement')
-    await page.locator('.movement-picks>button').first().click()
+    await page.locator('.v3-move-picks>button').first().click()
     await page.getByRole('button', { name: '我准备好啦' }).click()
     await page.getByRole('button', { name: '我回来啦' }).click()
     await page.getByRole('button', { name: new RegExp(feedback) }).click()

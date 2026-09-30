@@ -25,11 +25,6 @@
 }
 html { scroll-padding-top: 92px; scroll-padding-bottom: 110px; }
 body { font-family: var(--v2-type); }
-:where(.gs-child-app,.gs-parent-app,.setup-page,.welcome-page) {
-  --calm-ink: var(--v2-ink); --calm-muted: var(--v2-muted);
-  --calm-paper: var(--v2-paper); --calm-green: var(--v2-green); --calm-line: var(--v2-line);
-  color: var(--v2-ink); background: var(--v2-canvas);
-}
 :where(.gs-child-app,.gs-parent-app) :is(button,input,select,textarea) { font-family: var(--v2-type); }
 :where(.gs-child-app,.gs-parent-app) :is(h1,h2,h3) { font-family: var(--v2-type); letter-spacing: -.035em; text-wrap: pretty; }
 :where(button,a,input,select,textarea,summary):focus-visible { outline: 3px solid #ae6045; outline-offset: 4px; }
@@ -166,13 +161,9 @@ button:disabled { cursor: not-allowed; }
 .reading-difficulty button,.reading-reflection-options button { min-height: 48px; border-radius: 14px; border-color: var(--v2-line); box-shadow: none; }
 .reading-difficulty button.is-selected,.reading-reflection-options button.is-selected { border-color: #6c8a65; color: #31553f; background: #e9f1e1; }
 .reading-reflection h2 { font-size: 20px; }
-.reading-reflection .calm-reflection-note { padding: 4px 18px; border: 1px solid #e1e5d9; border-radius: 18px; background: #f8f8ef; margin: 10px 0 18px; }
 .reading-reflection textarea { min-height: 90px; }
-:where(.movement-choice,.movement-ready,.movement-play,.reading-shelf,.reading-mode,.reading-play,.reading-reflection,.family-cottage,.responsibility-role,.responsibility-play,.inventor-workshop,.inventor-discover,.inventor-project,.inventor-showcase,.companion-question) { color: var(--v2-ink); }
-:where(.movement-choice,.movement-ready,.movement-play,.reading-shelf,.reading-mode,.reading-play,.reading-reflection,.family-cottage,.responsibility-role,.responsibility-play,.inventor-workshop,.inventor-discover,.inventor-project) h1 { font-family: var(--v2-type); font-weight: 750; }
-:where(.movement-choice,.movement-ready,.movement-play,.family-cottage,.responsibility-role,.responsibility-play,.inventor-project,.inventor-discover,.companion-question) button { min-height: 48px; border-radius: 15px; }
-.movement-picks>button,.family-cottage__grid>button { border: 1px solid var(--v2-line); border-radius: 22px; box-shadow: none; padding: 10px; }
-.movement-picks>button img,.family-cottage__grid>button img { border-radius: 16px; }
+.movement-picks>button { border: 1px solid var(--v2-line); border-radius: 22px; box-shadow: none; padding: 10px; }
+.movement-picks>button img { border-radius: 16px; }
 :where(.movement-ready,.reading-play,.responsibility-play,.inventor-project) article { border-radius: 28px; }
 /* Parents: denser typography, real household pulse, quick paths. */
 .gs-parent-app { grid-template-columns: 208px minmax(0,1fr); background: var(--v2-canvas); }
@@ -219,7 +210,6 @@ button:disabled { cursor: not-allowed; }
 .calm-timeline li { padding: 24px; }
 .calm-timeline blockquote { background: #f2f5eb; border-color: #87a276; }
 .calm-evidence-note { background: #edf1e6; }
-:where(.gs-parent-content) :is(.settings-card,.form-card,.panel,.guardian-card,.reading-parent__books,.movement-library,.support-group) { border-color: var(--v2-line); box-shadow: var(--v2-shadow); border-radius: 22px; }
 /* Shared dialogs: stable, comfortable controls; no sweeping entrance animation. */
 .overlay { background: rgb(27 43 32 / 36%); backdrop-filter: blur(3px); }
 .modal,.drawer { color: var(--v2-ink); border: 1px solid #e1e6d8; border-radius: 28px; background: var(--v2-paper); box-shadow: 0 24px 64px rgb(19 35 26 / 18%); }
@@ -228,7 +218,7 @@ button:disabled { cursor: not-allowed; }
 .modal h2,.drawer h2 { font-family: var(--v2-type); font-weight: 700; }
 .cloud-loading { background: var(--v2-canvas); color: var(--v2-green); }
 @media(hover:hover) and (pointer:fine) {
- .calm-choices>button:hover,.calm-area-grid>button:hover,.reading-books>button:hover,.movement-picks>button:hover,.family-cottage__grid>button:hover { border-color: #8ca781; transform: translateY(-2px); box-shadow: 0 7px 20px #334a3610; }
+ .calm-choices>button:hover,.calm-area-grid>button:hover,.reading-books>button:hover,.movement-picks>button:hover { border-color: #8ca781; transform: translateY(-2px); box-shadow: 0 7px 20px #334a3610; }
  .calm-action:hover,.reading-primary:hover,.button--primary:hover { background: #274b3c; }
  .calm-action--secondary:hover,.button--secondary:hover { background: #edf2e6; }
  .v2-quick-actions button:hover { background: #f3f6ed; border-color: #9baf8e; }
@@ -305,7 +295,6 @@ button:disabled { cursor: not-allowed; }
  .v2-journey { gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
  .v2-journey li { font-size: 12px; gap: 6px; }
  .reading-mode-actions,.reading-play article { gap: 12px; }
- .reading-reflection .calm-reflection-note { padding-inline: 12px; }
  .reading-mode-grid>button { padding: 12px; }
  .gs-parent-app { display: block; }
  .gs-parent-sidebar { position: fixed; inset: auto 0 0; width: 100%; height: auto; padding: 6px 10px max(10px,env(safe-area-inset-bottom)); background: #fffdf8f5; border: 0; border-top: 1px solid var(--v2-line); z-index: 50; }

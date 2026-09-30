@@ -7,7 +7,6 @@ import { PetMediaPreview, PetMediaRecorder } from '../ui/pets/PetMedia.jsx'
 import { savePetMedia, syncPetMedia, discardPetMediaDraft } from '../ui/pets/petMediaStore.js'
 import { petSound, speakPet, stopPetAudio } from '../ui/pets/petAudio.js'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useBedtimeActions, useBedtimeState } from '../store/useBedtime.js'
 import { getActiveProfile, getAccessibility, uid } from '../domain/model.js'
 import { appPath } from '../data/paths.js'
@@ -33,7 +32,6 @@ export function PetHomePage() {
 function PetHome() {
   const { state, cloud, saveStatus } = useBedtimeState()
   const { dispatch } = useBedtimeActions()
-  const navigate = useNavigate()
   const profile = getActiveProfile(state)
   const pet = petFor(state, profile.id)
   const settings = petSettingsFor(state, profile.id)
@@ -119,7 +117,7 @@ function PetHome() {
 
   return <section className="pet-home" aria-labelledby="pet-home-title" data-stage={growth.stage} data-simple={settings.simpleMode}>
     <header className="pet-heading"><div className="pet-title-group"><span className="pet-avatar"><PetActor species={pet.species} size="baby" /></span><div><span className="pet-eyebrow">{profile.name}的小伙伴</span><h1 id="pet-home-title" aria-label={pet.name}>{pet.name}<button className="pet-text-button" type="button" aria-label="给小伙伴改名字" onClick={() => { setDraftName(pet.name); setRenameOpen(true) }}><Icon name="edit" size={17} /></button></h1><span className="pet-small-note">{growth.label} · Lv.{levelProgress(pet).level}</span></div></div>
-      <div className="pet-heading-actions"><PetWallets stars={petBalance(state,profile.id)} badges={badgeBalance(pet)} onShop={()=>setTab('shop')} onGrow={()=>setTab('grow')}/><button type="button" className="pet-icon-button" aria-label="伙伴的家长设置" onClick={() => navigate('/parent/pet')}><Icon name="shield" /></button></div>
+      <div className="pet-heading-actions"><PetWallets stars={petBalance(state,profile.id)} badges={badgeBalance(pet)} onShop={()=>setTab('shop')} onGrow={()=>setTab('grow')}/></div>
     </header>
     <div className="pet-home-status"><span role="status" aria-live="polite">{message || '星光陪我长大，徽章换来喜欢的小物件。'}</span><button type="button" className="pet-text-button pet-listen" aria-label="听听这句话" onClick={()=>{if(getAccessibility(state).soundOff){setMessage('声音已关闭，可以在家长设置里开启。');return}if(!speakPet(message||'你好呀，来和我玩一会儿吧'))setMessage('这台设备没有可用的本地中文朗读，仍然可以看图和文字。')}}><Icon name="bell" size={16}/></button></div>
     {!activeSession ? petNavigation : null}

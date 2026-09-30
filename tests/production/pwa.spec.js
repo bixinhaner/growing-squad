@@ -20,7 +20,10 @@ test('production app shell and primary illustration work offline', async ({ cont
   await page.goto('/bedtime/tonight', { waitUntil: 'domcontentloaded' })
 
   await expect(page.getByRole('heading', { name: /一起把睡前.*变得轻松一点/ })).toBeVisible()
-  await expect.poll(() => page.getByRole('img', { name: '眠眠抱着月亮枕头' }).evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true)
+  // The welcome companion is drawn from the pose atlas as a CSS background.
+  const welcomeArt = await page.locator('.v3-welcome__stage .character-pose').evaluate((el) => getComputedStyle(el).backgroundImage.match(/url\("?(.*?)"?\)/)?.[1])
+  expect(welcomeArt).toContain('bear-poses')
+  expect(await page.evaluate(async (url) => new Promise((resolve) => { const img = new Image(); img.onload = () => resolve(img.naturalWidth > 0); img.onerror = () => resolve(false); img.src = url }), welcomeArt)).toBe(true)
   const productAssets = await page.evaluate(async () => Promise.all([
     '/bedtime/assets/garden-world-landscape-v2.webp',
     '/bedtime/assets/garden-world-portrait-v2.webp',

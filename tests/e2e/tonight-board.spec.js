@@ -26,6 +26,8 @@ async function layoutTasks(page, count = 16) {
   await page.goto('/bedtime/tonight')
   await expect(page.locator('.v3-board__grid>button')).toHaveCount(count)
   await expect.poll(() => page.locator('#child-content').evaluate((e) => getComputedStyle(e).transform)).toBe('none')
+  // Cards deal in with a staggered entrance; measure them once they have landed.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity))
 }
 async function assertNamesContained(page) {
   expect(await page.locator('.v3-patch').evaluateAll((items) => items.every((item) => {
@@ -76,7 +78,7 @@ test('tonight 16-card tablet board gives space to equal rows and contains long n
 test('overflow stays inside the right panel without covering footer or moving the scene', async ({ page }) => {
   await page.setViewportSize({ width: 1194, height: 834 })
   await setupFamily(page)
-  await layoutTasks(page, 24)
+  await layoutTasks(page, 36)
   const scene = page.locator('.v3-tonight__sky'), grid = page.locator('.v3-board__grid'), tasks = grid.locator('button')
   const before = await scene.boundingBox()
   expect(await grid.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true)

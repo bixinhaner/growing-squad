@@ -7,7 +7,7 @@ test('reading preserves real mode, help, words and attribution without rewards',
   const before=(await persistedState(page)).rewards.starLedger.length
   await page.goto('/bedtime/reading')
   await page.getByRole('button',{name:/刺猬的勇敢小灯笼的封面/}).click()
-  await expect(page.locator('.reading-mode-grid>button')).toHaveCount(3)
+  await expect(page.locator('.v3-modes>button')).toHaveCount(3)
   await page.getByRole('button',{name:/一起读/}).click(); await page.getByRole('button',{name:'带我开始'}).click()
   await expect(page.getByRole('heading',{name:'故事在你手里'})).toBeVisible()
   await page.getByRole('button',{name:'我需要帮助'}).click()
@@ -31,9 +31,9 @@ test('reading preserves real mode, help, words and attribution without rewards',
 test('phone reading has three main choices, expandable modes and genuinely optional reflection', async ({page}) => {
   await page.setViewportSize({width:390,height:844}); await setupFamily(page); await unlockParent(page,'/parent/reading'); await addBook(page)
   await page.goto('/bedtime/reading'); await page.getByRole('button',{name:/刺猬的勇敢小灯笼的封面/}).click()
-  await expect(page.locator('.reading-mode-grid>button')).toHaveCount(3)
-  await page.getByRole('button',{name:'看看其他线下读法'}).click(); await expect(page.locator('.reading-mode-grid>button')).toHaveCount(8)
-  await page.getByRole('button',{name:'收起更多方式'}).click(); await expect(page.locator('.reading-mode-grid>button')).toHaveCount(3)
+  await expect(page.locator('.v3-modes>button')).toHaveCount(3)
+  await page.getByRole('button',{name:'看看其他线下读法'}).click(); await expect(page.locator('.v3-modes>button')).toHaveCount(8)
+  await page.getByRole('button',{name:'收起更多方式'}).click(); await expect(page.locator('.v3-modes>button')).toHaveCount(3)
   await expectComfortable(page,[page.getByRole('button',{name:'带我开始'})]); await page.getByRole('button',{name:'带我开始'}).click()
   await page.getByRole('button',{name:'读完啦'}).click()
   await expect(page.getByRole('button',{name:'以后再说'})).toBeEnabled()

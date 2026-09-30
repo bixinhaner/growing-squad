@@ -3,7 +3,7 @@ import { setupFamily, unlockParent, persistedState, expectComfortable, expectIma
 test('child chooses an activity, returns from play and stores preference without rewards',async({page}) => {
   await setupFamily(page); await page.goto('/bedtime/world')
   await page.getByRole('button',{name:/能量广场/}).click(); await expect(page.getByRole('heading',{name:'今天想怎样动一动？'})).toBeVisible()
-  await page.locator('.movement-picks>button').first().click(); await page.getByRole('button',{name:'我准备好啦'}).click()
+  await page.locator('.v3-move-picks>button').first().click(); await page.getByRole('button',{name:'我准备好啦'}).click()
   await expect(page.getByRole('heading',{name:'去玩吧，屏幕在这里等你'})).toBeVisible()
   await page.getByRole('button',{name:'我回来啦'}).click(); await page.getByRole('button',{name:/还想玩/}).click()
   await expect.poll(async() => Object.values((await persistedState(page)).modules.movement.sessions).some((s) => s.feedback==='again')).toBe(true)
@@ -14,8 +14,8 @@ test('child chooses an activity, returns from play and stores preference without
 test('phone has reachable movement controls and a way back to the world',async({page}) => {
   await page.setViewportSize({width:390,height:844}); await setupFamily(page); await page.goto('/bedtime/movement')
   await expectComfortable(page,['换两个','和家长一起','今天先不做'].map((name) => page.getByRole('button',{name,exact:true})))
-  await page.getByRole('button',{name:'换两个'}).click(); await expect(page.locator('.movement-picks>button')).toHaveCount(2)
-  await page.locator('.movement-picks>button').first().click(); await page.getByRole('button',{name:'我准备好啦'}).click()
+  await page.getByRole('button',{name:'换两个'}).click(); await expect(page.locator('.v3-move-picks>button')).toHaveCount(2)
+  await page.locator('.v3-move-picks>button').first().click(); await page.getByRole('button',{name:'我准备好啦'}).click()
   await expectComfortable(page,[page.getByRole('button',{name:'我回来啦'})]); await expectImagesLoaded(page)
   await page.screenshot({path:'artifacts/visual-qa/movement-play-phone.png',fullPage:true})
   await page.getByRole('button',{name:/返回小队世界/}).click(); await expect(page).toHaveURL(/\/world$/)
@@ -28,5 +28,5 @@ test('parent sees honest participation and an explicit indoor-only mode',async({
   await expect(page.locator('.movement-library__grid article')).toHaveCount(20)
   await page.getByRole('checkbox').check()
   await expect.poll(async() => Object.values((await persistedState(page)).modules.movement.preferencesByProfile).some((p) => p.rainMode)).toBe(true)
-  await page.goto('/bedtime/movement'); await expect(page.locator('.movement-picks')).not.toContainText('户外')
+  await page.goto('/bedtime/movement'); await expect(page.locator('.v3-move-picks')).not.toContainText('户外')
 })

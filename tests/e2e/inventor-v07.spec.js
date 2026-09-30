@@ -37,7 +37,7 @@ test('invention keeps a first prototype, genuine attachment, testing, knowledge,
   await page.getByRole('button',{name:'带着这个线索再改一版'}).click()
   await page.getByRole('button',{name:'第二版准备讲给家人听'}).click()
   await expect(page.getByRole('heading',{name:'我的发明故事'})).toBeVisible()
-  await expect(page.locator('.inventor-story>div')).toHaveCount(4)
+  await expect(page.locator('.v3-inv-story>li')).toHaveCount(4)
   await page.getByRole('button',{name:'把这次发明收进工坊'}).click()
   await expect.poll(async() => (await persistedState(page)).modules.inventor.projects[0].status).toBe('archived')
   const p=(await persistedState(page)).modules.inventor.projects[0]

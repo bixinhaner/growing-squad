@@ -143,13 +143,6 @@
 }
 
 /* ─────────────────────────  Companion & bubble  ───────────────────────── */
-.v3-companion { position: relative; display: inline-block; }
-.v3-companion__pose.character-pose { width: 100%; filter: drop-shadow(0 22px 22px rgba(4, 7, 22, .45)); animation: v3-breathe 5.5s ease-in-out infinite; transform-origin: 50% 100%; }
-.v3-companion--cheer .v3-companion__pose { animation: v3-hop .7s var(--v3-ease-bounce) 2, v3-breathe 5.5s ease-in-out 1.4s infinite; }
-.v3-companion--sleepy .v3-companion__pose { animation-duration: 8s; }
-.v3-companion__shadow { position: absolute; left: 22%; right: 22%; bottom: 4%; height: 14px; border-radius: 50%; background: rgba(4, 7, 22, .35); filter: blur(6px); z-index: -1; }
-@keyframes v3-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, .985) translateY(1px); } }
-@keyframes v3-hop { 0%, 100% { transform: translateY(0) scale(1); } 35% { transform: translateY(-22px) scale(.97, 1.04); } 70% { transform: translateY(0) scale(1.04, .96); } }
 
 .v3-bubble {
   position: relative;

@@ -36,7 +36,7 @@ test('mobile overview keeps visible task controls and final views are captured a
   await page.goto('/bedtime/reading')
   await expect(page.getByRole('heading', { name: '故事树屋' })).toBeVisible()
   await capture(page, 'reading-shelf-phone')
-  await page.locator('.reading-books>button').first().click()
+  await page.locator('.v3-shelf__books>button').first().click()
   await capture(page, 'reading-mode-phone')
   await page.getByRole('button', { name: '带我开始' }).click()
   await page.getByRole('button', { name: '读完啦' }).click()
