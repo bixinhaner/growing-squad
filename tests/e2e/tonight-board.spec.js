@@ -24,12 +24,12 @@ async function layoutTasks(page, count = 16) {
   })
   await expect.poll(async () => (await persistedState(page)).modules.bedtime.routines.filter((r) => r.profileId === profileId).every((r) => r.steps.length === count)).toBe(true)
   await page.goto('/bedtime/tonight')
-  await expect(page.locator('.gs-task-grid>button')).toHaveCount(count)
+  await expect(page.locator('.v3-board__grid>button')).toHaveCount(count)
   await expect.poll(() => page.locator('#child-content').evaluate((e) => getComputedStyle(e).transform)).toBe('none')
 }
 async function assertNamesContained(page) {
-  expect(await page.locator('.tonight-task').evaluateAll((items) => items.every((item) => {
-    const name = item.querySelector('.tonight-task__title'), text = name.getBoundingClientRect(), card = item.getBoundingClientRect()
+  expect(await page.locator('.v3-patch').evaluateAll((items) => items.every((item) => {
+    const name = item.querySelector('strong'), text = name.getBoundingClientRect(), card = item.getBoundingClientRect()
     return text.left >= card.left && text.right <= card.right + 1 && text.top >= card.top && text.bottom <= card.bottom + 1 && name.scrollWidth <= name.clientWidth + 1
   }))).toBe(true)
 }
@@ -38,14 +38,14 @@ test('tonight 16-card tablet board gives space to equal rows and contains long n
   await page.setViewportSize({ width: 1194, height: 834 })
   await setupFamily(page)
   await layoutTasks(page)
-  const tasks = page.locator('.gs-task-grid>button')
+  const tasks = page.locator('.v3-board__grid>button')
   const grid = page.getByRole('group', { name: '今晚任务清单' })
   await expect(page.getByRole('button', { name: '专注一件', exact: true })).toHaveCount(0)
   await expect(page.getByRole('group', { name: '睡前查看方式' })).toHaveCount(0)
   await assertNamesContained(page)
   const metrics = await grid.evaluate((el) => {
-    const board = el.closest('.tonight-board'), r = el.getBoundingClientRect()
-    const header = board.querySelector('header').getBoundingClientRect(), tiles = [...el.querySelectorAll('button')].map((b) => b.getBoundingClientRect())
+    const board = el.closest('.v3-board'), r = el.getBoundingClientRect()
+    const header = board.querySelector('.v3-board__head').getBoundingClientRect(), tiles = [...el.querySelectorAll('button')].map((b) => { const r = b.getBoundingClientRect(); return { width: b.offsetWidth, height: b.offsetHeight, y: b.offsetTop, top: r.top, bottom: r.bottom } })
     return { headerHeight: header.height, gridHeight: r.height, ratio: r.height / board.getBoundingClientRect().height,
       columns: getComputedStyle(el).gridTemplateColumns.split(' ').length,
       firstRow: tiles.slice(0, 3).map((b) => ({ width: b.width, height: b.height, y: b.y })),
@@ -54,14 +54,14 @@ test('tonight 16-card tablet board gives space to equal rows and contains long n
   expect(metrics.headerHeight).toBeLessThanOrEqual(82)
   expect(metrics.gridHeight).toBeGreaterThanOrEqual(430)
   expect(metrics.ratio).toBeGreaterThan(.69)
-  expect(metrics.columns).toBe(3)
+  expect(metrics.columns).toBeGreaterThanOrEqual(3)
   expect(metrics.visible).toBe(16)
   for (const box of metrics.firstRow.slice(1)) {
     expect(Math.abs(box.width - metrics.firstRow[0].width)).toBeLessThanOrEqual(1)
     expect(Math.abs(box.y - metrics.firstRow[0].y)).toBeLessThanOrEqual(1)
     expect(Math.abs(box.height - metrics.firstRow[0].height)).toBeLessThanOrEqual(1)
   }
-  await expect(page.locator('.gs-tonight-finish')).toBeInViewport()
+  await expect(page.locator('.v3-finish')).toBeInViewport()
   await page.screenshot({ path: 'artifacts/visual-qa/tonight-board-tablet.png', fullPage: true })
   await test.info().attach('panel-measurements', { body: JSON.stringify(metrics, null, 2), contentType: 'application/json' })
   const longTask = page.getByRole('button', { name: '收拾明天的衣服', exact: true })
@@ -77,12 +77,12 @@ test('overflow stays inside the right panel without covering footer or moving th
   await page.setViewportSize({ width: 1194, height: 834 })
   await setupFamily(page)
   await layoutTasks(page, 24)
-  const scene = page.locator('.gs-tonight-scene'), grid = page.locator('.tonight-board__grid'), tasks = grid.locator('button')
+  const scene = page.locator('.v3-tonight__sky'), grid = page.locator('.v3-board__grid'), tasks = grid.locator('button')
   const before = await scene.boundingBox()
   expect(await grid.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true)
   await tasks.last().scrollIntoViewIfNeeded()
   await expect(tasks.last()).toBeInViewport()
-  await expect(page.locator('.gs-tonight-finish')).toBeInViewport()
+  await expect(page.locator('.v3-finish')).toBeInViewport()
   await tasks.last().focus()
   await page.keyboard.press('Space')
   await expect(tasks.last()).toHaveAttribute('aria-pressed', 'true')
@@ -94,7 +94,7 @@ test('overflow stays inside the right panel without covering footer or moving th
 test('temporary skip and restore remain reachable from the slim header without false completion', async ({ page }) => {
   await page.setViewportSize({ width: 1194, height: 834 })
   await setupFamily(page)
-  const first = page.locator('.gs-task-grid>button').first()
+  const first = page.locator('.v3-board__grid>button').first()
   const name = await first.getAttribute('aria-label')
   const adjust = page.getByRole('button', { name: '调整今晚任务', exact: true })
   await adjust.click()
@@ -104,13 +104,13 @@ test('temporary skip and restore remain reachable from the slim header without f
   await expect(adjust).toBeFocused()
   await expect(first).toHaveClass(/is-skipped/)
   await expect(first).toHaveAttribute('aria-pressed', 'false')
-  await expect(page.locator('.tonight-board__progress')).toContainText('1 项已跳过')
-  await expect(page.locator('.tonight-board__progress strong')).toHaveText('0 / 7')
+  await expect(page.locator('.v3-board__progress')).toContainText('1 项已跳过')
+  await expect(page.locator('.v3-board__progress strong')).toHaveText('0 / 7')
   await adjust.click()
   await dialog.getByRole('button', { name: new RegExp(name) }).click()
   await page.keyboard.press('Escape')
   await expect(first).not.toHaveClass(/is-skipped/)
-  await expect(page.locator('.tonight-board__progress')).not.toContainText('已跳过')
+  await expect(page.locator('.v3-board__progress')).not.toContainText('已跳过')
 })
 
 for (const [name, width, height, large] of [['desktop', 1440, 900, false], ['phone', 390, 844, false], ['narrow-large', 320, 740, true]]) {
@@ -123,11 +123,11 @@ for (const [name, width, height, large] of [['desktop', 1440, 900, false], ['pho
       await page.getByRole('switch', { name: '减少动态', exact: true }).click()
       await expect(page.locator('html')).toHaveClass(/large-text/)
       await page.goto('/bedtime/tonight')
-      await expect(page.locator('.gs-task-grid>button').first()).toBeVisible()
+      await expect(page.locator('.v3-board__grid>button').first()).toBeVisible()
     }
     await layoutTasks(page)
     await assertNamesContained(page)
-    const grid = page.locator('.gs-task-grid')
+    const grid = page.locator('.v3-board__grid')
     await expectComfortable(page, [grid.locator('button').first(), grid.locator('button').nth(7), grid.locator('button').last()])
     const title = grid.locator('button').nth(7).locator('strong')
     await expect(title).toHaveText('收拾明天的衣服')

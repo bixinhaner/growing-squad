@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
-import { ChildShell } from './layouts/ChildShell.jsx'
-import { ParentLayout } from './layouts/ParentLayout.jsx'
+import { ChildStage } from './v3/ChildStage.jsx'
+import { ParentConsole } from './v3/ParentConsole.jsx'
 import { CloudPairPage } from './pages/CloudPairPage.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
@@ -12,28 +12,31 @@ import { Icon } from './ui/Icons.jsx'
 import { SoundEffectsBridge } from './audio/SoundEffectsBridge.jsx'
 import './app.css'
 import './redesign.css'
+import '@fontsource-variable/fredoka'
+import './v3/tokens.css'
+import './v3/ritual.css'
 
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })))
 const WelcomePage = lazyNamed(() => import('./pages/WelcomePage.jsx'), 'WelcomePage')
 const SetupPage = lazyNamed(() => import('./pages/SetupPage.jsx'), 'SetupPage')
-const TodayPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignTodayPage')
-const WorldPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignWorldPage')
-const MePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignBackpackPage')
+const TodayPage = lazyNamed(() => import('./v3/pages/NowScene.jsx'), 'NowScene')
+const WorldPage = lazyNamed(() => import('./v3/pages/WorldMap.jsx'), 'WorldMap')
+const MePage = lazyNamed(() => import('./v3/pages/BackpackRoom.jsx'), 'BackpackRoom')
 const PetHomePage = lazyNamed(() => import('./pages/PetHomePage.jsx'), 'PetHomePage')
 const PetParentPage = lazyNamed(() => import('./pages/PetParentPage.jsx'), 'PetParentPage')
-const TonightPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignTonightPage')
-const GardenPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignGardenPage')
+const TonightPage = lazyNamed(() => import('./v3/pages/TonightScene.jsx'), 'TonightScene')
+const GardenPage = lazyNamed(() => import('./v3/pages/GardenScene.jsx'), 'GardenScene')
 const WishesPage = lazyNamed(() => import('./pages/WishesPage.jsx'), 'WishesPage')
 const WateringPage = lazyNamed(() => import('./pages/WateringPage.jsx'), 'WateringPage')
 const GoodnightPage = lazyNamed(() => import('./pages/GoodnightPage.jsx'), 'GoodnightPage')
-const ParentGatePage = lazyNamed(() => import('./pages/ParentGatePage.jsx'), 'ParentGatePage')
-const ParentOverviewPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentTodayPage')
+const ParentGatePage = lazyNamed(() => import('./v3/pages/ParentGate.jsx'), 'ParentGate')
+const ParentOverviewPage = lazyNamed(() => import('./v3/pages/ParentToday.jsx'), 'ParentToday')
 const FamilyTimelinePage = lazyNamed(() => import('./pages/FamilyTimelinePage.jsx'), 'FamilyTimelinePage')
 const SupportPage = lazyNamed(() => import('./pages/SupportPage.jsx'), 'SupportPage')
-const SchedulePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentPlanPage')
+const SchedulePage = lazyNamed(() => import('./pages/SchedulePage.jsx'), 'SchedulePage')
 const RoutinePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignRoutineEditorPage')
-const RewardsPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentRewardsPage')
-const ProfilePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentSettingsPage')
+const RewardsPage = lazyNamed(() => import('./pages/RewardsPage.jsx'), 'RewardsPage')
+const ProfilePage = lazyNamed(() => import('./pages/ProfilePage.jsx'), 'ProfilePage')
 const MovementChoicePage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementChoicePage')
 const MovementReadyPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementReadyPage')
 const MovementPlayPage = lazyNamed(() => import('./pages/MovementPage.jsx'), 'MovementPlayPage')
@@ -107,7 +110,7 @@ function AppRoutes() {
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/setup" element={<SetupPage />} />
       <Route element={<RequireSetup />}>
-        <Route element={<ChildShell />}>
+        <Route element={<ChildStage />}>
           <Route path="/today" element={<TodayPage />} />
           <Route path="/world" element={<WorldPage />} />
           <Route path="/me" element={<MePage />} />
@@ -137,7 +140,7 @@ function AppRoutes() {
         <Route path="/goodnight" element={<GoodnightPage />} />
         <Route path="/parent/unlock" element={<ParentGatePage />} />
         <Route element={<RequireParent />}>
-          <Route path="/parent" element={<ParentLayout />}>
+          <Route path="/parent" element={<ParentConsole />}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<ParentOverviewPage />} />
             <Route path="timeline" element={<FamilyTimelinePage />} />

@@ -10,9 +10,10 @@ test('V2 deep parent pages keep mobile navigation, forms and fixed dialog positi
     await expect(page.locator('h1').first()).toBeVisible()
     await expectComfortable(page)
     await expect.poll(() => page.locator('#parent-content').evaluate((element) => getComputedStyle(element).transform)).toBe('none')
-    const navigation = page.getByRole('navigation', { name: '家长导航' })
+    const navigation = page.getByRole('navigation', { name: '家长常用' })
     await expect(navigation).toBeInViewport()
-    await expect(navigation.getByRole('link')).toHaveCount(5)
+    await expect(navigation.getByRole('link')).toHaveCount(4)
+    await expect(navigation.getByRole('button', { name: '更多' })).toBeVisible()
     await expect(navigation.getByText('今天', { exact: true })).toBeVisible()
     if (section === 'devices') {
       const heading = page.getByText('还没有已连接设备', { exact: true })

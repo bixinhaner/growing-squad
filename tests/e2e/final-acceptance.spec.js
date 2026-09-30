@@ -60,7 +60,7 @@ for (const size of [{ name: 'phone', width: 390, height: 844 }, { name: 'tablet'
     await setupFamily(page, { at: '2026-09-06T16:20:00+08:00' })
     for (const route of ['today', 'world', 'me']) {
       await page.goto(`/bedtime/${route}`)
-      await expect(page.locator('.calm-page h1')).toBeVisible()
+      await expect(page.locator('#child-content h1').first()).toBeVisible()
       await expect(page.getByRole('navigation', { name: '儿童主导航' }).getByRole('link')).toHaveCount(3)
       await expectComfortable(page)
       await expectImagesLoaded(page)
@@ -81,12 +81,12 @@ test('narrow screen and larger text keep choices reachable without horizontal sc
   for (const name of ['大号文字', '减少动态']) await page.getByRole('switch', { name, exact: true }).click()
   await expect(page.locator('html')).toHaveClass(/large-text/)
   await page.goto('/bedtime/today')
-  await expect(page.locator('.calm-choices>button')).toHaveCount(2)
-  await expectComfortable(page, [page.locator('.calm-choices>button').first(), page.getByRole('button', { name: '需要帮助', exact: true })])
+  await expect(page.locator('.v3-tickets>button')).toHaveCount(2)
+  await expectComfortable(page, [page.locator('.v3-tickets>button').first(), page.getByRole('button', { name: '需要帮助', exact: true })])
   await page.screenshot({ path: 'artifacts/visual-qa/final-today-narrow-large-text.png', fullPage: true })
   await page.getByRole('link', { name: '小队世界' }).click()
-  await expect(page.locator('.calm-area-grid>button')).toHaveCount(5)
-  await expectComfortable(page, [page.locator('.calm-area-grid>button').last()])
+  await expect(page.locator('.v3-map .v3-place')).toHaveCount(7)
+  await expectComfortable(page, [page.getByRole('button', { name: /^发明工坊：/ })])
 })
 
 test('repeated movement sessions under a fixed clock each preserve their own feedback', async ({ page }) => {

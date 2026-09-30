@@ -13,7 +13,7 @@ export async function setupFamily(page,{name='小语',at='2026-09-06T20:45:00+08
   await page.getByRole('button',{name:/保存并看看今晚/}).click()
   await expect(page).toHaveURL(/\/tonight$/)
   // The lazy route can change the URL before its controls have mounted.
-  await expect(page.locator('.gs-task-grid>button').first()).toBeVisible()
+  await expect(page.locator('.v3-board__grid>button').first()).toBeVisible()
   await expect.poll(async() => (await persistedState(page)).setupComplete).toBe(true)
 }
 export async function persistedState(page) { return page.evaluate(() => JSON.parse(localStorage.getItem('growing-squad:main:v7') || '{}')) }
@@ -43,7 +43,7 @@ export async function addBook(page,title='刺猬的勇敢小灯笼',cover='灯�
   await expect.poll(async() => (await persistedState(page)).modules.reading.books.some((b) => b.title===title)).toBe(true)
 }
 export async function completeBedtime(page) {
-  const buttons=page.locator('.gs-task-grid>button')
+  const buttons=page.locator('.v3-board__grid>button')
   await expect(buttons.first()).toBeVisible()
   const count=await buttons.count()
   for(let index=0;index<count;index+=1) {

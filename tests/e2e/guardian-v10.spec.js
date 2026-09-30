@@ -23,12 +23,12 @@ test('guardian center gives verifiable protection and progressive disclosure on 
 test('guardian center keeps the active destination reachable and readable on iPad', async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 })
   await setupFamily(page); await openGuardian(page); await assertVisualIntegrity(page)
-  await expect(page.getByRole('navigation', { name: '家长导航' }).getByRole('link', { name: '设置', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '家长导航' }).getByRole('link', { name: '数据与安全', exact: true })).toHaveAttribute('aria-current', 'page')
   await page.screenshot({ path: 'artifacts/visual-qa/131-family-guardian-ipad.png', fullPage: true })
 })
 test('guardian center has no horizontal overflow on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await setupFamily(page); await openGuardian(page); await assertVisualIntegrity(page)
-  await expect(page.getByRole('navigation', { name: '家长导航' }).getByRole('link', { name: '设置', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: '家长常用' }).getByRole('button', { name: '更多' })).toHaveAttribute('aria-current', 'true')
   await page.screenshot({ path: 'artifacts/visual-qa/132-family-guardian-mobile.png', fullPage: true })
 })

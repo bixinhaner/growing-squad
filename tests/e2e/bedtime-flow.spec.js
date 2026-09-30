@@ -14,7 +14,7 @@ async function reward(page,title,points=10) {
 
 test('family setup, reversible tasks, settlement and refresh preserve a real bedtime',async({page}) => {
   await setupFamily(page)
-  const tasks=page.locator('.gs-task-grid>button');const count=await tasks.count()
+  const tasks=page.locator('.v3-board__grid>button');const count=await tasks.count()
   expect(count).toBeGreaterThan(0)
   await tasks.first().click(); await expect(tasks.first()).toHaveAttribute('aria-pressed','true')
   await tasks.first().click(); await expect(tasks.first()).toHaveAttribute('aria-pressed','false')
@@ -27,13 +27,13 @@ test('family setup, reversible tasks, settlement and refresh preserve a real bed
   await page.reload();expect(await balance(page)).toBe(earned)
   await page.getByRole('button',{name:'浇好啦，去睡觉'}).click()
   await expect(page).toHaveURL(/goodnight/)
-  await page.goto('/bedtime/garden');await expect(page.locator('.calm-week .is-recorded')).toHaveCount(1)
+  await page.goto('/bedtime/garden');await expect(page.locator('.v3-pots .v3-pot.is-stage-4')).toHaveCount(1)
   await page.screenshot({path:'artifacts/visual-qa/bedtime-garden-tablet.png',fullPage:true})
 })
 
 test('late completion leaves a memory without deducting stars or inventing sleep',async({page}) => {
   await setupFamily(page,{at:'2026-09-06T22:00:00+08:00'})
-  await expect(page.getByText(/慢慢完成也没关系/)).toBeVisible()
+  await expect(page.locator('.v3-bubble')).toContainText('慢慢完成也没关系')
   await completeBedtime(page)
   expect(await balance(page)).toBe(0)
   const s=Object.values((await persistedState(page)).modules.bedtime.sessions)[0]
@@ -71,7 +71,7 @@ test('parents edit actual schedules, routines, wishes and accessibility',async({
   await unlockParent(page,'/parent/accessibility')
   for(const name of ['减少动态','大号文字','高对比度']) await page.getByRole('switch',{name,exact:true}).click()
   await expect(page.getByRole('switch',{name:'大号文字',exact:true})).toHaveAttribute('aria-checked','true')
-  await page.goto('/bedtime/tonight');await expect(page.getByRole('button',{name:/认真刷牙/})).toBeVisible()
+  await page.goto('/bedtime/tonight');await expect(page.getByRole('button',{name:'认真刷牙',exact:true})).toBeVisible()
   await page.setViewportSize({width:390,height:844});await expectComfortable(page)
 })
 
@@ -87,22 +87,22 @@ test('every companion and theme keeps a real layered preview and saved choice',a
   }
   await page.getByRole('button',{name:'保存资料'}).click()
   await expect.poll(async() => (await persistedState(page)).profiles[0].character).toBe('space-cat')
-  await page.goto('/bedtime/today');await expect(page.locator('.child-character')).toHaveAttribute('aria-label','陪伴角色：太空猫')
+  await page.goto('/bedtime/today');await expect(page.getByRole('img',{name:'陪伴角色：太空猫'})).toBeVisible()
 })
 
 test('two children keep separate tasks and records after switching and refresh',async({page}) => {
-  await setupFamily(page);await page.locator('.gs-task-grid>button').first().click()
-  await expect(page.locator('.gs-task-grid>button').first()).toHaveAttribute('aria-pressed','true')
+  await setupFamily(page);await page.locator('.v3-board__grid>button').first().click()
+  await expect(page.locator('.v3-board__grid>button').first()).toHaveAttribute('aria-pressed','true')
   await unlockParent(page,'/parent/profile');await page.getByRole('button',{name:'新增孩子',exact:true}).first().click()
   const dialog=page.getByRole('dialog',{name:'新增孩子'})
   await dialog.getByLabel('孩子昵称').fill('妹妹');await dialog.getByRole('button',{name:'建立孩子档案'}).click()
   await expect.poll(async() => (await persistedState(page)).profiles.length).toBe(2)
   await expect(page.getByLabel('昵称',{exact:true})).toHaveValue('妹妹')
-  await page.goto('/bedtime/tonight');await expect(page.locator('.gs-task-grid>button[aria-pressed=true]')).toHaveCount(0)
+  await page.goto('/bedtime/tonight');await expect(page.locator('.v3-board__grid>button[aria-pressed=true]')).toHaveCount(0)
   await unlockParent(page,'/parent/profile');await page.locator('.child-roster').getByRole('button',{name:/小语/}).click()
   await expect(page.getByLabel('昵称',{exact:true})).toHaveValue('小语')
-  await page.goto('/bedtime/tonight');await expect(page.locator('.gs-task-grid>button[aria-pressed=true]')).toHaveCount(1)
-  await page.reload();await expect(page.locator('.gs-task-grid>button[aria-pressed=true]')).toHaveCount(1)
+  await page.goto('/bedtime/tonight');await expect(page.locator('.v3-board__grid>button[aria-pressed=true]')).toHaveCount(1)
+  await page.reload();await expect(page.locator('.v3-board__grid>button[aria-pressed=true]')).toHaveCount(1)
 })
 
 test('direct parent links require PIN and refresh never leaves parent mode unlocked',async({page}) => {

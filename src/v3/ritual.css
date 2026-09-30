@@ -1,0 +1,66 @@
+/* v3 skin for the watering → goodnight ritual (logic lives in the legacy pages) */
+.watering-ritual h1,
+.goodnight-content h1 {
+  font-family: var(--v3-font-display);
+  font-weight: 400;
+  letter-spacing: .02em;
+  color: var(--v3-wool);
+  text-shadow: 0 3px 0 rgba(15, 21, 48, .45), 0 10px 30px rgba(15, 21, 48, .5);
+}
+.watering-ritual__eyebrow {
+  font-family: var(--v3-font-display);
+  color: var(--v3-moon);
+  letter-spacing: .12em;
+}
+.watering-ritual__message { font-family: var(--v3-font-display); font-size: clamp(20px, 2.4vw, 28px); color: var(--v3-wool); }
+.watering-ritual__reward strong { font-family: var(--v3-font-num); }
+
+.watering-ritual .watering-ritual__skip,
+.goodnight-music {
+  min-height: 56px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--v3-wool);
+  color: var(--v3-night-1);
+  font: 400 20px/1 var(--v3-font-display);
+  box-shadow: 0 5px 0 var(--v3-wool-deep, #d8cdb4), 0 14px 26px rgba(8, 12, 32, .35);
+  cursor: pointer;
+  transition: transform .15s var(--v3-ease-soft), box-shadow .15s ease;
+}
+.goodnight-music:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--v3-wool-deep, #d8cdb4), 0 6px 14px rgba(8, 12, 32, .3); }
+.goodnight-music { display: inline-flex; align-items: center; gap: 10px; }
+.goodnight-music--next { background: rgba(255, 248, 232, .16); color: var(--v3-wool); box-shadow: inset 0 0 0 2px rgba(255, 248, 232, .35); }
+.watering-ritual__skip:focus-visible,
+.goodnight-music:focus-visible { outline: 4px solid var(--v3-moon); outline-offset: 4px; }
+
+.goodnight-reward {
+  font-family: var(--v3-font-display);
+  font-size: clamp(18px, 2vw, 22px);
+  background: rgba(255, 248, 232, .14);
+  border: 2px dashed rgba(255, 248, 232, .35);
+}
+.goodnight-reward .v3-num, .goodnight-reward { font-variant-numeric: tabular-nums; }
+
+/* Fit the whole goodnight card into short landscape tablets (≈ 820px high) */
+.goodnight-page { min-height: 100dvh; }
+.goodnight-content {
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.6vh, 16px);
+  padding: clamp(16px, 3vh, 36px) 20px;
+}
+.goodnight-content h1 { margin: 0; font-size: clamp(34px, 6vh, 64px); }
+.goodnight-content .goodnight-reward { margin: 0; }
+.goodnight-content .goodnight-companion { width: auto; height: clamp(160px, 36vh, 340px); max-width: 80vw; margin: 0; }
+.goodnight-content .goodnight-companion img { height: 100%; width: auto; object-fit: contain; }
+.goodnight-player { margin: 0; gap: 10px; }
+.goodnight-player > div { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.goodnight-content > small { color: rgba(255, 248, 232, .78); font-size: 15px; }
+
+.watering-ritual .watering-ritual__skip { bottom: max(34px, env(safe-area-inset-bottom)); }
+.watering-ritual .watering-ritual__skip:active { transform: translate(-50%, 4px); box-shadow: 0 1px 0 var(--v3-wool-deep, #d8cdb4), 0 6px 14px rgba(8, 12, 32, .3); }

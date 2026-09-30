@@ -17,7 +17,7 @@ test('parent assistant stays off by default and all suggestions remain parent-co
   await expect(page.getByText('家长确认前，不会生效')).toBeVisible()
   await expectComfortable(page); await expectImagesLoaded(page)
   await page.screenshot({ path: 'artifacts/visual-qa/120-assistant-parent-desktop.png', fullPage: true })
-  await page.getByRole('navigation', { name: '家长导航' }).getByRole('link', { name: '成长', exact: true }).click()
+  await page.getByRole('navigation', { name: '家长导航' }).getByRole('link', { name: '成长记录', exact: true }).click()
   await expect(page.getByRole('heading', { name: '看见真实的小变化' })).toBeVisible()
   await expect(page.locator('.calm-metrics article')).toHaveCount(5)
   await expect(page.getByText('一起完成，不等于需要变少的陪伴')).toBeVisible()
