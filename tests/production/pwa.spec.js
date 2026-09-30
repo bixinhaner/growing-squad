@@ -19,14 +19,13 @@ test('production app shell and primary illustration work offline', async ({ cont
   await context.setOffline(true)
   await page.goto('/bedtime/tonight', { waitUntil: 'domcontentloaded' })
 
-  await expect(page.getByRole('heading', { name: /一起把睡前.*变得轻松一点/ })).toBeVisible()
-  // The welcome companion is drawn from the pose atlas as a CSS background.
-  const welcomeArt = await page.locator('.v3-welcome__stage .character-pose').evaluate((el) => getComputedStyle(el).backgroundImage.match(/url\("?(.*?)"?\)/)?.[1])
-  expect(welcomeArt).toContain('bear-poses')
-  expect(await page.evaluate(async (url) => new Promise((resolve) => { const img = new Image(); img.onload = () => resolve(img.naturalWidth > 0); img.onerror = () => resolve(false); img.src = url }), welcomeArt)).toBe(true)
+  // No family yet, so the offline visit lands on the welcome picture.
+  await expect(page.getByRole('heading', { name: /不再是一场拉锯/ })).toBeVisible()
+  await expect.poll(() => page.locator('img').evaluateAll((images) => images.length > 0 && images.every((img) => img.complete && img.naturalWidth > 0))).toBe(true)
   const productAssets = await page.evaluate(async () => Promise.all([
-    '/bedtime/assets/garden-world-landscape-v2.webp',
-    '/bedtime/assets/garden-world-portrait-v2.webp',
+    '/bedtime/assets/v4/welcome-family.webp',
+    '/bedtime/assets/v4/treasure-box.webp',
+    '/bedtime/assets/v4/daypart-evening.webp',
     '/bedtime/assets/moonflower-stages-v2.webp',
     '/bedtime/assets/bedtime-object-atlas-v1.webp',
     '/bedtime/assets/companion-atlas-v1.webp',
@@ -52,7 +51,7 @@ test('previously unvisited growth pages and their illustrations load after going
   await page.evaluate(() => navigator.serviceWorker.ready)
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true)
   await context.setOffline(true)
-  for (const [route, heading] of [['today', /现在|今天|今晚|晚间|慢慢/], ['reading', '故事树屋'], ['inventor', '发明家工坊']]) {
+  for (const [route, heading] of [['today', /现在|今天|今晚|晚间|慢慢/], ['reading', '读故事'], ['inventor', '小发明'], ['box', /的宝盒/]]) {
     await page.goto(`/bedtime/${route}`, { waitUntil: 'domcontentloaded' })
     await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible()
     await expect.poll(() => page.locator('img').evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0))).toBe(true)
@@ -115,7 +114,7 @@ test('pet can be adopted and hatched on its first offline visit with all four co
   await page.reload()
   await page.getByRole('button',{name:'一起迎接破壳'}).click()
   await page.getByRole('button',{name:'抱抱我的小伙伴'}).click()
-  await page.getByRole('button',{name:'准备食物',exact:true}).click()
+  await page.locator('.k-pet__act').filter({hasText:'准备食物'}).click()
   await expect(page.getByText('吧唧吧唧，谢谢你准备的小点心。',{exact:true})).toBeVisible()
   await expect.poll(()=>page.locator('img').evaluateAll(images=>images.every(img=>img.complete && img.naturalWidth>0))).toBe(true)
   const sources=await page.evaluate(async()=>Promise.all(['bear','rabbit','cloud','space-cat'].map(async name=>(await fetch(`/bedtime/assets/companions/${name}-poses-v1.webp`)).ok)))

@@ -282,6 +282,7 @@ function legacyBedtimeReducer(state, action) {
         name: action.payload.childName.trim() || '小雨',
         ageBand: action.payload.ageBand,
         companionMode: action.payload.companionMode,
+        ...(CHARACTER_OPTIONS.some((item) => item.id === action.payload.character) ? { character: action.payload.character } : {}),
       }
       const schedules = state.schedules.map((schedule) => ({
         ...schedule,

@@ -10,8 +10,11 @@ import { rootReducer } from '../../modules/registry.js'
 import { createOperationEnvelope } from '../../core/sync/operationSchemas.js'
 import { PET_DEFAULT_SETTINGS, petFor } from '../../modules/pets/petModel.js'
 import { badgeBalance, levelProgress } from '../../modules/pets/petEconomy.js'
-import { PetHomePage } from '../../pages/PetHomePage.jsx'
-import { PetParentPage } from '../../pages/PetParentPage.jsx'
+import { Pet as PetHomePage } from '../../v4/kid/Pet.jsx'
+import { ModulePet } from '../../v4/parent/Modules.jsx'
+import { ToastProvider } from '../../v4/ui/kit.jsx'
+
+const PetParentPage=()=><ToastProvider><ModulePet/></ToastProvider>
 import { PetActor, EggArt } from './PetArt.jsx'
 import { EggMeadow, BadgeItemDialog } from './PetEconomyPanels.jsx'
 const T=Date.parse('2026-09-21T12:00:00+08:00')
@@ -31,7 +34,9 @@ function Harness({initial,children}){
   return <MemoryRouter><BedtimeStateContext.Provider value={{state:toLegacyView(state,'child-1'),cloud:{mode:'local'},saveStatus:'saved'}}><BedtimeActionsContext.Provider value={{dispatch,retrySave:()=>{}}}>{children}<output data-testid="state">{JSON.stringify(state)}</output></BedtimeActionsContext.Provider></BedtimeStateContext.Provider></MemoryRouter>
 }
 const state=()=>JSON.parse(screen.getByTestId('state').textContent)
+const openGrow=user=>user.click(screen.getByRole('button',{name:/^成长：/}))
 async function feedFive(user){
+  await openGrow(user)
   await user.click(screen.getByRole('button',{name:'5 颗',exact:true}))
   await user.click(screen.getByRole('button',{name:'喂一点星光'}))
   await user.click(within(screen.getByRole('dialog',{name:'确认这次星光培养'})).getByRole('button',{name:'确认投入 5 颗星光'}))
@@ -53,6 +58,7 @@ describe('child-visible star growth and badge shop',()=>{
   it('parent mode requests rather than charging immediately; cancelling preserves stars',async()=>{
     vi.spyOn(Date,'now').mockReturnValue(T);const user=userEvent.setup()
     render(<Harness initial={fixture(false)}><PetHomePage/></Harness>)
+    await openGrow(user)
     await user.click(screen.getByRole('button',{name:'5 颗',exact:true}));await user.click(screen.getByRole('button',{name:'喂一点星光'}))
     await user.click(screen.getByRole('button',{name:'请家长同意这次培养'}))
     expect(petFor(state()).economy.invested).toBe(0)
@@ -65,7 +71,7 @@ describe('child-visible star growth and badge shop',()=>{
     vi.spyOn(Date,'now').mockReturnValue(T);const user=userEvent.setup()
     render(<Harness initial={fixture()}><PetHomePage/></Harness>)
     await feedFive(user);await user.click(screen.getByRole('button',{name:'抱抱小伙伴'}))
-    await user.click(screen.getByRole('button',{name:/徽章小铺，余额/}))
+    await user.click(screen.getByRole('button',{name:/徽章小铺/}))
     await user.click(screen.getByRole('button',{name:'预览花花公主裙'}))
     await user.click(screen.getByRole('button',{name:'试穿一下，不扣徽章'}))
     expect(document.querySelector('.plush-outfit-dress-pink')).toBeTruthy();expect(badgeBalance(petFor(state()))).toBe(15)
@@ -79,9 +85,9 @@ describe('child-visible star growth and badge shop',()=>{
     let start=fixture();start=action(start,'PET_REQUEST_GROWTH',{amount:5,requestId:'gift'});start=action(start,'PET_EXCHANGE_BADGES',{itemId:'strawberry-house',requestId:'house'})
     render(<Harness initial={start}><PetHomePage/></Harness>)
     await user.click(screen.getByRole('button',{name:'布置',exact:true}))
-    const card=screen.getByRole('heading',{name:'草莓小屋'}).closest('article')
-    await user.click(within(card).getByRole('button',{name:'摆到小屋'}))
-    await user.click(screen.getByRole('button',{name:'回小屋看看'}))
+    const card=screen.getByText('草莓小屋',{selector:'strong'}).closest('.k-pet__game')
+    await user.click(within(card).getByRole('button',{name:'摆出来'}))
+    await user.click(screen.getByRole('button',{name:'小屋',exact:true}))
     expect(screen.getByRole('button',{name:'住进草莓小屋'})).toBeVisible()
     expect(petFor(state()).placed.house).toBe('strawberry-house')
     expect(badgeBalance(petFor(state()))).toBe(13)
@@ -96,9 +102,11 @@ describe('child-visible star growth and badge shop',()=>{
   })
   it('insufficient stars leave free care accessible without a purchase dialog',async()=>{
     vi.spyOn(Date,'now').mockReturnValue(T);const start=fixture();start.rewards.starLedger=[];start.starLedger=[]
+    const user=userEvent.setup()
     render(<Harness initial={start}><PetHomePage/></Harness>)
-    expect(screen.getByRole('button',{name:'喂一点星光'})).toBeDisabled()
     expect(screen.getByRole('button',{name:'准备食物',exact:true})).toBeEnabled()
+    await openGrow(user)
+    expect(screen.getByRole('button',{name:'喂一点星光'})).toBeDisabled()
   })
   it('all eight egg choices provide a real preview before committing the adoption',async()=>{
     const user=userEvent.setup(),selected=vi.fn()

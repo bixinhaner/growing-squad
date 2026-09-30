@@ -38,6 +38,6 @@ for shard in shards:
     parts.append(out)
 merged = Merger().merge(parts)
 merged.flavor = 'woff2'
-target = os.path.join(ROOT, 'src', 'v3', 'fonts', 'zcool-kuaile-squad.woff2')
+target = os.path.join(ROOT, 'src', 'v4', 'fonts', 'zcool-kuaile-squad.woff2')
 merged.save(target)
 print(f'{len(chars)} characters from {len(parts)} shards -> {os.path.getsize(target) // 1024} KB')

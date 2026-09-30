@@ -8,7 +8,7 @@ import { EggArt } from './PetArt.jsx'
 import { PetStudio, FamilyGarden, WorkPreview } from './PetStudio.jsx'
 import { PetRoomArranger, PetSnapshot } from './PetLifePanels.jsx'
 import { PetPlay } from './PetPlay.jsx'
-import { PetHomePage } from '../../pages/PetHomePage.jsx'
+import { Pet as PetHomePage } from '../../v4/kid/Pet.jsx'
 import { BedtimeStateContext, BedtimeActionsContext } from '../../store/contexts.js'
 import { createDefaultData } from '../../domain/model.js'
 import { normalizeV7, toLegacyView } from '../../domain/v7.js'
@@ -191,7 +191,7 @@ describe('save and stop behavior',()=>{
     const user=userEvent.setup(),state=fixture(false)
     render(<Harness initial={state}><PetHomePage/></Harness>)
     await user.click(screen.getByRole('button',{name:'一起迎接破壳'}))
-    expect(screen.getByRole('dialog',{name:'我们的第一次见面'})).toBeVisible()
+    expect(screen.getByRole('dialog',{name:'你好呀，糯糯'})).toBeVisible()
     await user.click(screen.getByRole('button',{name:'抱抱我的小伙伴'}))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(JSON.parse(screen.getByTestId('saved-state').textContent).byProfile['child-1'].hatchedAt).toBeTruthy()
@@ -199,7 +199,7 @@ describe('save and stop behavior',()=>{
   it('a goal works even when the balance is zero and it does not create a purchase',async()=>{
     const user=userEvent.setup()
     render(<Harness initial={fixture()}><PetHomePage/></Harness>)
-    await user.click(screen.getByRole('button',{name:/徽章小铺，余额/}))
+    await user.click(screen.getByRole('button',{name:/徽章小铺/}))
     const card=screen.getByRole('heading',{name:'星星小夜灯'}).closest('article')
     await user.click(within(card).getByRole('button',{name:'先看看'}))
     await user.click(within(screen.getByRole('dialog')).getByRole('button',{name:'记下这个小愿望'}))
@@ -207,12 +207,12 @@ describe('save and stop behavior',()=>{
     expect(pets.byProfile['child-1'].life.goalItemId).toBe('star-lamp')
     expect(pets.requests).toEqual({})
   })
-  it('simple mode exposes three play choices first and can reveal the rest',async()=>{
-    const user=userEvent.setup(),state=fixture();state.modules.pets.settingsByProfile['child-1']={...PET_DEFAULT_SETTINGS,simpleMode:true}
-    render(<Harness initial={state}><PetHomePage/></Harness>)
-    await user.click(screen.getByRole('button',{name:'玩耍',exact:true}))
-    expect(document.querySelectorAll('.pet-catalog>article')).toHaveLength(3)
-    await user.click(screen.getByRole('button',{name:'看看更多玩法'}))
-    expect(document.querySelectorAll('.pet-catalog>article').length).toBeGreaterThan(3)
+  it('simple mode keeps care to three big choices',async()=>{
+    const simple=fixture();simple.modules.pets.settingsByProfile['child-1']={...PET_DEFAULT_SETTINGS,simpleMode:true}
+    const view=render(<Harness initial={simple}><PetHomePage/></Harness>)
+    expect(view.container.querySelectorAll('.k-pet__act')).toHaveLength(3)
+    cleanup()
+    const full=render(<Harness initial={fixture()}><PetHomePage/></Harness>)
+    expect(full.container.querySelectorAll('.k-pet__act')).toHaveLength(5)
   })
 })

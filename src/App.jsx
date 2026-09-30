@@ -1,66 +1,94 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
-import { ChildStage } from './v3/ChildStage.jsx'
-import { ParentConsole } from './v3/ParentConsole.jsx'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { KidShell } from './v4/kid/KidShell.jsx'
 import { GrowingSquadProvider } from './core/store/GrowingSquadProvider.jsx'
 import { DeviceProvider } from './core/device/DeviceProvider.jsx'
 import { APP_BASENAME, appPath } from './data/paths.js'
-import { useBedtimeState } from './store/useBedtime.js'
-import { useBedtimeActions } from './store/useBedtime.js'
-import { Icon } from './ui/Icons.jsx'
+import { useBedtimeActions, useBedtimeState } from './store/useBedtime.js'
+import { Icon } from './v4/ui/Icon.jsx'
 import { SoundEffectsBridge } from './audio/SoundEffectsBridge.jsx'
-import './app.css'
-import './redesign.css'
 import '@fontsource-variable/fredoka'
-import './v3/tokens.css'
+import './v4/theme.css'
 
 const lazyNamed = (load, name) => lazy(() => load().then((module) => ({ default: module[name] })))
-const WelcomePage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'WelcomeStage')
-const SetupPage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'SetupStage')
-const CloudPairPage = lazyNamed(() => import('./v3/pages/EntryPages.jsx'), 'PairStage')
-const TodayPage = lazyNamed(() => import('./v3/pages/NowScene.jsx'), 'NowScene')
-const WorldPage = lazyNamed(() => import('./v3/pages/WorldMap.jsx'), 'WorldMap')
-const MePage = lazyNamed(() => import('./v3/pages/BackpackRoom.jsx'), 'BackpackRoom')
-const PetHomePage = lazyNamed(() => import('./pages/PetHomePage.jsx'), 'PetHomePage')
-const PetParentPage = lazyNamed(() => import('./pages/PetParentPage.jsx'), 'PetParentPage')
-const TonightPage = lazyNamed(() => import('./v3/pages/TonightScene.jsx'), 'TonightScene')
-const GardenPage = lazyNamed(() => import('./v3/pages/GardenScene.jsx'), 'GardenScene')
-const WishesPage = lazyNamed(() => import('./v3/pages/WishSky.jsx'), 'WishSky')
-const WateringPage = lazyNamed(() => import('./v3/pages/BedtimeRitual.jsx'), 'WateringRitual')
-const GoodnightPage = lazyNamed(() => import('./v3/pages/BedtimeRitual.jsx'), 'GoodnightRoom')
-const ParentGatePage = lazyNamed(() => import('./v3/pages/ParentGate.jsx'), 'ParentGate')
-const ParentOverviewPage = lazyNamed(() => import('./v3/pages/ParentToday.jsx'), 'ParentToday')
-const FamilyTimelinePage = lazyNamed(() => import('./pages/FamilyTimelinePage.jsx'), 'FamilyTimelinePage')
-const SupportPage = lazyNamed(() => import('./pages/SupportPage.jsx'), 'SupportPage')
-const SchedulePage = lazyNamed(() => import('./pages/SchedulePage.jsx'), 'SchedulePage')
-const RoutinePage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignRoutineEditorPage')
-const RewardsPage = lazyNamed(() => import('./pages/RewardsPage.jsx'), 'RewardsPage')
-const ProfilePage = lazyNamed(() => import('./pages/ProfilePage.jsx'), 'ProfilePage')
-const MovementChoicePage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementChoice')
-const MovementReadyPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementReady')
-const MovementPlayPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'MovementPlay')
-const EnergyPlazaPage = lazyNamed(() => import('./v3/pages/EnergyPlaza.jsx'), 'EnergyPlaza')
-const MovementParentPage = lazyNamed(() => import('./pages/MovementParentPage.jsx'), 'MovementParentPage')
-const ReadingShelfPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryShelf')
-const ReadingBookPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryBook')
-const ReadingPlayPage = lazyNamed(() => import('./v3/pages/StoryTreehouse.jsx'), 'StoryPlay')
-const ReadingParentPage = lazyNamed(() => import('./pages/ReadingParentPage.jsx'), 'ReadingParentPage')
-const FamilyCottagePage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyCottage')
-const ResponsibilityRolePage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyRole')
-const ResponsibilityPlayPage = lazyNamed(() => import('./v3/pages/FamilyCottage.jsx'), 'FamilyPlay')
-const ResponsibilityParentPage = lazyNamed(() => import('./pages/ResponsibilityParentPage.jsx'), 'ResponsibilityParentPage')
-const AccessibilityPage = lazyNamed(() => import('./pages/AccessibilityPage.jsx'), 'AccessibilityPage')
-const DevicesPage = lazyNamed(() => import('./pages/DevicesPage.jsx'), 'DevicesPage')
-const DataPage = lazyNamed(() => import('./pages/DataPage.jsx'), 'DataPage')
-const InventorWorkshopPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorWorkshop')
-const InventorNewPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorNew')
-const InventorProjectPage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorProject')
-const InventorShowcasePage = lazyNamed(() => import('./v3/pages/InventorWorkshop.jsx'), 'InventorShowcase')
-const InventorParentPage = lazyNamed(() => import('./pages/InventorParentPage.jsx'), 'InventorParentPage')
-const AssistantPage = lazyNamed(() => import('./pages/AssistantPage.jsx'), 'AssistantPage')
-const WeeklyReportPage = lazyNamed(() => import('./pages/RedesignPages.jsx'), 'RedesignParentGrowthPage')
-const CompanionQuestionPage = lazyNamed(() => import('./v3/pages/CompanionQuestion.jsx'), 'CompanionQuestion')
-const SyncStationPage = lazyNamed(() => import('./pages/SyncStationPage.jsx'), 'SyncStationPage')
+const entry = () => import('./v4/entry/Entry.jsx')
+const WelcomePage = lazyNamed(entry, 'Welcome')
+const SetupPage = lazyNamed(entry, 'Setup')
+const CloudPairPage = lazyNamed(entry, 'Pair')
+const ParentGatePage = lazyNamed(entry, 'ParentGate')
+const NowPage = lazyNamed(() => import('./v4/kid/Now.jsx'), 'Now')
+const TonightPage = lazyNamed(() => import('./v4/kid/TonightPath.jsx'), 'TonightPath')
+const PlayPage = lazyNamed(() => import('./v4/kid/Play.jsx'), 'Play')
+const BoxPage = lazyNamed(() => import('./v4/kid/Box.jsx'), 'Box')
+const Pet = lazyNamed(() => import('./v4/kid/Pet.jsx'), 'Pet')
+const WateringPage = lazyNamed(() => import('./v4/kid/Ritual.jsx'), 'Watering')
+const GoodnightPage = lazyNamed(() => import('./v4/kid/Ritual.jsx'), 'Goodnight')
+const MovementChoicePage = lazyNamed(() => import('./v4/kid/Movement.jsx'), 'MovementHome')
+const MovementPlayPage = lazyNamed(() => import('./v4/kid/Movement.jsx'), 'MovementPlay')
+const ReadingShelfPage = lazyNamed(() => import('./v4/kid/Reading.jsx'), 'ReadingHome')
+const ReadingBookPage = lazyNamed(() => import('./v4/kid/Reading.jsx'), 'ReadingBookRedirect')
+const ReadingPlayPage = lazyNamed(() => import('./v4/kid/Reading.jsx'), 'ReadingPlay')
+const FamilyCottagePage = lazyNamed(() => import('./v4/kid/Family.jsx'), 'FamilyHome')
+const ResponsibilityRolePage = lazyNamed(() => import('./v4/kid/Family.jsx'), 'FamilyRole')
+const ResponsibilityPlayPage = lazyNamed(() => import('./v4/kid/Family.jsx'), 'FamilyPlay')
+const InventorWorkshopPage = lazyNamed(() => import('./v4/kid/Inventor.jsx'), 'InventorHome')
+const InventorNewPage = lazyNamed(() => import('./v4/kid/Inventor.jsx'), 'InventorNew')
+const InventorProjectPage = lazyNamed(() => import('./v4/kid/Inventor.jsx'), 'InventorProject')
+const InventorShowcasePage = lazyNamed(() => import('./v4/kid/Inventor.jsx'), 'InventorShowcase')
+const CompanionQuestionPage = lazyNamed(() => import('./v4/kid/Ask.jsx'), 'Ask')
+
+const growth = () => import('./v4/parent/Growth.jsx')
+const modules = () => import('./v4/parent/Modules.jsx')
+const plan = () => import('./v4/parent/Plan.jsx')
+const family = () => import('./v4/parent/Family.jsx')
+const ParentShell = lazyNamed(() => import('./v4/parent/ParentShell.jsx'), 'ParentShell')
+const ParentNow = lazyNamed(() => import('./v4/parent/ParentNow.jsx'), 'ParentNow')
+const GrowthLayout = lazyNamed(growth, 'GrowthLayout')
+const GrowthMoments = lazyNamed(growth, 'GrowthMoments')
+const GrowthSleep = lazyNamed(growth, 'GrowthSleep')
+const GrowthSupport = lazyNamed(growth, 'GrowthSupport')
+const GrowthAssistant = lazyNamed(growth, 'GrowthAssistant')
+const ModuleMovement = lazyNamed(modules, 'ModuleMovement')
+const ModuleReading = lazyNamed(modules, 'ModuleReading')
+const ModuleChores = lazyNamed(modules, 'ModuleChores')
+const ModuleInventor = lazyNamed(modules, 'ModuleInventor')
+const ModulePet = lazyNamed(modules, 'ModulePet')
+const PlanLayout = lazyNamed(plan, 'PlanLayout')
+const PlanSchedule = lazyNamed(plan, 'PlanSchedule')
+const PlanRoutine = lazyNamed(plan, 'PlanRoutine')
+const PlanDay = lazyNamed(plan, 'PlanDay')
+const PlanWishes = lazyNamed(plan, 'PlanWishes')
+const FamilyLayout = lazyNamed(family, 'FamilyLayout')
+const FamilyKids = lazyNamed(family, 'FamilyKids')
+const FamilyDisplay = lazyNamed(family, 'FamilyDisplay')
+const FamilyDevices = lazyNamed(family, 'FamilyDevices')
+const FamilyData = lazyNamed(family, 'FamilyData')
+const FamilySync = lazyNamed(family, 'FamilySync')
+
+// Addresses from earlier versions (bookmarks, stored activity routes) keep working.
+const LEGACY_CHILD = [
+  ['/world', '/play'], ['/me', '/box?tab=memories'], ['/garden', '/box?tab=garden'], ['/wishes', '/box?tab=wishes'],
+  ['/energy-plaza', '/movement'], ['/story-treehouse', '/reading'], ['/family-cottage', '/family'], ['/responsibility', '/family'],
+  ['/companion-question', '/ask'],
+]
+
+function LegacyFamily({ kind }) {
+  const { activityId, sessionId } = useParams()
+  return <Navigate to={`/family/${kind}/${activityId}/${sessionId}`} replace />
+}
+
+// Parent addresses from v1–v3 map onto the four v4 sections.
+const LEGACY_PARENT = [
+  ['report', 'growth'], ['support', 'growth/support'], ['movement', 'growth/movement'], ['reading', 'growth/reading'],
+  ['responsibility', 'growth/chores'], ['inventor', 'growth/inventor'], ['pet', 'growth/pet'], ['assistant', 'growth/assistant'],
+  ['schedule', 'plan'], ['routine', 'plan/routine'], ['timeline', 'plan/day'], ['rewards', 'plan/wishes'],
+  ['profile', 'family'], ['accessibility', 'family/display'], ['devices', 'family/devices'], ['data', 'family/data'], ['sync', 'family/sync'],
+]
+
+function LegacyOverview() {
+  const [params] = useSearchParams()
+  return <Navigate to={params.get('view') === 'bedtime' ? '/parent/growth/sleep' : '/parent'} replace />
+}
 
 function HomeRedirect() {
   const { state } = useBedtimeState()
@@ -92,9 +120,9 @@ class AppErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <main className="fatal-error">
-          <span><Icon name="moon" size={54} /></span><h1>页面暂时没有准备好</h1><p>你的本地数据仍然保留。请刷新页面再试一次。</p>
-          <button className="button button--primary" type="button" onClick={() => window.location.reload()}>重新打开</button>
+        <main className="u-fatal">
+          <span><Icon name="moon" size={48} /></span><h1 className="u-display">页面暂时没有准备好</h1><p>记录都还在。刷新一下再试试。</p>
+          <button className="u-tap u-tap--primary u-tap--l" type="button" onClick={() => window.location.reload()}>重新打开</button>
         </main>
       )
     }
@@ -109,56 +137,63 @@ function AppRoutes() {
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/setup" element={<SetupPage />} />
       <Route element={<RequireSetup />}>
-        <Route element={<ChildStage />}>
-          <Route path="/today" element={<TodayPage />} />
-          <Route path="/world" element={<WorldPage />} />
-          <Route path="/me" element={<MePage />} />
-          <Route path="/pet" element={<PetHomePage />} />
+        <Route element={<KidShell />}>
+          <Route path="/today" element={<NowPage />} />
           <Route path="/tonight" element={<TonightPage />} />
-          <Route path="/garden" element={<GardenPage />} />
-          <Route path="/wishes" element={<WishesPage />} />
+          <Route path="/play" element={<PlayPage />} />
+          <Route path="/box" element={<BoxPage />} />
+          <Route path="/pet" element={<Pet />} />
           <Route path="/movement" element={<MovementChoicePage />} />
-          <Route path="/movement/ready/:activityId/:sessionId" element={<MovementReadyPage />} />
+          <Route path="/movement/ready/:activityId/:sessionId" element={<MovementPlayPage />} />
           <Route path="/movement/play/:sessionId" element={<MovementPlayPage />} />
-          <Route path="/energy-plaza" element={<EnergyPlazaPage />} />
           <Route path="/reading" element={<ReadingShelfPage />} />
-          <Route path="/story-treehouse" element={<ReadingShelfPage />} />
           <Route path="/reading/book/:bookId" element={<ReadingBookPage />} />
           <Route path="/reading/play/:sessionId" element={<ReadingPlayPage />} />
-          <Route path="/responsibility" element={<FamilyCottagePage />} />
-          <Route path="/family-cottage" element={<FamilyCottagePage />} />
-          <Route path="/responsibility/role/:activityId/:sessionId" element={<ResponsibilityRolePage />} />
-          <Route path="/responsibility/play/:activityId/:sessionId" element={<ResponsibilityPlayPage />} />
+          <Route path="/family" element={<FamilyCottagePage />} />
+          <Route path="/family/role/:activityId/:sessionId" element={<ResponsibilityRolePage />} />
+          <Route path="/family/play/:activityId/:sessionId" element={<ResponsibilityPlayPage />} />
           <Route path="/inventor" element={<InventorWorkshopPage />} />
           <Route path="/inventor/new" element={<InventorNewPage />} />
           <Route path="/inventor/project/:projectId" element={<InventorProjectPage />} />
           <Route path="/inventor/showcase/:projectId" element={<InventorShowcasePage />} />
-          <Route path="/companion-question" element={<CompanionQuestionPage />} />
+          <Route path="/ask" element={<CompanionQuestionPage />} />
         </Route>
+        {LEGACY_CHILD.map(([from, to]) => <Route key={from} path={from} element={<Navigate to={to} replace />} />)}
+        <Route path="/responsibility/role/:activityId/:sessionId" element={<LegacyFamily kind="role" />} />
+        <Route path="/responsibility/play/:activityId/:sessionId" element={<LegacyFamily kind="play" />} />
         <Route path="/watering" element={<WateringPage />} />
         <Route path="/goodnight" element={<GoodnightPage />} />
         <Route path="/parent/unlock" element={<ParentGatePage />} />
         <Route element={<RequireParent />}>
-          <Route path="/parent" element={<ParentConsole />}>
-            <Route index element={<Navigate to="overview" replace />} />
-            <Route path="overview" element={<ParentOverviewPage />} />
-            <Route path="timeline" element={<FamilyTimelinePage />} />
-            <Route path="support" element={<SupportPage />} />
-            <Route path="movement" element={<MovementParentPage />} />
-            <Route path="reading" element={<ReadingParentPage />} />
-            <Route path="responsibility" element={<ResponsibilityParentPage />} />
-            <Route path="inventor" element={<InventorParentPage />} />
-            <Route path="report" element={<WeeklyReportPage />} />
-            <Route path="assistant" element={<AssistantPage />} />
-            <Route path="schedule" element={<SchedulePage />} />
-            <Route path="routine" element={<RoutinePage />} />
-            <Route path="rewards" element={<RewardsPage />} />
-            <Route path="pet" element={<PetParentPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="accessibility" element={<AccessibilityPage />} />
-            <Route path="devices" element={<DevicesPage />} />
-            <Route path="data" element={<DataPage />} />
-            <Route path="sync" element={<SyncStationPage />} />
+          <Route path="/parent" element={<ParentShell />}>
+            <Route index element={<ParentNow />} />
+            <Route path="growth" element={<GrowthLayout />}>
+              <Route index element={<GrowthMoments />} />
+              <Route path="sleep" element={<GrowthSleep />} />
+              <Route path="support" element={<GrowthSupport />} />
+              <Route path="movement" element={<ModuleMovement />} />
+              <Route path="reading" element={<ModuleReading />} />
+              <Route path="chores" element={<ModuleChores />} />
+              <Route path="inventor" element={<ModuleInventor />} />
+              <Route path="pet" element={<ModulePet />} />
+              <Route path="assistant" element={<GrowthAssistant />} />
+            </Route>
+            <Route path="plan" element={<PlanLayout />}>
+              <Route index element={<PlanSchedule />} />
+              <Route path="routine" element={<PlanRoutine />} />
+              <Route path="day" element={<PlanDay />} />
+              <Route path="wishes" element={<PlanWishes />} />
+            </Route>
+            <Route path="family" element={<FamilyLayout />}>
+              <Route index element={<FamilyKids />} />
+              <Route path="display" element={<FamilyDisplay />} />
+              <Route path="devices" element={<FamilyDevices />} />
+              <Route path="data" element={<FamilyData />} />
+              <Route path="sync" element={<FamilySync />} />
+            </Route>
+            <Route path="overview" element={<LegacyOverview />} />
+            {LEGACY_PARENT.map(([from, to]) => <Route key={from} path={from} element={<Navigate to={`/parent/${to}`} replace />} />)}
+            <Route path="*" element={<Navigate to="/parent" replace />} />
           </Route>
         </Route>
       </Route>
@@ -167,14 +202,18 @@ function AppRoutes() {
   )
 }
 
+function Loading({ text }) {
+  return <main className="u-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><span className="u-loading__dots" aria-hidden="true"><i /><i /><i /></span>{text ? <strong>{text}</strong> : <span className="u-sr">正在打开</span>}</main>
+}
+
 function CloudBoundary() {
   const { cloud } = useBedtimeState()
   const { pairCloud } = useBedtimeActions()
   if (cloud.mode === 'checking') {
-    return <main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>成长小队正在打开家庭花园…</strong><span className="spinner" /></main>
+    return <Loading text="正在连上家里的云端…" />
   }
-  if (cloud.mode === 'pairing') return <Suspense fallback={<main className="cloud-loading" aria-live="polite"><span className="spinner" /></main>}><CloudPairPage onPaired={pairCloud} /></Suspense>
-  return <><SoundEffectsBridge /><BrowserRouter basename={APP_BASENAME}><Suspense fallback={<main className="cloud-loading" aria-live="polite"><img src={appPath('assets/app-icon.png')} alt="" /><strong>正在打开这片小天地…</strong><span className="spinner" /></main>}><AppRoutes /></Suspense></BrowserRouter><UpdateNotice /></>
+  if (cloud.mode === 'pairing') return <Suspense fallback={<Loading />}><CloudPairPage onPaired={pairCloud} /></Suspense>
+  return <><SoundEffectsBridge /><BrowserRouter basename={APP_BASENAME}><Suspense fallback={<Loading />}><AppRoutes /></Suspense></BrowserRouter><UpdateNotice /></>
 }
 
 function UpdateNotice() {
@@ -200,7 +239,7 @@ function UpdateNotice() {
     return () => { active = false; navigator.serviceWorker.removeEventListener('controllerchange', reload) }
   }, [])
   if (!worker) return null
-  return <aside className="update-notice" role="status"><Icon name="moon" /><span><strong>新版本准备好了</strong><small>建议今晚流程结束后更新</small></span><button type="button" onClick={() => { reloadRequested.current = true; worker.postMessage({ type: 'SKIP_WAITING' }) }}>现在更新</button><button type="button" aria-label="稍后更新" onClick={() => setWorker(null)}><Icon name="close" /></button></aside>
+  return <aside className="u-update" role="status"><Icon name="sparkle" size={20} /><span><strong>新版本准备好了</strong><small>睡前流程结束后再更新也可以</small></span><button type="button" className="u-tap u-tap--primary u-tap--s" onClick={() => { reloadRequested.current = true; worker.postMessage({ type: 'SKIP_WAITING' }) }}>现在更新</button><button type="button" className="u-tap u-tap--quiet u-tap--s u-tap--round" aria-label="稍后更新" onClick={() => setWorker(null)}><Icon name="close" size={16} /></button></aside>
 }
 
 export default function App() {
